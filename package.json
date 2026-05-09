@@ -1,0 +1,21 @@
+{
+  "name": "dominion-simulator",
+  "module": "index.ts",
+  "type": "module",
+  "private": true,
+  "workspaces": [
+    "packages/*"
+  ],
+  "devDependencies": {
+    "@types/bun": "latest"
+  },
+  "peerDependencies": {
+    "typescript": "^5"
+  },
+  "scripts": {
+    "dev": "conc 'bun run --cwd packages/server dev' 'bun run --cwd packages/client watch'"
+  },
+  "dependencies": {
+    "concurrently": "^9.2.1"
+  }
+}
