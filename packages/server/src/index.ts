@@ -18,6 +18,7 @@ app.use(cors())
 
 let count = 0
 let clientid = 0
+let serverMessage = ""
 
 app.get("/api", (c) => {
   return c.text("Hi! " + count)
@@ -35,7 +36,8 @@ app.post("/count", async (c) => {
   count = parseInt(text)
   for (let value of webby.values()) {
     value.send(JSON.stringify({
-      msg: "Here's the count! " + count,
+      // msg: "Here's the count! " + count,
+      msg: serverMessage,
       count: count
     }))
   }
@@ -58,18 +60,20 @@ app.use("/socket", upgradeWebSocket((c) => {
     },
     onMessage: async (event, ws) => {
       let msg = event.data.toString()
+      serverMessage = msg
       console.log("Message data: %s", msg)
-      let json = JSON.stringify({
-        msg: "Hi Client!",
-        count: count
-      })
-      ws.send(json)
-      await new Promise((r) => setTimeout(r, 1000))
-      json = JSON.stringify({
-        msg: format("Your message was %s characters long", msg.length),
-        count: count
-      })
-      ws.send(json)
+      for (let value of webby.values()) {
+        value.send(JSON.stringify({
+          msg: serverMessage,
+          count: count
+        }))
+      }
+      // await new Promise((r) => setTimeout(r, 1000))
+      // json = JSON.stringify({
+      //   msg: format("Your message was %s characters long", msg.length),
+      //   count: count
+      // })
+      // ws.send(json)
     },
     onClose: () => {
       console.log("Closed :(")

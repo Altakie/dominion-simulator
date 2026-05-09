@@ -1,9 +1,9 @@
-import { useEffect, useState, type SetStateAction } from 'react'
+import { useEffect, useState, type Dispatch, type SetStateAction, useRef } from 'react'
 import reactLogo from './assets/react.svg'
 import viteLogo from './assets/vite.svg'
 import heroImg from './assets/hero.png'
 import './App.css'
-import { useQuery, useMutation, QueryClientProvider, QueryClient, useQueryClient } from "@tanstack/react-query"
+import { useQuery, useMutation, QueryClient, useQueryClient, } from "@tanstack/react-query"
 
 
 function App() {
@@ -28,19 +28,9 @@ function App() {
     }
   )
 
-  const ws = new WebSocket("/socket")
-  ws.onopen = () => {
-    console.log("Opened Connection!")
-  }
+  let ws = useWebSocket(setMessage, setCount, queryClient)
 
-  ws.onmessage = (ev) => {
-    let json = JSON.parse(ev.data)
-    setMessage(json.msg)
-    setCount(json.count)
-    queryClient.invalidateQueries({
-      queryKey: ['count']
-    })
-  }
+
 
   // ws.send("Skeeby Deeby")
 
@@ -61,7 +51,7 @@ function App() {
         </div>
         <input value={input} onChange={(e) => setInput(e.target.value)}></input>
         <button onClick={() => {
-          ws.send(input)
+          ws.current.send(input)
           setInput("")
         }}>WebSocket Send</button>
         <button
@@ -229,7 +219,38 @@ function Loading() {
 //   ws.send("Skeeby Deeby")
 // }
 
+function useWebSocket(setMessage, setCount, queryClient) {
+  const ws = useRef<WebSocket>(null)
+  // new WebSocket('/socket')
+  useEffect(
+    () => {
+      function connect(attempt: number) {
+        ws.current = new WebSocket("/socket")
+        ws.current.onopen = () => {
+          console.log("Opened Connection!")
+        }
 
+        ws.current.onmessage = (ev) => {
+          let json = JSON.parse(ev.data)
+          setMessage(json.msg)
+          setCount(json.count)
+          queryClient.invalidateQueries({
+            queryKey: ['count']
+          })
+        }
 
+        ws.current.onclose = () => {
+          setTimeout(() => connect(attempt + 1), Math.min(2000 ** attempt, 30000))
+        }
+      }
+
+      connect(0)
+
+      return () => ws.current.close()
+    }, []
+  )
+
+  return ws
+}
 
 export default App
