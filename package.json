@@ -16,6 +16,7 @@
     "dev": "conc 'bun run --cwd packages/server dev' 'bun run --cwd packages/client watch'"
   },
   "dependencies": {
+    "@tanstack/react-query": "^5.100.9",
     "concurrently": "^9.2.1"
   }
 }
