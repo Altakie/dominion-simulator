@@ -9,9 +9,18 @@ import { type Card } from "./cards"
 // })
 
 
-type GamePhase = "Action" | "Money" | "Buy" | "Reaction" | "Cleanup"
 
-type Player = {
+export const GamePhase = Object.freeze({
+  ACTION: "Action",
+  MONEY: "Money",
+  BUY: "Buy",
+  REACTION: "Reaction",
+  // CLEANUP: "Cleanup"
+})
+
+export type GamePhases = typeof GamePhase[keyof typeof GamePhase]
+
+export type Player = {
   name: string,
   hand: Card[],
   deck: Card[],
@@ -19,13 +28,14 @@ type Player = {
 }
 
 export type GameState = {
-  phase: GamePhase,
-  currentPlayer: Player,
-  turn_number: number,
+  phase: GamePhases;
+  current_player: Player;
+  turn_number: number;
 
-  active_card?: Card,
+  active_card?: Card;
 
-  actions: number,
-  money: number,
-  buys: number,
+  actions: number;
+  money: number;
+  buys: number;
 }
+
