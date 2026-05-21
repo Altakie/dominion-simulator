@@ -1,15 +1,13 @@
-import { useEffect, useState, type Dispatch, type SetStateAction, useRef } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from './assets/vite.svg'
-import heroImg from './assets/hero.png'
+import { useEffect, useState, type Dispatch, type SetStateAction, useRef, type RefObject } from 'react'
 import './App.css'
 import { useQuery, useMutation, QueryClient, useQueryClient, } from "@tanstack/react-query"
 
 
 function App() {
   const [count, setCount] = useState(0)
-  const [msg, setMessage] = useState("")
   const [input, setInput] = useState("")
+  const [messages, setMessages] = useState<string[]>([])
+  const [name, setName] = useState("")
 
   const queryClient = useQueryClient();
 
@@ -28,9 +26,24 @@ function App() {
     }
   )
 
-  let ws = useWebSocket(setMessage, setCount, queryClient)
+  let ws = useWebSocket()
 
-  addEventListener
+  useEffect(() => {
+    if (ws.current) {
+      ws.current.onmessage = (ev) => {
+        let json = JSON.parse(ev.data)
+        if (json.msg) {
+          setMessages([...messages, json.msg])
+        }
+        setCount(json.count)
+
+        queryClient.invalidateQueries({
+          queryKey: ['count']
+        })
+      }
+    }
+  }
+    , [ws, messages])
 
 
   // ws.send("Skeeby Deeby")
@@ -39,19 +52,10 @@ function App() {
     <>
       <section id='center'>
 
-        <p>Server Message: {msg}</p>
-        <input value={input} onChange={(e) => setInput(e.target.value)}
-          onKeyDown={(ev) => {
-            if (ev.key == 'Enter') {
-              ws.current.send(input)
-              setInput("")
-            }
-          }}
-        ></input>
-        <button onClick={() => {
-          ws.current.send(input)
-          setInput("")
-        }}>WebSocket Send</button>
+        <p>Your Name:
+          <input value={name} onChange={(e) => setName(e.target.value)}
+          ></input>
+        </p>
         <button
           type="button"
           className="counter"
@@ -66,6 +70,17 @@ function App() {
           {/* Count is {count} */}
         </button>
         <p>Server says <ServerRes /></p>
+        <input value={input} onChange={(e) => setInput(e.target.value)}
+          onKeyDown={(ev) => {
+            if (ev.key == 'Enter') {
+              sendMessage(ws, name, input, setInput)
+            }
+          }}
+        ></input>
+        <button onClick={() => {
+          sendMessage(ws, name, input, setInput)
+        }}>WebSocket Send</button>
+        <MessageLog messages={messages} />
       </section>
     </>
   )
@@ -74,14 +89,6 @@ function App() {
 function ServerRes() {
   const { isPending, isError, data, error } = useQuery({
     queryKey: ["Server"], queryFn: async () => {
-      // const ws = new WebSocket("http://localhost:3000/api")
-      // ws.onmessage = (event) => {
-      //   new Response(event.data).text().then((s) => {
-      //     setRes(s)
-      //   })
-      // }
-      //
-      // return () => ws.close()
 
       return fetch("/api").then((r) => r.text().then(
         (t) => {
@@ -131,25 +138,17 @@ function Loading() {
 //   ws.send("Skeeby Deeby")
 // }
 
-function useWebSocket(setMessage, setCount, queryClient) {
+function useWebSocket() {
   const ws = useRef<WebSocket>(null)
   // new WebSocket('/socket')
   useEffect(
     () => {
       function connect(attempt: number) {
         ws.current = new WebSocket("/socket")
-        ws.current.onopen = () => {
+        ws.current.onopen = (ev) => {
           console.log("Opened Connection!")
         }
 
-        ws.current.onmessage = (ev) => {
-          let json = JSON.parse(ev.data)
-          setMessage(json.msg)
-          setCount(json.count)
-          queryClient.invalidateQueries({
-            queryKey: ['count']
-          })
-        }
 
         ws.current.onclose = () => {
           setTimeout(() => connect(attempt + 1), Math.min(2000 ** attempt, 30000))
@@ -164,5 +163,22 @@ function useWebSocket(setMessage, setCount, queryClient) {
 
   return ws
 }
+
+function MessageLog({ messages }) {
+
+  return (
+    <>
+      {
+        messages.map((message: string) => <p>{message}</p>)
+      }
+    </>
+  )
+}
+
+function sendMessage(ws: RefObject<WebSocket>, name: string, message: string, setInput: Dispatch<SetStateAction<string>>) {
+  ws.current.send(`[${name}]: ${message}`)
+  setInput("")
+}
+
 
 export default App

@@ -6,6 +6,19 @@ import { format } from "util";
 import { WSContext } from "hono/ws";
 import { setCookie, getCookie } from "hono/cookie";
 
+
+// interface Message {
+//   type: string;
+//   count: number;
+//   messages: string[];
+//
+//   constructor(type: string, count: number, messages: string[]) {
+//     this.type = type
+//     this.count = count
+//     this.messages = messages
+//   }
+// }
+
 const app = new Hono()
 
 // app.use(cors({
@@ -18,7 +31,7 @@ app.use(cors())
 
 let count = 0
 let clientid = 0
-let serverMessage = ""
+let messages: string[] = []
 
 app.get("/api", (c) => {
   return c.text("Hi! " + count)
@@ -37,7 +50,7 @@ app.post("/count", async (c) => {
   for (let value of webby.values()) {
     value.send(JSON.stringify({
       // msg: "Here's the count! " + count,
-      msg: serverMessage,
+      // msg: serverMessage,
       count: count
     }))
   }
@@ -46,13 +59,14 @@ app.post("/count", async (c) => {
 
 app.use("/socket", upgradeWebSocket((c) => {
   return {
-    onOpen: async (event, ws) => {
+    onOpen: async (ev, ws) => {
       const clientid = getCookie(c, 'clientid')
       if (!clientid) {
         ws.send(JSON.stringify({
           msg: "No clientid",
           count: count,
         }))
+
         return
       }
 
@@ -60,11 +74,12 @@ app.use("/socket", upgradeWebSocket((c) => {
     },
     onMessage: async (event, ws) => {
       let msg = event.data.toString()
-      serverMessage = msg
+      // serverMessage = msg
       console.log("Message data: %s", msg)
+      messages.push(msg)
       for (let value of webby.values()) {
         value.send(JSON.stringify({
-          msg: serverMessage,
+          msg: msg,
           count: count
         }))
       }
