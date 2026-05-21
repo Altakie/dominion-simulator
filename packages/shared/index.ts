@@ -1,21 +1,31 @@
-export const GamePhase = Object.freeze({
-  Action: 0,
-  Reaction: 1,
-  Money: 2,
-  Buy: 3,
-  Cleanup: 4
-})
+import { type Card } from "./cards"
 
-export const CardType = Object.freeze({
+// export const GamePhase = Object.freeze({
+//   Action: 0,
+//   Reaction: 1,
+//   Money: 2,
+//   Buy: 3,
+//   Cleanup: 4
+// })
 
-})
 
-export type Card = {
-  id: string,
+type GamePhase = "Action" | "Money" | "Buy" | "Reaction" | "Cleanup"
+
+type Player = {
   name: string,
-  type: typeof CardType
+  hand: Card[],
+  deck: Card[],
+  discard_pile: Card[]
 }
 
-// export type GameState = {
-//   phase: GamePhase,
-// }
+export type GameState = {
+  phase: GamePhase,
+  currentPlayer: Player,
+  turn_number: number,
+
+  active_card?: Card,
+
+  actions: number,
+  money: number,
+  buys: number,
+}
