@@ -16,7 +16,7 @@ function App() {
       mutationKey: ['count'],
       mutationFn: async (count: number) => {
         return await fetch("/count", {
-          method: "POST",
+          method: "PUT",
           body: count.toString(),
         })
       },

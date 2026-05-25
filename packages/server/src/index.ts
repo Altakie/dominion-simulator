@@ -29,7 +29,7 @@ app.get("/count", (c) => {
 
 let webby: Map<string, WSContext> = new Map();
 
-app.post("/count", async (c) => {
+app.put("/count", async (c) => {
 
   let text = await c.req.text()
   count = parseInt(text)
