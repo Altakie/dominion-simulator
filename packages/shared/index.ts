@@ -24,7 +24,9 @@ export type Player = {
   name: string,
   hand: Card[],
   deck: Card[],
-  discard_pile: Card[]
+  discard_pile: Card[],
+
+  victory_points: number
 }
 
 export type GameState = {

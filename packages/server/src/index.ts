@@ -6,19 +6,6 @@ import { format } from "util";
 import { WSContext } from "hono/ws";
 import { setCookie, getCookie } from "hono/cookie";
 
-
-// interface Message {
-//   type: string;
-//   count: number;
-//   messages: string[];
-//
-//   constructor(type: string, count: number, messages: string[]) {
-//     this.type = type
-//     this.count = count
-//     this.messages = messages
-//   }
-// }
-
 const app = new Hono()
 
 // app.use(cors({
