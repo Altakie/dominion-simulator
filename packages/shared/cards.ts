@@ -25,4 +25,3 @@ export const CardTypes = Object.freeze({
 type CardType = typeof CardTypes[keyof typeof CardTypes]
 
 export type CardName = BaseName | TreasureName | VictoryName | CurseName
-

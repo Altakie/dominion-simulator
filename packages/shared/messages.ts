@@ -27,7 +27,7 @@ export interface DisconnectMessage extends Message {
 }
 
 export interface PlayerNamesMessage extends Message {
-  kind: typeof MessageKind.DISCONNECT,
+  kind: typeof MessageKind.PLAYER_NAMES,
   player_names: string[],
 }
 //
