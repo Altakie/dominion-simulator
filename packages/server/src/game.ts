@@ -1,3 +1,4 @@
+import type { WSContext } from "hono/ws"
 import { type Player, type GameState, GamePhase } from "shared"
 import { CardTypes, type CardInfo } from "shared/cards"
 import { effect_table } from "./effects";
@@ -16,19 +17,25 @@ function new_game_state(current_player: Player): GameState {
   }
 }
 
+export type PlayerInfo = {
+  player: Player,
+  clientid: string,
+  socket: WSContext
+}
+
 export class Game {
-  players: Player[];
+  players: PlayerInfo[];
   state: GameState;
   supply: Supply;
 
-  constructor(players: Player[]) {
+  constructor(players: PlayerInfo[]) {
     this.players = players
-    this.state = new_game_state(this.players[0]!)
+    this.state = new_game_state(this.players[0]!.player)
     this.supply = new Supply(players.length)
   }
 
   get_players(): Player[] {
-    return this.players
+    return this.players.map((player_info) => player_info.player)
   }
 
   new_turn(current_player: Player) {

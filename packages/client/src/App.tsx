@@ -1,8 +1,8 @@
-import { useEffect, useState, type Dispatch, type SetStateAction, useRef, type RefObject, createContext, useContext } from 'react'
+import { useEffect, useState, useRef, createContext, useContext, type RefObject } from 'react'
 import './App.css'
-import { useQuery, useMutation, QueryClient, useQueryClient, } from "@tanstack/react-query"
 import { type JSX } from 'react'
-import { BrowserRouter, Routes, Route, Link } from 'react-router-dom';
+// import { BrowserRouter, Routes, Route, Link } from 'react-router-dom';
+import { serializeMessage, MessageKind, parseMessage, type ConnectMessage, type DisconnectMessage, type PlayerNamesMessage } from "shared/messages"
 
 
 export const StateContext = createContext<{
@@ -40,15 +40,13 @@ function Test() {
 }
 
 function Home() {
-  const [input, setInput] = useState("")
   const [messages, setMessages] = useState<string[]>([])
   const [name, setName] = useState("")
 
-  const queryClient = useQueryClient();
 
   let ws = useMessageSocket()
 
-  let { state, setState } = useContext(StateContext)
+  let { setState } = useContext(StateContext)
 
   useEffect(() => {
     if (ws.current) {
@@ -74,23 +72,16 @@ function Home() {
       <section id='center'>
 
         <p>Your Name:
-          <input value={name} onChange={(e) => setName(e.target.value)}
+          <input value={name} onChange={(e) => setName(e.target.value)
+          }
           ></input>
         </p>
-        <button onClick={() => { setState("Game") }}>
+        <button onClick={() => {
+          setState("Game");
+          ws.current.send(name)
+        }}>
           Join Game
         </button>
-        <input value={input} onChange={(e) => setInput(e.target.value)}
-          onKeyDown={(ev) => {
-            if (ev.key == 'Enter') {
-              sendMessage(ws, name, input, setInput)
-            }
-          }}
-        ></input>
-        <button onClick={() => {
-          sendMessage(ws, name, input, setInput)
-        }}>WebSocket Send</button>
-        <MessageLog messages={messages} />
       </section>
     </>
   )
@@ -104,48 +95,99 @@ function useMessageSocket() {
     () => {
       function connect(attempt: number) {
         ws.current = new WebSocket("/socket")
-        ws.current.onopen = (ev) => {
+        ws.current.onopen = () => {
           console.log("Opened Connection!")
         }
 
 
-        ws.current.onclose = () => {
-          setTimeout(() => connect(attempt + 1), Math.min(2000 ** attempt, 30000))
+        ws.current.onclose = (ev,) => {
+          if (ev.code !== 1000) {
+            setTimeout(() => connect(attempt + 1), Math.min(2000 ** attempt, 30000))
+
+          }
         }
       }
 
       connect(0)
 
-      return () => ws.current.close()
+      return () => ws.current.close(1000)
     }, []
   )
 
   return ws
 }
 
-function MessageLog({ messages }) {
+// function MessageLog({ messages }) {
+//
+//   return (
+//     <>
+//       {
+//         messages.map((message: string) => <p>{message}</p>)
+//       }
+//     </>
+//   )
+// }
 
-  return (
-    <>
-      {
-        messages.map((message: string) => <p>{message}</p>)
-      }
-    </>
-  )
-}
-
-function sendMessage(ws: RefObject<WebSocket>, name: string, message: string, setInput: Dispatch<SetStateAction<string>>) {
-  ws.current.send(`[${name}]: ${message}`)
-  setInput("")
-}
+// function sendMessage(ws: RefObject<WebSocket>, name: string, message: string, setInput: Dispatch<SetStateAction<string>>) {
+//   ws.current.send(`[${name}]: ${message}`)
+//   setInput("")
+// }
 
 function Game() {
   let gameSocket = useGameSocket();
-  let { state, setState } = useContext(StateContext)
+  let { setState } = useContext(StateContext)
+  let [player_names, setPlayerNames] = useState<Set<string>>(new Set())
+
+  useEffect(
+    () => {
+      if (!gameSocket) {
+        return
+      }
+      gameSocket.current.onmessage = (ev) => {
+        console.log(`Message: ${ev.data}`)
+        let msg = parseMessage(ev.data)
+        if (!msg) {
+          return
+        }
+
+        switch (msg.kind) {
+          case MessageKind.PLAYER_NAMES:
+            let player_msg = msg as PlayerNamesMessage
+            setPlayerNames(new Set(player_msg.player_names))
+            console.log(JSON.stringify([...player_names]))
+            break
+          case MessageKind.CONNECT:
+            let conn_msg = msg as ConnectMessage
+            setPlayerNames(prev => {
+              prev.add(conn_msg.player_name)
+              return new Set(prev)
+            })
+            break
+          case MessageKind.DISCONNECT:
+            let disconn_msg = msg as DisconnectMessage
+            setPlayerNames(prev => {
+              prev.delete(disconn_msg.player_name)
+              return new Set(prev)
+            })
+            break
+        }
+      }
+    }
+    , [gameSocket]
+  )
+
   return (
     <>
       <h1>Welcome to the game</h1>
-      <button onClick={() => { }}>Start Game</button>
+      <button onClick={() => {
+        console.log("Attempting to start game")
+        gameSocket.current.send(serializeMessage({
+          kind: MessageKind.START
+        }))
+      }}>Start Game</button>
+
+      <PlayerLobby players={player_names}></PlayerLobby>
+
       <button onClick={() => {
         setState("Home")
         gameSocket.current.close(1000)
@@ -168,7 +210,7 @@ function useGameSocket() {
 
         ws.current.onclose = (ev) => {
           console.log(ev.code)
-          if (ev.code != 1000) {
+          if (ev.code !== 1000) {
             setTimeout(() => connect(attempt + 1), Math.min(2000 ** attempt, 30000))
           }
         }
@@ -176,11 +218,26 @@ function useGameSocket() {
 
       connect(0)
 
+      // ws.current.send(serializeMessage({
+      //   kind: MessageKind.CONNECT,
+      // }))
+
       return () => ws.current.close()
     }, []
   )
 
   return ws
+}
+
+function PlayerLobby({ players }: { players: Set<string> }) {
+  return <>
+    <h2>Players:</h2>
+    <ul>
+      {[...players].map((name) =>
+        <li>{name}</li>
+      )}
+    </ul>
+  </>
 }
 
 

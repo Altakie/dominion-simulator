@@ -29,6 +29,16 @@ export type Player = {
   victory_points: number
 }
 
+export function new_player(name: string): Player {
+  return {
+    name: name,
+    hand: [],
+    deck: [],
+    discard_pile: [],
+    victory_points: 0
+  }
+}
+
 export type GameState = {
   phase: GamePhases;
   current_player: Player;
