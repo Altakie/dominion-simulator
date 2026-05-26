@@ -1,16 +1,19 @@
 import type { WSContext } from "hono/ws"
 import { type Player, type GameState, GamePhase } from "shared"
 import { effect_table } from "./effects";
-import { Supply } from "./supply";
+import { Supply } from "shared/supply";
 import { CardTypes, type CardInfo, type CardName } from "shared/cards"
 import { MessageKind, serializeMessage } from "shared/messages"
+import { shuffle } from "shared/shuffle"
 
-function new_game_state(current_player: Player): GameState {
+function new_game_state(current_player: Player, supply: Supply): GameState {
   return {
     current_player: current_player,
     phase: GamePhase.ACTION,
 
     turn_number: 1,
+
+    supply: supply,
 
     actions: 1,
     money: 0,
@@ -27,17 +30,18 @@ export type PlayerInfo = {
 export class Game {
   players: PlayerInfo[];
   state: GameState;
-  supply: Supply;
 
   constructor(players: PlayerInfo[]) {
-    // TODO: Shuffle players
-    this.players = players
-    this.state = new_game_state(this.players[0]!.player)
-    this.supply = new Supply(players.length)
+    this.players = shuffle(players)
+    this.state = new_game_state(this.players[0]!.player, new Supply(players.length))
   }
 
   get_players(): Player[] {
     return this.players.map((player_info) => player_info.player)
+  }
+
+  get_player_names(): string[] {
+    return this.players.map((player_info) => player_info.player.name)
   }
 
   new_turn(current_player: Player) {

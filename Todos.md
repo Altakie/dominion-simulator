@@ -11,6 +11,4 @@
 
 ## Minor Features
 
-- implement shuffle algorithm (Fisher Yates)
-
 ## Bugs

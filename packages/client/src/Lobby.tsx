@@ -1,4 +1,4 @@
-import { serializeMessage, MessageKind, parseMessage, type ConnectMessage, type DisconnectMessage, type PlayerNamesMessage } from "shared/messages"
+import { serializeMessage, MessageKind, parseMessage, type ConnectMessage, type DisconnectMessage, type PlayerNamesMessage, type StartedMessage } from "shared/messages"
 import { useEffect, useState, useRef, useContext } from 'react'
 import { StateContext } from "./App";
 import './App.css'
@@ -8,7 +8,9 @@ export function Lobby() {
   let gameSocket = useGameSocket();
   let { setState } = useContext(StateContext)
   let [player_names, setPlayerNames] = useState<Set<string>>(new Set())
+  let [player_names_in_order, setPlayerNamesInOrder] = useState<string[]>([])
   let [gameStarted, setGameStarted] = useState(false);
+  let [gameState, setGameState] = useState(null)
 
   useEffect(
     () => {
@@ -43,6 +45,9 @@ export function Lobby() {
             })
             break
           case MessageKind.STARTED:
+            let started_msg = msg as StartedMessage
+            setPlayerNamesInOrder(started_msg.player_name_order)
+            setGameState(started_msg.state)
             setGameStarted(true)
         }
       }
@@ -70,7 +75,7 @@ export function Lobby() {
       </>
     )
   } else {
-    return <Game />
+    return <Game players={[...player_names]} game_state={gameState} />
   }
 
 }

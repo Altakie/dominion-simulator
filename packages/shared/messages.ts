@@ -1,5 +1,7 @@
 // type ServerMessage = 
 
+import type { GameState } from "."
+
 // type ClientMessage = 
 export const MessageKind = Object.freeze({
   CONNECT: "Connect",
@@ -30,6 +32,13 @@ export interface PlayerNamesMessage extends Message {
   kind: typeof MessageKind.PLAYER_NAMES,
   player_names: string[],
 }
+
+export interface StartedMessage extends Message {
+  kind: typeof MessageKind.STARTED,
+  player_name_order: string[],
+  state: GameState,
+}
+
 //
 // export interface StartMessage extends Message {
 //   kind: typeof MessageKind.START,

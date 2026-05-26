@@ -1,9 +1,9 @@
-import type { Card, CardInfo } from "shared/cards"
-import { Copper, Silver, Gold } from "shared/cards/treasures"
-import { Estate, Duchy, Province } from "shared/cards/victories"
-import { Curse } from "shared/cards/curses"
-import { shuffle } from "./effects"
-import { BaseCards } from "shared/cards/base"
+import type { Card, CardInfo } from "./cards"
+import { Copper, Silver, Gold } from "./cards/treasures"
+import { Estate, Duchy, Province } from "./cards/victories"
+import { Curse } from "./cards/curses"
+import { shuffle } from "./shuffle"
+import { BaseCards } from "./cards/base"
 
 type supplyStack = {
     card: CardInfo,

@@ -1,4 +1,5 @@
 import { type Card } from "./cards"
+import { Supply } from "./supply"
 
 // export const GamePhase = Object.freeze({
 //   Action: 0,
@@ -45,6 +46,8 @@ export type GameState = {
   turn_number: number;
 
   active_card?: Card;
+
+  supply: Supply;
 
   actions: number;
   money: number;

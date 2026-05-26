@@ -138,14 +138,3 @@ function draw_cards(player: Player, n: number) {
   }
 }
 
-export function shuffle(deck: any[]): any[] {
-    // Fisher-Yates shuffle algorithm
-  for (let i = deck.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    const a = deck[i]!;
-    const b = deck[j]!;
-    deck[i] = b;
-    deck[j] = a;
-  }
-  return deck;
-}
