@@ -1,5 +1,5 @@
 import type { WSContext } from "hono/ws"
-import { type Player, type GameState, GamePhases, type GamePhase } from "shared"
+import { type Player, type GameState, GamePhases} from "shared"
 import { effect_table } from "./effects";
 import { Supply } from "shared/supply";
 import { CardTypes, type Card, type CardInfo, type CardName } from "shared/cards"
@@ -172,7 +172,7 @@ export class Game {
 
   play_card(card_index: number, pile: Card[]) {
     const card = this.remove_card(card_index, pile)
-    effect_table[card.info.name](this.game_state)
+    effect_table[card.info.name](this)
     this.game_state.played_cards.push(card)
   }
 
