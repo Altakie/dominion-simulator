@@ -150,24 +150,3 @@ function draw_cards(player: Player, n: number) {
   }
 }
 
-/*
-  player choice effects by card:
-  - Cellar: discard any
-  - Chapel: trash any
-  - Moat (reaction): binary play
-  - Harbinger: binary put in hand
-  - Vassal: binary play
-  - Workshop: gain
-  - Bureaucrat: put back any
-  - Militia: discard exact
-  - Moneylender: trash one or none
-  - Poacher: discard exact
-  - Remodel: trash one, gain
-  - Throne Room: play one or none
-  - Bandit: trash one
-  - Library: sequence of binary put in hand
-  - Mine: trash one or none, gain
-  - Sentry: trash any, discard any, put back one
-  - Artisan: gain, put back one
-*/
-
