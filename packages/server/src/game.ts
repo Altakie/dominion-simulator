@@ -1,12 +1,12 @@
 import type { WSContext } from "hono/ws"
-import { type Player, type GameState, GamePhases, type GamePhase } from "shared"
+import { type Player, type GameState, type GamePhases, GamePhase } from "shared"
 import { effect_table } from "./effects";
 import { Supply } from "shared/supply";
 import { CardTypes, type Card, type CardInfo, type CardName } from "shared/cards"
 import { MessageKinds, serializeMessage, type PickCardsRequest, type StartedMessage, } from "shared/messages"
 import { shuffle } from "shared/shuffle"
 
-type ServerState = GamePhase | WaitingForPlayer
+type ServerState = GamePhases | WaitingForPlayer
 
 type WaitingForPlayer = {
   player: Player,
@@ -18,7 +18,7 @@ type WaitingForPlayer = {
 function new_game_state(current_player: Player, supply: Supply): GameState {
   return {
     current_player: current_player,
-    phase: GamePhases.ACTION,
+    phase: GamePhase.ACTION,
 
     turn_number: 1,
 
@@ -47,7 +47,7 @@ export class Game {
   constructor(players: PlayerInfo[]) {
     this.players = shuffle(players)
     this.game_state = new_game_state(this.players[0]!.player, new Supply(players.length))
-    this.server_state = GamePhases.ACTION
+    this.server_state = GamePhase.ACTION
   }
 
   get_players(): Player[] {
@@ -59,7 +59,7 @@ export class Game {
   }
 
   new_turn(current_player: Player) {
-    this.game_state.phase = GamePhases.ACTION
+    this.game_state.phase = GamePhase.ACTION
     this.game_state.current_player = current_player
 
     this.game_state.played_cards = []
@@ -122,7 +122,7 @@ export class Game {
 
   async play_card(card_index: number, pile: Card[]) {
     const card = this.remove_card(card_index, pile)
-    effect_table[card.info.name](this.game_state)
+    effect_table[card.info.name](this)
     this.game_state.played_cards.push(card)
   }
 

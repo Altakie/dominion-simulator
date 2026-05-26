@@ -1,128 +1,140 @@
-import type { GameState, Player } from "shared"
+import type { Player } from "shared"
 import type { CardName } from "shared/cards"
+import { shuffle } from "shared/shuffle"
+import type { Game } from "./game"
+import { Curse } from "shared/cards/curses"
 
-export const effect_table: Record<CardName, (state: GameState) => void> = {
-  "Copper": (state: GameState) => {
-    state.money += 1
+export const effect_table: Record<CardName, (game: Game) => void> = {
+  "Copper": (game: Game) => {
+    game.game_state.money += 1
   },
-  "Silver": (state: GameState) => {
-    state.money += 2
+  "Silver": (game: Game) => {
+    game.game_state.money += 2
   },
-  "Gold": (state: GameState) => {
-    state.money += 3
+  "Gold": (game: Game) => {
+    game.game_state.money += 3
   },
-  "Estate": (state: GameState) => {
-    state.current_player.victory_points += 1
+  "Estate": (game: Game) => {
+    game.game_state.current_player.victory_points += 1
   },
-  "Duchy": (state: GameState) => {
-    state.current_player.victory_points += 3
+  "Duchy": (game: Game) => {
+    game.game_state.current_player.victory_points += 3
   },
-  "Province": (state: GameState) => {
-    state.current_player.victory_points += 6
+  "Province": (game: Game) => {
+    game.game_state.current_player.victory_points += 6
   },
-  "Gardens": (state: GameState) => {
-    state.current_player.victory_points += 
-    Math.floor(state.current_player.deck.length / 10 + 
-      state.current_player.discard_pile.length / 10 + 
-      state.current_player.hand.length / 10)
+  "Gardens": (game: Game) => {
+    game.game_state.current_player.victory_points += 
+    Math.floor(game.game_state.current_player.deck.length / 10 + 
+      game.game_state.current_player.discard_pile.length / 10 + 
+      game.game_state.current_player.hand.length / 10)
   },
-  "Curse": (state: GameState) => {
-    state.current_player.victory_points -= 1
+  "Curse": (game: Game) => {
+    game.game_state.current_player.victory_points -= 1
   },
-  "Cellar": (state: GameState) => {
+  "Cellar": (game: Game) => {
     // TODO: Implement Cellar effect
   },
-  "Chapel": (state: GameState) => {
+  "Chapel": (game: Game) => {
     // TODO: Implement Chapel effect
   },
-  "Moat": (state: GameState) => {
-    draw_cards(state.current_player, 2)
-    // TODO: Implement Moat's reaction effect
+  "Moat": (game: Game) => {
+    draw_cards(game.game_state.current_player, 2)
   },
-  "Harbinger": (state: GameState) => {
-    draw_cards(state.current_player, 1)
-    state.actions += 1
+  "Harbinger": (game: Game) => {
+    draw_cards(game.game_state.current_player, 1)
+    game.game_state.actions += 1
     // TODO: Implement Harbinger's ability to put a card from discard pile on top of deck
   },
-  "Merchant": (state: GameState) => {
-    draw_cards(state.current_player, 1)
-    state.actions += 1
+  "Merchant": (game: Game) => {
+    draw_cards(game.game_state.current_player, 1)
+    game.game_state.actions += 1
     // TODO: Implement Merchant's ability to give +1 money for first Silver played
   },
-  "Vassal": (state: GameState) => {
-    state.money += 2
+  "Vassal": (game: Game) => {
+    game.game_state.money += 2
     // TODO: Implement Vassal's ability to play an Action card from deck
   },
-  "Village": (state: GameState) => {
-    draw_cards(state.current_player, 1)
-    state.actions += 2
+  "Village": (game: Game) => {
+    draw_cards(game.game_state.current_player, 1)
+    game.game_state.actions += 2
   },
-  "Workshop": (state: GameState) => {
+  "Workshop": (game: Game) => {
     // TODO: Implement Workshop effect
   },
-  "Bureaucrat": (state: GameState) => {
+  "Bureaucrat": (game: Game) => {
     // TODO: Implement Bureaucrat effect
   },
-  "Militia": (state: GameState) => {
-    state.money += 2
+  "Militia": (game: Game) => {
+    game.game_state.money += 2
     // TODO: Implement Militia effect
   },
-  "Moneylender": (state: GameState) => {
+  "Moneylender": (game: Game) => {
     // TODO: Implement Moneylender effect
   },
-  "Poacher": (state: GameState) => {
-    draw_cards(state.current_player, 1)
-    state.money += 1
-    state.actions += 1
+  "Poacher": (game: Game) => {
+    draw_cards(game.game_state.current_player, 1)
+    game.game_state.money += 1
+    game.game_state.actions += 1
   },
-  "Remodel": (state: GameState) => {
+  "Remodel": (game: Game) => {
     // TODO: Implement Remodel effect
   },
-  "Smithy": (state: GameState) => {
-    draw_cards(state.current_player, 3)
+  "Smithy": (game: Game) => {
+    draw_cards(game.game_state.current_player, 3)
   },
-  "Throne Room": (state: GameState) => {
+  "Throne Room": (game: Game) => {
     // TODO: Implement Throne Room effect
   },
-  "Bandit": (state: GameState) => {
+  "Bandit": (game: Game) => {
     // TODO: Implement Bandit effect
   },
-  "Council Room": (state: GameState) => {
-    draw_cards(state.current_player, 4)
-    state.buys += 1
-    // TODO: other players draw a card
+  "Council Room": (game: Game) => {
+    draw_cards(game.game_state.current_player, 4)
+    game.game_state.buys += 1
+    for (let player_info of game.players) {
+      if (player_info.player !== game.game_state.current_player) {
+        draw_cards(player_info.player, 1)
+      }
+    }
   },
-  "Festival": (state: GameState) => {
-    state.actions += 2
-    state.buys += 1
-    state.money += 2
+  "Festival": (game: Game) => {
+    game.game_state.actions += 2
+    game.game_state.buys += 1
+    game.game_state.money += 2
   },
-  "Laboratory": (state: GameState) => {
-    draw_cards(state.current_player, 2)
-    state.actions += 1
+  "Laboratory": (game: Game) => {
+    draw_cards(game.game_state.current_player, 2)
+    game.game_state.actions += 1
   },
-  "Library": (state: GameState) => {
+  "Library": (game: Game) => {
     // TODO: Implement Library effect
   },
-  "Market": (state: GameState) => {
-    draw_cards(state.current_player, 1)
-    state.actions += 1
-    state.buys += 1
-    state.money += 1
+  "Market": (game: Game) => {
+    draw_cards(game.game_state.current_player, 1)
+    game.game_state.actions += 1
+    game.game_state.buys += 1
+    game.game_state.money += 1
   },
-  "Mine": (state: GameState) => {
+  "Mine": (game: Game) => {
     // TODO: Implement Mine effect
   },
-  "Sentry": (state: GameState) => {
-    draw_cards(state.current_player, 1)
-    state.actions += 1
+  "Sentry": (game: Game) => {
+    draw_cards(game.game_state.current_player, 1)
+    game.game_state.actions += 1
     // TODO: Implement Sentry's ability
   },
-  "Witch": (state: GameState) => {
-    draw_cards(state.current_player, 2)
-    // TODO: other players gain a Curse
+  "Witch": (game: Game) => {
+    draw_cards(game.game_state.current_player, 2)
+    let index = game.players.findIndex(p => p.player === game.game_state.current_player)
+    let ordered_players = [...game.players.slice(index + 1), ...game.players.slice(0, index)]
+    for (let player_info of ordered_players) {
+      if (player_info.player !== game.game_state.current_player) {
+        player_info.player.discard_pile.push(game.game_state.supply.gainCard(Curse.name)!)
+      }
+    }
   },
-  "Artisan": (state: GameState) => {
+  "Artisan": (game: Game) => {
     // TODO: Implement Artisan effect
   }
 }
@@ -137,4 +149,25 @@ function draw_cards(player: Player, n: number) {
     player.hand.push(player.deck.pop()!)
   }
 }
+
+/*
+  player choice effects by card:
+  - Cellar: discard any
+  - Chapel: trash any
+  - Moat (reaction): binary play
+  - Harbinger: binary put in hand
+  - Vassal: binary play
+  - Workshop: gain
+  - Bureaucrat: put back any
+  - Militia: discard exact
+  - Moneylender: trash one or none
+  - Poacher: discard exact
+  - Remodel: trash one, gain
+  - Throne Room: play one or none
+  - Bandit: trash one
+  - Library: sequence of binary put in hand
+  - Mine: trash one or none, gain
+  - Sentry: trash any, discard any, put back one
+  - Artisan: gain, put back one
+*/
 
