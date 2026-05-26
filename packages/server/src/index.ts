@@ -9,6 +9,7 @@ import { parseMessage, MessageKind, serializeMessage, type PlayerNamesMessage, t
 import type { PlayerInfo } from "./game";
 import { Game } from "./game";
 import { new_player } from "shared";
+import { randomUUIDv7 } from "bun";
 
 
 const app = new Hono()
@@ -20,7 +21,6 @@ function getClientId(c: Context): string | undefined {
 }
 
 
-let clientid = 0
 
 let webby: Map<string, WSContext> = new Map();
 let names: Map<string, string> = new Map();
@@ -167,10 +167,9 @@ app.use("/game", upgradeWebSocket((c,) => {
 app.use("/*", (c, next) => {
   const existing = getClientId(c)
   if (!existing) {
-    setCookie(c, 'clientid', clientid.toString(), {
+    setCookie(c, 'clientid', randomUUIDv7(), {
       httpOnly: true,
     })
-    clientid++
   }
 
   return next()
