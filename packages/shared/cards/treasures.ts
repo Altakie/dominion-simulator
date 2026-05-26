@@ -1,21 +1,21 @@
-import type { CardInfo, CardTypes } from "../cards";
+import { type CardInfo, CardTypes } from "../cards";
 
 export type TreasureName = "Copper" | "Silver" | "Gold"
 
-export interface Copper extends CardInfo {
-  name: "Copper";
-  types: [typeof CardTypes.TREASURE];
-  cost: 0;
-}
+export const Copper: CardInfo = {
+  name: "Copper",
+  types: [CardTypes.TREASURE],
+  cost: 0
+};
 
-export interface Silver extends CardInfo {
-  name: "Silver";
-  types: [typeof CardTypes.TREASURE];
-  cost: 3;
-}
+export const Silver: CardInfo = {
+  name: "Silver",
+  types: [CardTypes.TREASURE],
+  cost: 3
+};
 
-export interface Gold extends CardInfo {
-  name: "Gold";
-  types: [typeof CardTypes.TREASURE];
-  cost: 6;
+export const Gold: CardInfo = {
+  name: "Gold",
+  types: [CardTypes.TREASURE],
+  cost: 6
 }

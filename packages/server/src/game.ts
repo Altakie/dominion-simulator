@@ -1,6 +1,7 @@
 import { type Player, type GameState, GamePhase } from "shared"
 import { CardTypes, type CardInfo } from "shared/cards"
 import { effect_table } from "./effects";
+import { Supply } from "./supply";
 
 function new_game_state(current_player: Player): GameState {
   return {
@@ -18,12 +19,12 @@ function new_game_state(current_player: Player): GameState {
 export class Game {
   players: Player[];
   state: GameState;
-  supply: CardInfo[];
+  supply: Supply;
 
   constructor(players: Player[]) {
     this.players = players
     this.state = new_game_state(this.players[0]!)
-    this.supply = []
+    this.supply = new Supply(players.length)
   }
 
   get_players(): Player[] {
