@@ -119,13 +119,15 @@ app.use("/game", upgradeWebSocket((c,) => {
       switch (message.kind) {
         case MessageKind.START:
           console.log("Start Message Received")
-          if (players.size > 1) {
-            ws.send(serializeMessage({ kind: MessageKind.STARTED }))
-            game = new Game(players.values().toArray())
-
-            let player_names = players.values().map((player) => player.player.name).toArray()
-            console.log(`Game Started with players: ${JSON.stringify(player_names)}`)
+          // if (players.size > 1) {
+          for (let player of players.values()) {
+            player.socket.send(serializeMessage({ kind: MessageKind.STARTED }))
           }
+          game = new Game(players.values().toArray())
+
+          let player_names = players.values().map((player) => player.player.name).toArray()
+          console.log(`Game Started with players: ${JSON.stringify(player_names)}`)
+          // }
           break
       }
     },

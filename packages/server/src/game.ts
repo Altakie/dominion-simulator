@@ -1,8 +1,9 @@
 import type { WSContext } from "hono/ws"
 import { type Player, type GameState, GamePhase } from "shared"
-import { CardTypes, type CardInfo } from "shared/cards"
 import { effect_table } from "./effects";
 import { Supply } from "./supply";
+import { CardTypes, type CardInfo, type CardName } from "shared/cards"
+import { MessageKind, serializeMessage } from "shared/messages"
 
 function new_game_state(current_player: Player): GameState {
   return {
@@ -29,6 +30,7 @@ export class Game {
   supply: Supply;
 
   constructor(players: PlayerInfo[]) {
+    // TODO: Shuffle players
     this.players = players
     this.state = new_game_state(this.players[0]!.player)
     this.supply = new Supply(players.length)
@@ -47,6 +49,12 @@ export class Game {
     this.state.actions = 1
     this.state.money = 0
     this.state.buys = 1
+  }
+
+  start_game() {
+    for (let player of this.players) {
+      player.socket.send(serializeMessage({ kind: MessageKind.START }))
+    }
   }
 
   action_phase() {
