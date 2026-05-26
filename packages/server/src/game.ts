@@ -1,5 +1,6 @@
 import { type Player, type GameState, GamePhase } from "shared"
-import { CardTypes, type CardInfo, type CardName } from "shared/cards"
+import { CardTypes, type CardInfo } from "shared/cards"
+import { effect_table } from "./effects";
 
 function new_game_state(current_player: Player): GameState {
   return {
@@ -14,7 +15,7 @@ function new_game_state(current_player: Player): GameState {
   }
 }
 
-class Game {
+export class Game {
   players: Player[];
   state: GameState;
   supply: CardInfo[];
@@ -23,6 +24,10 @@ class Game {
     this.players = players
     this.state = new_game_state(this.players[0]!)
     this.supply = []
+  }
+
+  get_players(): Player[] {
+    return this.players
   }
 
   new_turn(current_player: Player) {
@@ -51,20 +56,6 @@ class Game {
 
   buy_phase() {
     // prompt the player to buy as many cards as they have buys from the supply
-  }
-}
-
-
-const effect_table: Record<CardName, (state: GameState) => void> = {
-  "Copper": (state: GameState) => {
-    state.money += 1
-  },
-  "Silver": (state: GameState) => {
-    state.money += 2
-  },
-  "Gold": (state: GameState) => {
-    console.log("Skeeby Goldadeek")
-    state.money += 3
   }
 }
 

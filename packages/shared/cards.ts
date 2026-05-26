@@ -1,3 +1,8 @@
+import type { ActionName } from "./cards/actions";
+import type { CurseName } from "./cards/curses";
+import type { TreasureName } from "./cards/treasures";
+import type { VictoryName } from "./cards/victories";
+
 export type Card = {
   id: string,
   info: CardInfo
@@ -6,7 +11,7 @@ export type Card = {
 export interface CardInfo {
   name: CardName;
   types: CardType[];
-  value: number;
+  cost: number;
 }
 
 
@@ -14,33 +19,11 @@ export const CardTypes = Object.freeze({
   ACTION: "Action",
   REACTION: "Reaction",
   TREASURE: "Treasure",
-  VICTORY: "Victory"
+  VICTORY: "Victory",
+  CURSE: "Curse",
 })
 
 type CardType = typeof CardTypes[keyof typeof CardTypes]
 
-export type CardName = "Copper" | "Silver" | "Gold"
-
-interface Copper extends CardInfo {
-  name: "Copper";
-  types: [typeof CardTypes.TREASURE];
-  value: 0;
-
-}
-
-interface Silver extends CardInfo {
-  name: "Silver";
-  types: [typeof CardTypes.TREASURE];
-  value: 3;
-
-}
-
-interface Gold extends CardInfo {
-  name: "Gold";
-  types: [typeof CardTypes.TREASURE];
-  value: 6;
-}
-
-
-
+export type CardName = ActionName | TreasureName | VictoryName | CurseName
 

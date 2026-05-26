@@ -2,7 +2,6 @@ import { Hono } from "hono";
 import { cors } from "hono/cors";
 import { serveStatic, websocket } from "hono/bun";
 import { upgradeWebSocket } from "hono/bun";
-import { format } from "util";
 import { WSContext } from "hono/ws";
 import { setCookie, getCookie } from "hono/cookie";
 
