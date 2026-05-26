@@ -3,56 +3,29 @@ import { cors } from "hono/cors";
 import { serveStatic, websocket } from "hono/bun";
 import { upgradeWebSocket } from "hono/bun";
 import { WSContext } from "hono/ws";
+import { type Context } from "hono";
 import { setCookie, getCookie } from "hono/cookie";
+
 
 const app = new Hono()
 
-// app.use(cors({
-//   origin: "*",
-//   allowHeaders: ["*"],
-//   allowMethods: ["*"],
-// }))
-
 app.use(cors())
 
-let count = 0
+function getClientId(c: Context): string | undefined {
+  return getCookie(c, 'clientid')
+}
+
+
 let clientid = 0
 let messages: string[] = []
 
-app.get("/api", (c) => {
-  return c.text("Hi! " + count)
-})
-
-app.get("/count", (c) => {
-  return c.text(count.toString())
-})
-
 let webby: Map<string, WSContext> = new Map();
-
-app.put("/count", async (c) => {
-
-  let text = await c.req.text()
-  count = parseInt(text)
-  for (let value of webby.values()) {
-    value.send(JSON.stringify({
-      // msg: "Here's the count! " + count,
-      // msg: serverMessage,
-      count: count
-    }))
-  }
-  return c.text(count.toString())
-})
 
 app.use("/socket", upgradeWebSocket((c) => {
   return {
     onOpen: async (ev, ws) => {
       const clientid = getCookie(c, 'clientid')
       if (!clientid) {
-        ws.send(JSON.stringify({
-          msg: "No clientid",
-          count: count,
-        }))
-
         return
       }
 
@@ -66,15 +39,8 @@ app.use("/socket", upgradeWebSocket((c) => {
       for (let value of webby.values()) {
         value.send(JSON.stringify({
           msg: msg,
-          count: count
         }))
       }
-      // await new Promise((r) => setTimeout(r, 1000))
-      // json = JSON.stringify({
-      //   msg: format("Your message was %s characters long", msg.length),
-      //   count: count
-      // })
-      // ws.send(json)
     },
     onClose: () => {
       console.log("Closed :(")
@@ -82,8 +48,25 @@ app.use("/socket", upgradeWebSocket((c) => {
   }
 }))
 
+app.use("/game", upgradeWebSocket((c,) => {
+  return {
+    onOpen: async (ev, ws) => {
+      const clientid = getClientId(c)
+      if (!clientid) {
+        return
+      }
+      console.log(`Player ${clientid} joined the game`)
+    },
+    onClose: async () => {
+      const clientid = getClientId(c)
+      console.log(`Player ${clientid} left the game`)
+    },
+  }
+}
+))
+
 app.use("/*", (c, next) => {
-  const existing = getCookie(c, 'clientid')
+  const existing = getClientId(c)
   if (!existing) {
     setCookie(c, 'clientid', clientid.toString(), {
       httpOnly: true,

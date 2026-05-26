@@ -17,6 +17,7 @@
   },
   "dependencies": {
     "@tanstack/react-query": "^5.100.9",
-    "concurrently": "^9.2.1"
+    "concurrently": "^9.2.1",
+    "react-router-dom": "^7.15.1"
   }
 }
