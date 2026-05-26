@@ -27,6 +27,7 @@ export type Player = {
   deck: Card[],
   discard_pile: Card[],
 
+
   victory_points: number
 }
 
@@ -45,9 +46,10 @@ export type GameState = {
   current_player: Player;
   turn_number: number;
 
-  active_card?: Card;
+  played_cards: Card[];
 
   supply: Supply;
+  trash_pile: Card[]
 
   actions: number;
   money: number;

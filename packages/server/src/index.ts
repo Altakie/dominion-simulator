@@ -5,7 +5,7 @@ import { upgradeWebSocket } from "hono/bun";
 import { WSContext } from "hono/ws";
 import { type Context } from "hono";
 import { setCookie, getCookie } from "hono/cookie";
-import { parseMessage, MessageKind, serializeMessage, type PlayerNamesMessage, type ConnectMessage, type DisconnectMessage, type StartedMessage } from "shared/messages"
+import { parseMessage, MessageKind, serializeMessage, type PlayerNamesMessage, type ConnectMessage, type DisconnectMessage } from "shared/messages"
 import type { PlayerInfo } from "./game";
 import { Game } from "./game";
 import { new_player } from "shared";
@@ -19,7 +19,6 @@ app.use(cors())
 function getClientId(c: Context): string | undefined {
   return getCookie(c, 'clientid')
 }
-
 
 
 let webby: Map<string, WSContext> = new Map();
@@ -122,17 +121,7 @@ app.use("/game", upgradeWebSocket((c,) => {
           // if (players.size > 1) {
           game = new Game(players.values().toArray())
 
-          const started_msg: StartedMessage = {
-            kind: MessageKind.STARTED,
-            player_name_order: game.get_player_names(),
-            state: game.state
-          }
-
-          const started_msg_str = serializeMessage(started_msg)
-
-          for (let player of players.values()) {
-            player.socket.send(started_msg_str)
-          }
+          game.start_game()
 
           let player_names = players.values().map((player) => player.player.name).toArray()
           console.log(`Game Started with players: ${JSON.stringify(player_names)}`)
