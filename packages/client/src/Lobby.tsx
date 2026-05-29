@@ -1,4 +1,4 @@
-import { serializeMessage, MessageKind, parseMessage, type ConnectMessage, type DisconnectMessage, type PlayerNamesMessage, type StartedMessage } from "shared/messages"
+import { serializeMessage, MessageKinds, parseMessage, type ConnectMessage, type DisconnectMessage, type PlayerNamesMessage, type StartedMessage } from "shared/messages"
 import { useEffect, useState, useRef, useContext } from 'react'
 import { StateContext } from "./App";
 import './App.css'
@@ -25,26 +25,26 @@ export function Lobby() {
         }
 
         switch (msg.kind) {
-          case MessageKind.PLAYER_NAMES:
+          case MessageKinds.PLAYER_NAMES:
             let player_msg = msg as PlayerNamesMessage
             setPlayerNames(new Set(player_msg.player_names))
             console.log(JSON.stringify([...player_names]))
             break
-          case MessageKind.CONNECT:
+          case MessageKinds.CONNECT:
             let conn_msg = msg as ConnectMessage
             setPlayerNames(prev => {
               prev.add(conn_msg.player_name)
               return new Set(prev)
             })
             break
-          case MessageKind.DISCONNECT:
+          case MessageKinds.DISCONNECT:
             let disconn_msg = msg as DisconnectMessage
             setPlayerNames(prev => {
               prev.delete(disconn_msg.player_name)
               return new Set(prev)
             })
             break
-          case MessageKind.STARTED:
+          case MessageKinds.STARTED:
             let started_msg = msg as StartedMessage
             setPlayerNamesInOrder(started_msg.player_name_order)
             setGameState(started_msg.state)
@@ -62,7 +62,7 @@ export function Lobby() {
         <button onClick={() => {
           console.log("Attempting to start game")
           gameSocket.current.send(serializeMessage({
-            kind: MessageKind.START
+            kind: MessageKinds.START
           }))
         }}>Start Game</button>
 

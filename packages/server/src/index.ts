@@ -5,7 +5,7 @@ import { upgradeWebSocket } from "hono/bun";
 import { WSContext } from "hono/ws";
 import { type Context } from "hono";
 import { setCookie, getCookie } from "hono/cookie";
-import { parseMessage, MessageKind, serializeMessage, type PlayerNamesMessage, type ConnectMessage, type DisconnectMessage } from "shared/messages"
+import { parseMessage, MessageKinds, serializeMessage, type PlayerNamesMessage, type ConnectMessage, type DisconnectMessage } from "shared/messages"
 import type { PlayerInfo } from "./game";
 import { Game } from "./game";
 import { new_player } from "shared";
@@ -84,7 +84,7 @@ app.use("/game", upgradeWebSocket((c,) => {
       console.log(`Players: ${JSON.stringify([...players.values()].map((player) => player.player.name))}`)
 
       let msg: ConnectMessage = {
-        kind: MessageKind.CONNECT,
+        kind: MessageKinds.CONNECT,
         player_name: name
       }
 
@@ -93,7 +93,7 @@ app.use("/game", upgradeWebSocket((c,) => {
       for (let player of players.values()) {
         if (player.clientid === clientid) {
           let msg: PlayerNamesMessage = {
-            kind: MessageKind.PLAYER_NAMES,
+            kind: MessageKinds.PLAYER_NAMES,
             player_names: players.values().map((player) => player.player.name).toArray()
           }
 
@@ -116,7 +116,7 @@ app.use("/game", upgradeWebSocket((c,) => {
       }
 
       switch (message.kind) {
-        case MessageKind.START:
+        case MessageKinds.START:
           console.log("Start Message Received")
           // if (players.size > 1) {
           game = new Game(players.values().toArray())
@@ -138,7 +138,7 @@ app.use("/game", upgradeWebSocket((c,) => {
       let name = names.get(clientid)!
 
       let msg: DisconnectMessage = {
-        kind: MessageKind.DISCONNECT,
+        kind: MessageKinds.DISCONNECT,
         player_name: name
       }
       let msg_str = serializeMessage(msg)

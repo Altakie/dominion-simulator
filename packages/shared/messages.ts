@@ -72,9 +72,7 @@ export interface PickYesNoRequest extends Message {
   description: string,
 }
 
-export type Response = PickCardResponse | PickSupplyPileResponse | PickYesNoResponse
-
-export interface PickCardResponse extends Message {
+export interface PickCardsResponse extends Message {
   kind: typeof MessageKinds.PICK_CARDS_RESPONSE,
 
   choices: Card[],

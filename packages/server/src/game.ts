@@ -3,21 +3,23 @@ import { type Player, type GameState, GamePhases, type GamePhase } from "shared"
 import { effect_table } from "./effects";
 import { Supply } from "shared/supply";
 import { CardTypes, type Card, type CardInfo, type CardName } from "shared/cards"
-import { MessageKinds, serializeMessage, type PickCardsRequest, type StartedMessage, } from "shared/messages"
+import { MessageKinds, serializeMessage, type PickCardsRequest, type PickCardsResponse, type StartedMessage, } from "shared/messages"
 import { shuffle } from "shared/shuffle"
 
-type ServerState = GamePhase | WaitingForPlayer
+type ServerState = Normal | WaitingForPlayer
+
+type Normal = "Normal"
 
 type WaitingForPlayer = {
-  player: Player,
-  response_type: Response,
-  continuation: (game: Game) => void
+  player: PlayerInfo,
+  response_type: typeof MessageKinds.PICK_CARDS_RESPONSE | typeof MessageKinds.PICK_SUPPLY_PILE_RESPONSE | typeof MessageKinds.PICK_YES_NO_RESPONSE,
+  next: (choices: Card[]) => void
 }
 
 
-function new_game_state(current_player: Player, supply: Supply): GameState {
+function new_game_state(current_player_index: number, supply: Supply): GameState {
   return {
-    current_player: current_player,
+    current_player_index: current_player_index,
     phase: GamePhases.ACTION,
 
     turn_number: 1,
@@ -46,8 +48,25 @@ export class Game {
 
   constructor(players: PlayerInfo[]) {
     this.players = shuffle(players)
-    this.game_state = new_game_state(this.players[0]!.player, new Supply(players.length))
-    this.server_state = GamePhases.ACTION
+    this.game_state = new_game_state(0, new Supply(players.length))
+    this.server_state = "Normal"
+  }
+
+
+  get_current_player(): Player {
+    return this.get_player(this.game_state.current_player_index)
+  }
+
+  get_current_player_info(): PlayerInfo {
+    return this.get_player_info(this.game_state.current_player_index)
+  }
+
+  get_player_info(index: number): PlayerInfo {
+    return this.players[index]!
+  }
+
+  get_player(index: number): Player {
+    return this.players[index]!.player
   }
 
   get_players(): Player[] {
@@ -58,9 +77,9 @@ export class Game {
     return this.players.map((player_info) => player_info.player.name)
   }
 
-  new_turn(current_player: Player) {
+  new_turn(current_player_index: number) {
     this.game_state.phase = GamePhases.ACTION
-    this.game_state.current_player = current_player
+    this.game_state.current_player_index = current_player_index
 
     this.game_state.played_cards = []
 
@@ -83,17 +102,42 @@ export class Game {
     }
   }
 
-  async action_phase() {
-    while (this.game_state.actions > 0) {
+  action_phase() {
+    if (this.game_state.actions > 0) {
       // Prompt the player to play an action card from their hand as long as they have actions
-      // Resolve the action effect
-      // Send the new gamestate to all players
+      const hand = this.get_current_player().hand
+      const initial_choices = hand.filter((card) => CardTypes.ACTION in card.info.types)
+      const next = (choices: Card[]) => {
+        if (!isSubset(choices, hand)) {
+          console.log("Error: Improper Choice")
+          return
+        }
+
+        if (choices.length === 0) {
+          this.game_state.phase = GamePhases.MONEY
+          this.money_phase()
+          return
+        }
+
+        let card_index = hand.findIndex((card) => card === choices[0]!)
+
+        // Resolve the action effect
+        this.play_card(card_index, hand)
+        // Send the new gamestate to all players
+        // Run the action phase again
+        this.action_phase()
+      }
+
+      this.prompt_pick_card(this.get_current_player_info(), "Choose an action card to play", initial_choices, 0, 1, next)
     }
+
+    this.game_state.phase = GamePhases.MONEY
+    this.money_phase()
   }
 
   money_phase() {
     // play all treasure cards from hand and resolve them
-    const hand = this.game_state.current_player.hand
+    const hand = this.get_current_player().hand
     for (let [index, card] of hand.entries()) {
       if (CardTypes.TREASURE in card.info.types) {
         this.play_card(index, hand)
@@ -101,26 +145,32 @@ export class Game {
     }
   }
 
-  async buy_phase() {
+  buy_phase() {
     // prompt the player to buy as many cards as they have buys from the supply
   }
 
-  // async prompt_pick_card(player: Player, description: string, choices: Card[], min: number, max: number,): Promise<Card[]> {
-  //   const req: PickCardsRequest = {
-  //     kind: MessageKinds.PICK_CARDS_REQUEST,
-  //
-  //     description: description,
-  //
-  //     choices: choices,
-  //     min: min,
-  //     max: max,
-  //   }
-  //
-  //   const req_str = serializeMessage(req)
-  //
-  // }
+  prompt_pick_card(player: PlayerInfo, description: string, choices: Card[], min: number, max: number, next: (choices: Card[]) => void) {
+    const req: PickCardsRequest = {
+      kind: MessageKinds.PICK_CARDS_REQUEST,
 
-  async play_card(card_index: number, pile: Card[]) {
+      description: description,
+
+      choices: choices,
+      min: min,
+      max: max,
+    }
+
+    const req_str = serializeMessage(req)
+    const waiting: WaitingForPlayer = {
+      player: player,
+      response_type: MessageKinds.PICK_CARDS_RESPONSE,
+      next: next
+    }
+    this.server_state = waiting
+    player.socket.send(req_str)
+  }
+
+  play_card(card_index: number, pile: Card[]) {
     const card = this.remove_card(card_index, pile)
     effect_table[card.info.name](this.game_state)
     this.game_state.played_cards.push(card)
@@ -148,3 +198,12 @@ export class Game {
   }
 }
 
+function isSubset(subset: any[], set: any[]): boolean {
+  for (let member of subset) {
+    if (member! in set) {
+      return false
+    }
+  }
+
+  return true
+}

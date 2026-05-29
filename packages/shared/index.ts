@@ -11,7 +11,7 @@ import { Supply } from "./supply"
 
 
 
-export const GamePhase = Object.freeze({
+export const GamePhases = Object.freeze({
   ACTION: "Action",
   MONEY: "Money",
   BUY: "Buy",
@@ -19,7 +19,7 @@ export const GamePhase = Object.freeze({
   // CLEANUP: "Cleanup"
 })
 
-export type GamePhases = typeof GamePhase[keyof typeof GamePhase]
+export type GamePhase = typeof GamePhases[keyof typeof GamePhases]
 
 export type Player = {
   name: string,
@@ -42,8 +42,8 @@ export function new_player(name: string): Player {
 }
 
 export type GameState = {
-  phase: GamePhases;
-  current_player: Player;
+  phase: GamePhase;
+  current_player_index: number;
   turn_number: number;
 
   played_cards: Card[];
