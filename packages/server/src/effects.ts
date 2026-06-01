@@ -10,6 +10,12 @@ export const effect_table: Record<CardName, (game: Game) => void> = {
   },
   "Silver": (game: Game) => {
     game.game_state.money += 2
+    // Handle Silver's interaction with Merchant card
+    if (!game.game_state.played_cards.some(card => card.info.name === "Silver")) {
+      let played = game.game_state.played_cards
+      let num_merchants = played.filter(card => card.info.name === "Merchant").length
+      game.game_state.money += num_merchants
+    }
   },
   "Gold": (game: Game) => {
     game.game_state.money += 3
@@ -34,6 +40,7 @@ export const effect_table: Record<CardName, (game: Game) => void> = {
     game.get_current_player().victory_points -= 1
   },
   "Cellar": (game: Game) => {
+    game.game_state.actions += 1
     // TODO: Implement Cellar effect
   },
   "Chapel": (game: Game) => {
@@ -51,7 +58,7 @@ export const effect_table: Record<CardName, (game: Game) => void> = {
   "Merchant": (game: Game) => {
     draw_cards(game.get_current_player(), 1)
     game.game_state.actions += 1
-    // TODO: Implement Merchant's ability to give +1 money for first Silver played
+    // Merchant effect is handled in the Silver case of the effect table
   },
   "Vassal": (game: Game) => {
     game.game_state.money += 2
