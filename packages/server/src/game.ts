@@ -1,9 +1,9 @@
 import type { WSContext } from "hono/ws"
 import { type Player, type GameState, GamePhases} from "shared"
 import { effect_table } from "./effects";
-import { Supply } from "shared/supply";
+import { Supply, type supplyStack } from "shared/supply";
 import { CardTypes, type Card, type CardInfo, type CardName } from "shared/cards"
-import { MessageKinds, serializeMessage, type PickCardsRequest, type PickCardsResponse, type StartedMessage, } from "shared/messages"
+import { MessageKinds, PickCardsDescriptions, serializeMessage, type BinaryDescription, type GainDescription, type PickCardsDescription, type PickCardsRequest, type PickCardsResponse, type PickSupplyPileRequest, type PickYesNoRequest, type StartedMessage, } from "shared/messages"
 import { shuffle } from "shared/shuffle"
 
 type ServerState = Normal | WaitingForPlayer
@@ -13,7 +13,7 @@ type Normal = "Normal"
 type WaitingForPlayer = {
   player: PlayerInfo,
   response_type: typeof MessageKinds.PICK_CARDS_RESPONSE | typeof MessageKinds.PICK_SUPPLY_PILE_RESPONSE | typeof MessageKinds.PICK_YES_NO_RESPONSE,
-  next: (choices: Card[]) => void
+  next: ((choices: Card[]) => void) | ((choice: boolean) => void) | ((choices: supplyStack[]) => void)
 }
 
 
@@ -73,6 +73,12 @@ export class Game {
     return this.players.map((player_info) => player_info.player)
   }
 
+  get_players_by_turn_order(): Player[] {
+    const current_player_index = this.game_state.current_player_index
+    return this.players.map((player_info) => player_info.player).slice(current_player_index)
+      .concat(this.players.map((player_info) => player_info.player).slice(0, current_player_index))
+  }
+
   get_player_names(): string[] {
     return this.players.map((player_info) => player_info.player.name)
   }
@@ -128,7 +134,7 @@ export class Game {
         this.action_phase()
       }
 
-      this.prompt_pick_card(this.get_current_player_info(), "Choose an action card to play", initial_choices, 0, 1, next)
+      this.prompt_pick_card(this.get_current_player_info(), PickCardsDescriptions.PLAY, initial_choices, 0, 1, next)
     }
 
     this.game_state.phase = GamePhases.MONEY
@@ -149,7 +155,7 @@ export class Game {
     // prompt the player to buy as many cards as they have buys from the supply
   }
 
-  prompt_pick_card(player: PlayerInfo, description: string, choices: Card[], min: number, max: number, next: (choices: Card[]) => void) {
+  prompt_pick_card(player: PlayerInfo, description: PickCardsDescription, choices: Card[], min: number, max: number, next: (choices: Card[]) => void) {
     const req: PickCardsRequest = {
       kind: MessageKinds.PICK_CARDS_REQUEST,
 
@@ -170,6 +176,52 @@ export class Game {
     player.socket.send(req_str)
   }
 
+  prompt_binary_choice(player: PlayerInfo, description: BinaryDescription, card: Card, next: (choice: boolean) => void) {
+    const req: PickYesNoRequest = {
+      kind: MessageKinds.PICK_YES_NO_REQUEST,
+      description: description,
+      card: card
+    }
+
+    const req_str = serializeMessage(req)
+    const waiting: WaitingForPlayer = {
+      player: player,
+      response_type: MessageKinds.PICK_YES_NO_RESPONSE,
+      next: next
+    }
+    this.server_state = waiting
+    player.socket.send(req_str)
+  }
+
+  prompt_gain_card(player: PlayerInfo, description: GainDescription, choices: supplyStack[], min: number, max: number, next: (choices: supplyStack[]) => void) {
+    const req: PickSupplyPileRequest = {
+      kind: MessageKinds.PICK_SUPPLY_PILE_REQUEST,
+      description: description,
+      choices: choices,
+      min: min,
+      max: max
+    }
+
+    const req_str = serializeMessage(req)
+    const waiting: WaitingForPlayer = {
+      player: player,
+      response_type: MessageKinds.PICK_SUPPLY_PILE_RESPONSE,
+      next: next
+    }
+    this.server_state = waiting
+    player.socket.send(req_str)
+  }
+
+  draw_cards(player: Player, num_cards: number) {
+    for (let i = 0; i < num_cards; i++) {
+      if (player.deck.length === 0) {
+        player.deck = shuffle(player.discard_pile)
+        player.discard_pile = []
+      }
+      player.hand.push(player.deck.pop()!)
+    }
+  }
+
   play_card(card_index: number, pile: Card[]) {
     const card = this.remove_card(card_index, pile)
     effect_table[card.info.name](this)
@@ -177,6 +229,10 @@ export class Game {
   }
 
   discard_card(player: Player, card_index: number, pile: Card[]) {
+    if (pile === player.deck && player.deck.length === 0) {
+      player.deck = shuffle(player.discard_pile)
+      player.discard_pile = []
+    }
     const card = this.remove_card(card_index, pile)
     player.discard_pile.push(card)
   }

@@ -35,6 +35,10 @@ export class Supply {
     }
   }
 
+  getStacks(): supplyStack[] {
+    return this.stacks
+  }
+
   gainCard(cardName: string): Card | null {
     const stack = this.stacks.find(s => s.card.name === cardName)
     if (stack && stack.count > 0) {

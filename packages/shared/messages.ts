@@ -38,9 +38,9 @@ export const GainDescriptions = Object.freeze({
   GAIN: "Choose a card to gain from the supply",
 })
 
-type PickCardsDescription = typeof PickCardsDescriptions[keyof typeof PickCardsDescriptions]
-type BinaryDescription = typeof BinaryDescriptions[keyof typeof BinaryDescriptions]
-type GainDescription = typeof GainDescriptions[keyof typeof GainDescriptions]
+export type PickCardsDescription = typeof PickCardsDescriptions[keyof typeof PickCardsDescriptions]
+export type BinaryDescription = typeof BinaryDescriptions[keyof typeof BinaryDescriptions]
+export type GainDescription = typeof GainDescriptions[keyof typeof GainDescriptions]
 
 interface Message {
   kind: MessageKind,
@@ -82,7 +82,7 @@ export interface PickSupplyPileRequest extends Message {
 
   description: GainDescription,
 
-  choices: supplyStack,
+  choices: supplyStack[],
   min: number,
   max: number
 }
