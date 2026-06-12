@@ -253,7 +253,7 @@ export class Game {
           end_phase()
           return
         }
-        // NOTE: Need to reset the wait info before any effects go off
+        // NOTE: Maybe Need to reset the wait info before any effects go off
         this.wait_info = undefined
 
         let card_index = hand.findIndex((card) => card.id === choices[0]!.id)
@@ -261,14 +261,28 @@ export class Game {
 
         // Resolve the action effect
         this.play_card(card_index, hand)
-        this.game_state.actions--
-        // Send the new gamestate to all players
-        this.send_update()
-        if (this.wait_info) {
+        const cleanup = () => {
+          this.game_state.actions--
+          // Send the new gamestate to all players
+          this.send_update()
+          // Run the action phase again
+          this.action_phase()
+        }
+
+        if (this.wait_info == null) {
+          cleanup()
           return
         }
-        // Run the action phase again
-        this.action_phase()
+        // TODO: Need to wait for cards that require subsequent choices to finish their next funcs or smth
+        // WARN: This might not work if the card has multiple chained effects
+        // It will cleanup and go to the next phase after the first effect
+        // Unless the effects are chained within the card, which should be the case
+        const old_next = (this.wait_info as WaitInfo).next;
+        (this.wait_info as WaitInfo).next = (response: Message) => {
+          old_next(response)
+          cleanup()
+        }
+
       }
 
       this.prompt_pick_card(this.get_current_player_info(), PickCardsDescriptions.PLAY, initial_choices, 0, 1, next)
