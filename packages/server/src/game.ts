@@ -46,6 +46,7 @@ export type PlayerInfo = {
   socket: WSContext
 }
 
+// TODO: Should game be under a read write lock to avoid wait conditions?
 export class Game {
   players: PlayerInfo[];
   game_state: GameState;
@@ -101,6 +102,9 @@ export class Game {
 
   next_turn(current_player_index: number) {
     this.new_turn((current_player_index + 1) % this.players.length)
+    // TODO: Send a message to all players that the next turn started
+
+    this.action_phase()
   }
 
   start_game() {
@@ -115,14 +119,16 @@ export class Game {
     for (let player of this.players.values()) {
       player.socket.send(started_msg_str)
     }
+
+    this.new_turn(0)
   }
 
-  next(player: PlayerInfo, response: Message) {
+  next(clientid: string, response: Message) {
     if (!this.wait_info) {
       console.log("No wait info")
       return
     }
-    if (player !== this.wait_info.player_info) {
+    if (clientid !== this.wait_info.player_info.clientid) {
       console.log("Wrong Player sent response")
       return
     }
@@ -133,8 +139,7 @@ export class Game {
 
     this.wait_info.next(response)
     // WARN: Assuming that there are no errors
-    this.wait_info = undefined
-
+    // this.wait_info = undefined
   }
 
 
@@ -159,6 +164,8 @@ export class Game {
           this.money_phase()
           return
         }
+        // NOTE: Need to reset the wait info before any effects go off
+        this.wait_info = undefined
 
         let card_index = hand.findIndex((card) => card === choices[0]!)
 
@@ -219,15 +226,14 @@ export class Game {
         // Resolve the action effect
         // Send the new gamestate to all players
         // Run the action phase again
-        this.action_phase()
+        this.buy_phase()
       }
 
       this.prompt_gain_card(this.get_current_player_info(), "Choose a card to gain from the supply", supply_piles, 0, 1, next)
       return
     }
 
-    this.game_state.phase = GamePhases.MONEY
-    this.money_phase()
+    this.next_turn(this.game_state.current_player_index)
   }
 
 

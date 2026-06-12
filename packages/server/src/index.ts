@@ -115,6 +115,8 @@ app.use("/game", upgradeWebSocket((c,) => {
         return
       }
 
+      // NOTE: This is where player responses are resolved, other messages are resolved below
+
       switch (message.kind) {
         case MessageKinds.START:
           console.log("Start Message Received")
@@ -127,6 +129,14 @@ app.use("/game", upgradeWebSocket((c,) => {
           console.log(`Game Started with players: ${JSON.stringify(player_names)}`)
           // }
           break
+        case MessageKinds.PICK_CARDS_RESPONSE || MessageKinds.PICK_SUPPLY_PILE_RESPONSE || MessageKinds.PICK_YES_NO_RESPONSE:
+          if (!game.wait_info) {
+            console.log("Received player response but game is not waiting")
+          }
+          game.next(clientid, message)
+          break
+        default:
+          console.log(`Message Kind "${message.kind}" not recognized`)
       }
     },
     onClose: async () => {
