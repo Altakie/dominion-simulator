@@ -5,18 +5,17 @@ import './App.css'
 import type { GameState } from "shared";
 import type { Supply } from "shared/supply";
 
-export function Game({ players, game_state, Choices }: { players: string[], game_state: GameState, Choices?: () => JSX.Element }) {
+export function Game({ players, game_state, choices }: { players: string[], game_state: GameState, choices?: JSX.Element }) {
+  if (!choices) {
+    choices = <></>
+  } else {
+    console.log("Rendering choices")
+  }
   return <>
     <h1>Game</h1>
     <PlayerList players={players} />
     <VisualGameState players={players} game_state={game_state} />
-    {
-      () => {
-        if (Choices) {
-          <Choices />
-        }
-      }
-    }
+    {choices}
   </>
 }
 

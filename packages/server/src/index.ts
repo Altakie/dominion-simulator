@@ -134,7 +134,9 @@ app.use("/game", upgradeWebSocket((c,) => {
           console.log(`Game Started with players: ${JSON.stringify(player_names)}`)
           // }
           break
-        case MessageKinds.PICK_CARDS_RESPONSE || MessageKinds.PICK_SUPPLY_PILE_RESPONSE || MessageKinds.PICK_YES_NO_RESPONSE:
+        case MessageKinds.PICK_CARDS_RESPONSE:
+        case MessageKinds.PICK_SUPPLY_PILE_RESPONSE:
+        case MessageKinds.PICK_YES_NO_RESPONSE:
           if (!game.wait_info) {
             console.log("Received player response but game is not waiting")
           }

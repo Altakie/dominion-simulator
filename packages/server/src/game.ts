@@ -154,7 +154,7 @@ export class Game {
     if (this.game_state.actions > 0) {
       // Prompt the player to play an action card from their hand as long as they have actions
       const hand = this.get_current_player().hand
-      const initial_choices = hand.filter((card) => CardTypes.ACTION in card.info.types)
+      const initial_choices = hand.filter((card) => card.info.types.includes(CardTypes.ACTION))
       if (initial_choices.length == 0) {
         end_phase()
         return
@@ -198,7 +198,7 @@ export class Game {
     // play all treasure cards from hand and resolve them
     const hand = this.get_current_player().hand
     for (let [index, card] of hand.entries()) {
-      if (CardTypes.TREASURE in card.info.types) {
+      if (card.info.types.includes(CardTypes.TREASURE)) {
         this.play_card(index, hand)
       }
     }
@@ -373,7 +373,7 @@ export class Game {
 
 function isSubset(subset: any[], set: any[]): boolean {
   for (let member of subset) {
-    if (member! in set) {
+    if (set.includes(member!)) {
       return false
     }
   }
