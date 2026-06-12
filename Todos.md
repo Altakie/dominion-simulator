@@ -17,3 +17,5 @@
 ## Minor Features
 
 ## Bugs
+
+- Game does not check if there's already a game in progress before starting a new game, and any player can start the game causing it to restart

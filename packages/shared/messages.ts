@@ -9,6 +9,8 @@ export const MessageKinds = Object.freeze({
   START: "Start",
   STARTED: "Started",
 
+  GAME_STATE: "Game State",
+
   PICK_CARDS_REQUEST: "Pick Cards Request",
   PICK_SUPPLY_PILE_REQUEST: "Pick Supply Pile Request",
   PICK_YES_NO_REQUEST: "Pick Yes No Request",

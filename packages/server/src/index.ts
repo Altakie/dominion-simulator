@@ -14,7 +14,12 @@ import { randomUUIDv7 } from "bun";
 
 const app = new Hono()
 
+
 app.use(cors())
+// NOTE: Only use when testing with separate client
+// app.use(cors({
+//   origin: "*"
+// }))
 
 function getClientId(c: Context): string | undefined {
   return getCookie(c, 'clientid')
