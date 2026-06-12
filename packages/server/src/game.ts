@@ -1,20 +1,25 @@
 import type { WSContext } from "hono/ws"
-import { type Player, type GameState, GamePhases} from "shared"
+import { type Player, type GameState, GamePhases } from "shared"
 import { effect_table } from "./effects";
 import { Supply, type supplyStack } from "shared/supply";
 import { CardTypes, type Card, type CardInfo, type CardName } from "shared/cards"
-import { MessageKinds, PickCardsDescriptions, serializeMessage, type BinaryDescription, type GainDescription, type PickCardsDescription, type PickCardsRequest, type PickCardsResponse, type PickSupplyPileRequest, type PickYesNoRequest, type StartedMessage, } from "shared/messages"
+import {
+  MessageKinds, PickCardsDescriptions, serializeMessage, type BinaryDescription,
+  type GainDescription, type PickCardsDescription, type PickCardsRequest, type PickCardsResponse,
+  type PickSupplyPileRequest, type PickYesNoRequest, type StartedMessage, type Message,
+  type PickSupplyPileResponse,
+  type PickYesNoResponse
+} from "shared/messages"
 import { shuffle } from "shared/shuffle"
 
-type ServerState = Normal | WaitingForPlayer
+type WaitResponses = typeof MessageKinds.PICK_CARDS_RESPONSE | typeof MessageKinds.PICK_SUPPLY_PILE_RESPONSE | typeof MessageKinds.PICK_YES_NO_RESPONSE
 
-type Normal = "Normal"
-
-type WaitingForPlayer = {
-  player: PlayerInfo,
-  response_type: typeof MessageKinds.PICK_CARDS_RESPONSE | typeof MessageKinds.PICK_SUPPLY_PILE_RESPONSE | typeof MessageKinds.PICK_YES_NO_RESPONSE,
-  next: ((choices: Card[]) => void) | ((choice: boolean) => void) | ((choices: supplyStack[]) => void)
+type WaitInfo = {
+  player_info: PlayerInfo,
+  response_type: WaitResponses
+  next: ((response: Message) => void)
 }
+
 
 
 function new_game_state(current_player_index: number, supply: Supply): GameState {
@@ -44,12 +49,12 @@ export type PlayerInfo = {
 export class Game {
   players: PlayerInfo[];
   game_state: GameState;
-  server_state: ServerState;
+  wait_info?: WaitInfo;
 
   constructor(players: PlayerInfo[]) {
     this.players = shuffle(players)
     this.game_state = new_game_state(0, new Supply(players.length))
-    this.server_state = "Normal"
+    this.wait_info = undefined
   }
 
 
@@ -83,15 +88,19 @@ export class Game {
     return this.players.map((player_info) => player_info.player.name)
   }
 
-  new_turn(current_player_index: number) {
+  new_turn(next_player_index: number) {
     this.game_state.phase = GamePhases.ACTION
-    this.game_state.current_player_index = current_player_index
+    this.game_state.current_player_index = next_player_index
 
     this.game_state.played_cards = []
 
     this.game_state.actions = 1
     this.game_state.money = 0
     this.game_state.buys = 1
+  }
+
+  next_turn(current_player_index: number) {
+    this.new_turn((current_player_index + 1) % this.players.length)
   }
 
   start_game() {
@@ -108,12 +117,38 @@ export class Game {
     }
   }
 
+  next(player: PlayerInfo, response: Message) {
+    if (!this.wait_info) {
+      console.log("No wait info")
+      return
+    }
+    if (player !== this.wait_info.player_info) {
+      console.log("Wrong Player sent response")
+      return
+    }
+    if (response.kind != this.wait_info.response_type) {
+      console.log("Wrong response type")
+      return
+    }
+
+    this.wait_info.next(response)
+    // WARN: Assuming that there are no errors
+    this.wait_info = undefined
+
+  }
+
+
   action_phase() {
     if (this.game_state.actions > 0) {
       // Prompt the player to play an action card from their hand as long as they have actions
       const hand = this.get_current_player().hand
       const initial_choices = hand.filter((card) => CardTypes.ACTION in card.info.types)
       const next = (choices: Card[]) => {
+        if (choices.length > 1) {
+          // TODO: Maybe allow players to play multiple cards at a time if it's valid?
+          console.log("Cannot play more than one card at a time")
+        }
+        // TODO: Reprompt if it goes wrong
         if (!isSubset(choices, hand)) {
           console.log("Error: Improper Choice")
           return
@@ -135,6 +170,7 @@ export class Game {
       }
 
       this.prompt_pick_card(this.get_current_player_info(), PickCardsDescriptions.PLAY, initial_choices, 0, 1, next)
+      return
     }
 
     this.game_state.phase = GamePhases.MONEY
@@ -149,11 +185,51 @@ export class Game {
         this.play_card(index, hand)
       }
     }
+
+    this.game_state.phase = GamePhases.BUY
+    this.buy_phase()
   }
 
   buy_phase() {
     // prompt the player to buy as many cards as they have buys from the supply
+    //
+    if (this.game_state.buys > 0) {
+      // Prompt the player to pick a singular supply pile
+      const supply_piles = this.game_state.supply.stacks
+      const next = (choices: supplyStack[]) => {
+        // TODO: Reprompt the buy if it goes wrong??
+        if (choices.length > 1) {
+          // TODO: Maybe allow players to buy multiple cards at a time if it's valid?
+          console.log("Cannot buy more than one card at a time")
+        }
+        if (!isSubset(choices, supply_piles)) {
+          console.log("Error: Improper Supply Pile Choice")
+          return
+        }
+
+        if (choices.length === 0) {
+          this.next_turn(this.game_state.current_player_index)
+          return
+        }
+        let choice = choices[0]!
+
+        // Gain the bought card to the discard pile
+        this.gain_card(choice.card.name, this.get_current_player().discard_pile)
+
+        // Resolve the action effect
+        // Send the new gamestate to all players
+        // Run the action phase again
+        this.action_phase()
+      }
+
+      this.prompt_gain_card(this.get_current_player_info(), "Choose a card to gain from the supply", supply_piles, 0, 1, next)
+      return
+    }
+
+    this.game_state.phase = GamePhases.MONEY
+    this.money_phase()
   }
+
 
   prompt_pick_card(player: PlayerInfo, description: PickCardsDescription, choices: Card[], min: number, max: number, next: (choices: Card[]) => void) {
     const req: PickCardsRequest = {
@@ -166,13 +242,19 @@ export class Game {
       max: max,
     }
 
-    const req_str = serializeMessage(req)
-    const waiting: WaitingForPlayer = {
-      player: player,
-      response_type: MessageKinds.PICK_CARDS_RESPONSE,
-      next: next
+    let wrapped_next = (response: Message): void => {
+      let res = response as PickCardsResponse
+
+      next(res.choices)
     }
-    this.server_state = waiting
+
+    const req_str = serializeMessage(req)
+    const waiting: WaitInfo = {
+      player_info: player,
+      response_type: MessageKinds.PICK_CARDS_RESPONSE,
+      next: wrapped_next
+    }
+    this.wait_info = waiting
     player.socket.send(req_str)
   }
 
@@ -183,13 +265,19 @@ export class Game {
       card: card
     }
 
-    const req_str = serializeMessage(req)
-    const waiting: WaitingForPlayer = {
-      player: player,
-      response_type: MessageKinds.PICK_YES_NO_RESPONSE,
-      next: next
+    let wrapped_next = (response: Message): void => {
+      let res = response as PickYesNoResponse
+
+      next(res.choice)
     }
-    this.server_state = waiting
+
+    const req_str = serializeMessage(req)
+    const waiting: WaitInfo = {
+      player_info: player,
+      response_type: MessageKinds.PICK_YES_NO_RESPONSE,
+      next: wrapped_next
+    }
+    this.wait_info = waiting
     player.socket.send(req_str)
   }
 
@@ -202,13 +290,20 @@ export class Game {
       max: max
     }
 
-    const req_str = serializeMessage(req)
-    const waiting: WaitingForPlayer = {
-      player: player,
-      response_type: MessageKinds.PICK_SUPPLY_PILE_RESPONSE,
-      next: next
+    let wrapped_next = (response: Message): void => {
+      let res = response as PickSupplyPileResponse
+
+      next(res.choices)
     }
-    this.server_state = waiting
+
+
+    const req_str = serializeMessage(req)
+    const waiting: WaitInfo = {
+      player_info: player,
+      response_type: MessageKinds.PICK_SUPPLY_PILE_RESPONSE,
+      next: wrapped_next
+    }
+    this.wait_info = waiting
     player.socket.send(req_str)
   }
 

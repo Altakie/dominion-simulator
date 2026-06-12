@@ -42,7 +42,7 @@ export type PickCardsDescription = typeof PickCardsDescriptions[keyof typeof Pic
 export type BinaryDescription = typeof BinaryDescriptions[keyof typeof BinaryDescriptions]
 export type GainDescription = typeof GainDescriptions[keyof typeof GainDescriptions]
 
-interface Message {
+export interface Message {
   kind: MessageKind,
 }
 
@@ -104,7 +104,7 @@ export interface PickCardsResponse extends Message {
 export interface PickSupplyPileResponse extends Message {
   kind: typeof MessageKinds.PICK_SUPPLY_PILE_RESPONSE,
 
-  choices: supplyStack,
+  choices: supplyStack[],
 }
 
 export interface PickYesNoResponse extends Message {
