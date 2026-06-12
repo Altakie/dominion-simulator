@@ -1,4 +1,4 @@
-import { serializeMessage, MessageKinds, parseMessage, type ConnectMessage, type DisconnectMessage, type PlayerNamesMessage, type StartedMessage, type PickCardsResponse, type PickSupplyPileRequest, type PickSupplyPileResponse, type PickCardsRequest } from "shared/messages"
+import { serializeMessage, MessageKinds, parseMessage, type ConnectMessage, type DisconnectMessage, type PlayerNamesMessage, type StartedMessage, type PickCardsResponse, type PickSupplyPileRequest, type PickSupplyPileResponse, type PickCardsRequest, type GameStateUpdateMessage } from "shared/messages"
 import { useEffect, useState, useRef, useContext, type JSX } from 'react'
 import { StateContext } from "./App";
 import './App.css'
@@ -16,7 +16,7 @@ export function Lobby() {
   let [player_names_in_order, setPlayerNamesInOrder] = useState<string[]>([])
   let [gameStarted, setGameStarted] = useState(false)
   let [gameState, setGameState] = useState<GameState>(null)
-  let [choices, setChoice] = useState<JSX.Element>(null)
+  let [choice_list, setChoiceList] = useState<JSX.Element>(null)
 
 
   const resolve_message =
@@ -54,18 +54,22 @@ export function Lobby() {
           setGameStarted(true)
           break
         case MessageKinds.PICK_CARDS_REQUEST:
-          setChoice(
-            <ChooseCardsList message={message as PickCardsRequest} game_socket={gameSocket.current} />
+          setChoiceList(
+            <ChooseCardsList message={message as PickCardsRequest} game_socket={gameSocket.current} setChoiceList={setChoiceList} />
           )
           break
         case MessageKinds.PICK_SUPPLY_PILE_REQUEST:
           console.log("Setting Choice")
-          setChoice(
-            <ChooseSupplyPilesList message={message as PickSupplyPileRequest} game_socket={gameSocket.current} />
+          setChoiceList(
+            <ChooseSupplyPilesList message={message as PickSupplyPileRequest} game_socket={gameSocket.current} setChoiceList={setChoiceList} />
           )
           break
         // case MessageKinds.PICK_YES_NO_REQUEST:
         //   break
+        case MessageKinds.GAME_STATE_UPDATE:
+          let update_message: GameStateUpdateMessage = message as GameStateUpdateMessage
+          setGameState(update_message.game_state)
+          break
         default:
           console.log(`Message kind ${message.kind} not recognized or implemented`)
           break
@@ -104,7 +108,7 @@ export function Lobby() {
       </>
     )
   } else {
-    return <Game players={player_names_in_order} game_state={gameState} choices={choices} />
+    return <Game players={player_names_in_order} game_state={gameState} choices={choice_list} />
   }
 
 }
@@ -159,7 +163,7 @@ function PlayerList({ players }: { players: Set<string> }) {
   </>
 }
 
-function ChooseCardsList({ message, game_socket }: { message: PickCardsRequest, game_socket: WebSocket }) {
+function ChooseCardsList({ message, game_socket, setChoiceList }: { message: PickCardsRequest, game_socket: WebSocket, setChoiceList }) {
   const [choices, setChoices] = useState<Card[]>([])
 
   function CardChoiceButton({ card }: { card: Card }) {
@@ -208,8 +212,9 @@ function ChooseCardsList({ message, game_socket }: { message: PickCardsRequest, 
               kind: MessageKinds.PICK_CARDS_RESPONSE,
               choices: choices
             }
-            game_socket.send(JSON.stringify(res))
             setChoices([])
+            setChoiceList(null)
+            game_socket.send(JSON.stringify(res))
           }
         }
 
@@ -220,7 +225,7 @@ function ChooseCardsList({ message, game_socket }: { message: PickCardsRequest, 
   )
 }
 
-function ChooseSupplyPilesList({ message, game_socket }: { message: PickSupplyPileRequest, game_socket: WebSocket }) {
+function ChooseSupplyPilesList({ message, game_socket, setChoiceList }: { message: PickSupplyPileRequest, game_socket: WebSocket, setChoiceList }) {
   const [choices, setChoices] = useState<supplyStack[]>([])
 
   function SupplyPileButton({ supply_pile }: { supply_pile: supplyStack }) {
@@ -263,8 +268,9 @@ function ChooseSupplyPilesList({ message, game_socket }: { message: PickSupplyPi
               kind: MessageKinds.PICK_SUPPLY_PILE_RESPONSE,
               choices: choices
             }
-            game_socket.send(JSON.stringify(res))
             setChoices([])
+            setChoiceList(null)
+            game_socket.send(JSON.stringify(res))
           }
         }
 

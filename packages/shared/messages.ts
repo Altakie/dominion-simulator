@@ -9,7 +9,7 @@ export const MessageKinds = Object.freeze({
   START: "Start",
   STARTED: "Started",
 
-  GAME_STATE: "Game State",
+  GAME_STATE_UPDATE: "Game State Update",
 
   PICK_CARDS_REQUEST: "Pick Cards Request",
   PICK_SUPPLY_PILE_REQUEST: "Pick Supply Pile Request",
@@ -113,6 +113,12 @@ export interface PickYesNoResponse extends Message {
   kind: typeof MessageKinds.PICK_YES_NO_RESPONSE,
 
   choice: boolean
+}
+
+export interface GameStateUpdateMessage extends Message {
+  kind: typeof MessageKinds.GAME_STATE_UPDATE,
+
+  game_state: GameState
 }
 
 export function serializeMessage(msg: Message): string {

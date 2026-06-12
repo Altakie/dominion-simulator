@@ -8,9 +8,12 @@ import {
   type GainDescription, type PickCardsDescription, type PickCardsRequest, type PickCardsResponse,
   type PickSupplyPileRequest, type PickYesNoRequest, type StartedMessage, type Message,
   type PickSupplyPileResponse,
-  type PickYesNoResponse
+  type PickYesNoResponse,
+  type GameStateUpdateMessage
 } from "shared/messages"
 import { shuffle } from "shared/shuffle"
+import { Copper } from "shared/cards/treasures";
+import { Estate } from "shared/cards/victories";
 
 type WaitResponses = typeof MessageKinds.PICK_CARDS_RESPONSE | typeof MessageKinds.PICK_SUPPLY_PILE_RESPONSE | typeof MessageKinds.PICK_YES_NO_RESPONSE
 
@@ -20,7 +23,7 @@ type WaitInfo = {
   next: ((response: Message) => void)
 }
 
-
+export type PlayerLobbyInfo = { clientid: string, socket: WSContext, name: string }
 
 function new_game_state(current_player_index: number, supply: Supply): GameState {
   return {
@@ -51,13 +54,52 @@ export class Game {
   players: PlayerInfo[];
   game_state: GameState;
   wait_info?: WaitInfo;
+  card_count: number;
 
-  constructor(players: PlayerInfo[]) {
-    this.players = shuffle(players)
-    this.game_state = new_game_state(0, new Supply(players.length))
+  constructor(players: PlayerLobbyInfo[]) {
+    this.card_count = 0
     this.wait_info = undefined
+
+    const player_infos = players.map((player): PlayerInfo => {
+      return {
+        player: this.new_player(player.name),
+        clientid: player.clientid,
+        socket: player.socket
+      }
+    })
+    this.players = shuffle(player_infos)
+
+    this.game_state = new_game_state(0, new Supply(players.length))
   }
 
+  new_card(card_info: CardInfo): Card {
+    // TODO: I know nathaniel used date time, but since all starting cards are being made in quick succession idk if its safe to use here
+    const card: Card = {
+      id: this.card_count.toString(),
+      info: card_info
+    }
+
+    this.card_count++
+
+    return card
+  }
+
+  new_player(name: string): Player {
+    let deck: Card[] = []
+    for (let i = 0; i < 7; i++) {
+      deck.push(this.new_card(Copper))
+    }
+    for (let i = 0; i < 3; i++) {
+      deck.push(this.new_card(Estate))
+    }
+    return {
+      name: name,
+      hand: [],
+      deck: deck,
+      discard_pile: [],
+      victory_points: 0
+    }
+  }
 
   get_current_player(): Player {
     return this.get_player(this.game_state.current_player_index)
@@ -93,6 +135,8 @@ export class Game {
     this.game_state.phase = GamePhases.ACTION
     this.game_state.current_player_index = next_player_index
 
+    console.log(`Current hand: ${[...this.get_current_player().hand.map((card) => card.info.name)]}`)
+
     this.game_state.played_cards = []
 
     this.game_state.actions = 1
@@ -100,14 +144,47 @@ export class Game {
     this.game_state.buys = 1
   }
 
+
   next_turn(current_player_index: number) {
+    if (current_player_index == this.players.length - 1) {
+      this.game_state.turn_number += 1
+    }
+    let player = this.get_current_player()
+    while (player.hand.length > 0) {
+      this.discard_card(player, 0, player.hand)
+    }
+    while (this.game_state.played_cards.length > 0) {
+      this.discard_card(player, 0, this.game_state.played_cards)
+    }
+    this.draw_cards(player, 5)
+
     this.new_turn((current_player_index + 1) % this.players.length)
     // TODO: Send a message to all players that the next turn started
-
+    // This should probably be a special new turn message instead of a general update message
+    this.send_update()
     this.action_phase()
   }
 
+  send_update() {
+    const update_message: GameStateUpdateMessage = {
+      kind: MessageKinds.GAME_STATE_UPDATE,
+
+      game_state: this.game_state
+    }
+
+    const serialized_message = serializeMessage(update_message)
+    for (let player of this.players) {
+      player.socket.send(serialized_message)
+    }
+  }
+
   start_game() {
+    for (let player of this.players) {
+      this.draw_cards(player.player, 5)
+    }
+
+    this.new_turn(0)
+
     const started_msg: StartedMessage = {
       kind: MessageKinds.STARTED,
       player_name_order: this.get_player_names(),
@@ -120,7 +197,6 @@ export class Game {
       player.socket.send(started_msg_str)
     }
 
-    this.new_turn(0)
     this.action_phase()
   }
 
@@ -137,6 +213,7 @@ export class Game {
       console.log("Wrong response type")
       return
     }
+    console.log(`Player responded with ${response.kind}`)
 
     this.wait_info.next(response)
     // WARN: Assuming that there are no errors
@@ -147,8 +224,9 @@ export class Game {
   action_phase() {
     const end_phase = () => {
       this.game_state.phase = GamePhases.MONEY
-      this.money_phase()
       console.log(`End of action phase ${this.game_state.turn_number}`)
+      this.send_update()
+      this.money_phase()
     }
 
     if (this.game_state.actions > 0) {
@@ -178,11 +256,17 @@ export class Game {
         // NOTE: Need to reset the wait info before any effects go off
         this.wait_info = undefined
 
-        let card_index = hand.findIndex((card) => card === choices[0]!)
+        let card_index = hand.findIndex((card) => card.id === choices[0]!.id)
+        console.log(`Player chose ${choices[0]!.info.name} which has an index of ${card_index}`)
 
         // Resolve the action effect
         this.play_card(card_index, hand)
+        this.game_state.actions--
         // Send the new gamestate to all players
+        this.send_update()
+        if (this.wait_info) {
+          return
+        }
         // Run the action phase again
         this.action_phase()
       }
@@ -197,13 +281,16 @@ export class Game {
   money_phase() {
     // play all treasure cards from hand and resolve them
     const hand = this.get_current_player().hand
-    for (let [index, card] of hand.entries()) {
+    for (let i = hand.length - 1; i >= 0; i--) {
+      let card = hand[i]!
+      console.log(`Card: ${card.info.name}`)
       if (card.info.types.includes(CardTypes.TREASURE)) {
-        this.play_card(index, hand)
+        this.play_card(i, hand)
       }
     }
 
     this.game_state.phase = GamePhases.BUY
+    this.send_update()
     this.buy_phase()
   }
 
@@ -212,12 +299,13 @@ export class Game {
     //
     const end_phase = () => {
       console.log(`End of buy phase ${this.game_state.turn_number}`)
+      this.send_update()
       this.next_turn(this.game_state.current_player_index)
     }
 
     if (this.game_state.buys > 0) {
       // Prompt the player to pick a singular supply pile
-      const supply_piles = this.game_state.supply.stacks.filter((pile) => pile.card.cost <= this.game_state.money)
+      const supply_piles = this.game_state.supply.stacks.filter((pile) => pile.card.cost <= this.game_state.money && pile.count > 0)
       const next = (choices: supplyStack[]) => {
         // TODO: Reprompt the buy if it goes wrong??
         if (choices.length > 1) {
@@ -238,9 +326,12 @@ export class Game {
 
         // Gain the bought card to the discard pile
         this.gain_card(choice.card.name, this.get_current_player().discard_pile)
+        this.game_state.money -= choice.card.cost
+        this.game_state.buys--
 
         // Resolve the action effect
         // Send the new gamestate to all players
+        this.send_update()
         // Run the action phase again
         this.buy_phase()
       }
@@ -332,15 +423,21 @@ export class Game {
   draw_cards(player: Player, num_cards: number) {
     for (let i = 0; i < num_cards; i++) {
       if (player.deck.length === 0) {
+        if (player.discard_pile.length === 0) {
+          return
+        }
         player.deck = shuffle(player.discard_pile)
         player.discard_pile = []
       }
-      player.hand.push(player.deck.pop()!)
+      const card = player.deck.pop()!
+      console.log(`Drew ${card.info.name}`)
+      player.hand.push(card)
     }
   }
 
   play_card(card_index: number, pile: Card[]) {
     const card = this.remove_card(card_index, pile)
+    console.log(`Playing ${card.info.name}`)
     effect_table[card.info.name](this)
     this.game_state.played_cards.push(card)
   }

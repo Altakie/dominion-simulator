@@ -33,6 +33,8 @@ function VisualGameState({ players, game_state }: { players: string[], game_stat
     <div>
       <h2>GameState Info</h2>
       <p>Current Player: {players[game_state.current_player_index]}</p>
+      <p>Phase : {game_state.phase}</p>
+      <p>Played Cards: {game_state.played_cards.map((card) => card.info.name).toString()}</p>
     </div>
     <div>
       <h2>Turn Info</h2>

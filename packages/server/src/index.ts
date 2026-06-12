@@ -6,9 +6,8 @@ import { WSContext } from "hono/ws";
 import { type Context } from "hono";
 import { setCookie, getCookie } from "hono/cookie";
 import { parseMessage, MessageKinds, serializeMessage, type PlayerNamesMessage, type ConnectMessage, type DisconnectMessage } from "shared/messages"
-import type { PlayerInfo } from "./game";
+import type { PlayerInfo, PlayerLobbyInfo } from "./game";
 import { Game } from "./game";
-import { new_player } from "shared";
 import { randomUUIDv7 } from "bun";
 
 
@@ -60,7 +59,7 @@ app.use("/socket", upgradeWebSocket((c) => {
   }
 }))
 
-let players: Map<string, PlayerInfo> = new Map()
+let players: Map<string, PlayerLobbyInfo> = new Map()
 let game: Game;
 
 app.use("/game", upgradeWebSocket((c,) => {
@@ -82,11 +81,11 @@ app.use("/game", upgradeWebSocket((c,) => {
       players.set(clientid, {
         socket: ws,
         clientid: clientid,
-        player: new_player(name)
+        name: name
       })
 
       console.log(`Player ${clientid} joined the game`)
-      console.log(`Players: ${JSON.stringify([...players.values()].map((player) => player.player.name))}`)
+      console.log(`Players: ${JSON.stringify([...players.values()].map((player) => player.name))}`)
 
       let msg: ConnectMessage = {
         kind: MessageKinds.CONNECT,
@@ -99,7 +98,7 @@ app.use("/game", upgradeWebSocket((c,) => {
         if (player.clientid === clientid) {
           let msg: PlayerNamesMessage = {
             kind: MessageKinds.PLAYER_NAMES,
-            player_names: players.values().map((player) => player.player.name).toArray()
+            player_names: players.values().map((player) => player.name).toArray()
           }
 
           player.socket.send(serializeMessage(msg))
@@ -130,7 +129,7 @@ app.use("/game", upgradeWebSocket((c,) => {
 
           game.start_game()
 
-          let player_names = players.values().map((player) => player.player.name).toArray()
+          let player_names = players.values().map((player) => player.name).toArray()
           console.log(`Game Started with players: ${JSON.stringify(player_names)}`)
           // }
           break
