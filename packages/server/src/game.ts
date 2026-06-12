@@ -121,6 +121,7 @@ export class Game {
     }
 
     this.new_turn(0)
+    this.action_phase()
   }
 
   next(clientid: string, response: Message) {
@@ -144,10 +145,21 @@ export class Game {
 
 
   action_phase() {
+    const end_phase = () => {
+      this.game_state.phase = GamePhases.MONEY
+      this.money_phase()
+      console.log(`End of action phase ${this.game_state.turn_number}`)
+    }
+
     if (this.game_state.actions > 0) {
       // Prompt the player to play an action card from their hand as long as they have actions
       const hand = this.get_current_player().hand
       const initial_choices = hand.filter((card) => CardTypes.ACTION in card.info.types)
+      if (initial_choices.length == 0) {
+        end_phase()
+        return
+      }
+
       const next = (choices: Card[]) => {
         if (choices.length > 1) {
           // TODO: Maybe allow players to play multiple cards at a time if it's valid?
@@ -160,8 +172,7 @@ export class Game {
         }
 
         if (choices.length === 0) {
-          this.game_state.phase = GamePhases.MONEY
-          this.money_phase()
+          end_phase()
           return
         }
         // NOTE: Need to reset the wait info before any effects go off
@@ -180,8 +191,7 @@ export class Game {
       return
     }
 
-    this.game_state.phase = GamePhases.MONEY
-    this.money_phase()
+    end_phase()
   }
 
   money_phase() {
@@ -200,14 +210,20 @@ export class Game {
   buy_phase() {
     // prompt the player to buy as many cards as they have buys from the supply
     //
+    const end_phase = () => {
+      console.log(`End of buy phase ${this.game_state.turn_number}`)
+      this.next_turn(this.game_state.current_player_index)
+    }
+
     if (this.game_state.buys > 0) {
       // Prompt the player to pick a singular supply pile
-      const supply_piles = this.game_state.supply.stacks
+      const supply_piles = this.game_state.supply.stacks.filter((pile) => pile.card.cost <= this.game_state.money)
       const next = (choices: supplyStack[]) => {
         // TODO: Reprompt the buy if it goes wrong??
         if (choices.length > 1) {
           // TODO: Maybe allow players to buy multiple cards at a time if it's valid?
           console.log("Cannot buy more than one card at a time")
+          return
         }
         if (!isSubset(choices, supply_piles)) {
           console.log("Error: Improper Supply Pile Choice")
@@ -215,7 +231,7 @@ export class Game {
         }
 
         if (choices.length === 0) {
-          this.next_turn(this.game_state.current_player_index)
+          end_phase()
           return
         }
         let choice = choices[0]!
@@ -233,7 +249,7 @@ export class Game {
       return
     }
 
-    this.next_turn(this.game_state.current_player_index)
+    end_phase()
   }
 
 
