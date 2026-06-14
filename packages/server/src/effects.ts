@@ -46,8 +46,8 @@ export const effect_table: Record<CardName, (game: Game) => void> = {
       for (let card of choices) {
         game.discard_card(
           player,
-          player.hand.indexOf(card),
-          player.discard_pile
+          player.hand.findIndex((c) => c.id === card.id),
+          player.hand
         )
       }
       game.draw_cards(player, choices.length)
@@ -67,7 +67,7 @@ export const effect_table: Record<CardName, (game: Game) => void> = {
     const next = (choices: Card[]) => {
       for (let card of choices) {
         game.trash_card(
-          player.hand.indexOf(card),
+          player.hand.findIndex((c) => c.id === card.id),
           player.hand
         )
       }
@@ -329,7 +329,7 @@ export const effect_table: Record<CardName, (game: Game) => void> = {
         )
         let treasures = player.discard_pile.slice(-2).filter(
           card => card.info.types.includes(CardTypes.TREASURE)
-          && card.info.name !== Copper.name
+            && card.info.name !== Copper.name
         )
         if (treasures.length > 0) {
           const next = (choices: Card[]) => {
@@ -537,7 +537,7 @@ export const effect_table: Record<CardName, (game: Game) => void> = {
       GainDescriptions.GAIN,
       game.game_state.supply.getStacks().filter(
         stack => stack.count > 0
-        && stack.card.cost <= 5
+          && stack.card.cost <= 5
       ),
       1,
       1,
