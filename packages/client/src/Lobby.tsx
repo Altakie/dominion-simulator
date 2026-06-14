@@ -304,6 +304,7 @@ function ChooseYesNo({ message, game_socket, setChoiceList }: { message: PickYes
   return (
     <>
       <h3>{message.description}</h3>
+      <h3>Card: {message.card.info.name}</h3>
       <h3>Choices</h3>
       <p>
         <button
