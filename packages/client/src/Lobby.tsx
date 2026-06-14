@@ -1,4 +1,4 @@
-import { serializeMessage, MessageKinds, parseMessage, type ConnectMessage, type DisconnectMessage, type PlayerNamesMessage, type StartedMessage, type PickCardsResponse, type PickSupplyPileRequest, type PickSupplyPileResponse, type PickCardsRequest, type GameStateUpdateMessage } from "shared/messages"
+import { serializeMessage, MessageKinds, parseMessage, type ConnectMessage, type DisconnectMessage, type PlayerNamesMessage, type StartedMessage, type PickCardsResponse, type PickSupplyPileRequest, type PickSupplyPileResponse, type PickCardsRequest, type GameStateUpdateMessage, type PickYesNoRequest, type PickYesNoResponse } from "shared/messages"
 import { useEffect, useState, useRef, useContext, type JSX } from 'react'
 import { StateContext } from "./App";
 import './App.css'
@@ -63,13 +63,15 @@ export function Lobby() {
           )
           break
         case MessageKinds.PICK_SUPPLY_PILE_REQUEST:
-          console.log("Setting Choice")
           setChoiceList(
             <ChooseSupplyPilesList message={message as PickSupplyPileRequest} game_socket={gameSocket.current} setChoiceList={setChoiceList} />
           )
           break
-        // case MessageKinds.PICK_YES_NO_REQUEST:
-        //   break
+        case MessageKinds.PICK_YES_NO_REQUEST:
+          setChoiceList(
+            <ChooseYesNo message={message as PickYesNoRequest} game_socket={gameSocket.current} setChoiceList={setChoiceList} />
+          )
+          break
         case MessageKinds.GAME_STATE_UPDATE:
           const update_message: GameStateUpdateMessage = message as GameStateUpdateMessage
           setGameState(update_message.game_state)
@@ -288,5 +290,40 @@ function ChooseSupplyPilesList({ message, game_socket, setChoiceList }: { messag
   )
 }
 
-// TODO: Implement Pick Yes No Response
+function ChooseYesNo({ message, game_socket, setChoiceList }: { message: PickYesNoRequest, game_socket: WebSocket, setChoiceList }) {
+
+  function send_choice(choice: boolean) {
+    let res: PickYesNoResponse = {
+      kind: MessageKinds.PICK_YES_NO_RESPONSE,
+      choice: choice
+    }
+    setChoiceList(null)
+    game_socket.send(JSON.stringify(res))
+  }
+
+  return (
+    <>
+      <h3>{message.description}</h3>
+      <h3>Choices</h3>
+      <p>
+        <button
+          onClick={
+            () => {
+              send_choice(true)
+            }
+          }
+        >Yes</button >
+
+        <button
+          onClick={
+            () => {
+              send_choice(false)
+            }
+          }
+        >No</button >
+      </p>
+    </>
+  )
+}
+
 
