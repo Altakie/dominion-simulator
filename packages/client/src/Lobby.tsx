@@ -13,8 +13,8 @@ export function Lobby() {
   const { setState } = useContext(StateContext)
 
   // TODO: combine these two to avoid data duplication
-  const [player_names, setPlayerNames] = useState<Set<string>>(new Set())
-  const [player_names_in_order, setPlayerNamesInOrder] = useState<string[]>([])
+  // const [player_names, setPlayerNames] = useState<Set<string>>(new Set())
+  const [player_names, setPlayerNames] = useState<string[]>([])
   const [gameStarted, setGameStarted] = useState(false)
   const [choice_list, setChoiceList] = useState<JSX.Element>(null)
 
@@ -33,26 +33,20 @@ export function Lobby() {
       switch (message.kind) {
         case MessageKinds.PLAYER_NAMES:
           const player_msg = message as PlayerNamesMessage
-          setPlayerNames(new Set(player_msg.player_names))
-          console.log(JSON.stringify([...player_names]))
+          setPlayerNames(player_msg.player_names)
+          console.log(JSON.stringify(player_names))
           break
         case MessageKinds.CONNECT:
           const conn_msg = message as ConnectMessage
-          setPlayerNames(prev => {
-            prev.add(conn_msg.player_name)
-            return new Set(prev)
-          })
+          setPlayerNames(prev => [...prev, conn_msg.player_name])
           break
         case MessageKinds.DISCONNECT:
           const disconn_msg = message as DisconnectMessage
-          setPlayerNames(prev => {
-            prev.delete(disconn_msg.player_name)
-            return new Set(prev)
-          })
+          setPlayerNames(prev => prev.filter((name) => name !== disconn_msg.player_name))
           break
         case MessageKinds.STARTED:
           const started_msg = message as StartedMessage
-          setPlayerNamesInOrder(started_msg.player_name_order)
+          setPlayerNames(started_msg.player_name_order)
           setGameState(started_msg.state)
           setGameStarted(true)
           setPlayer(started_msg.player)
@@ -115,7 +109,7 @@ export function Lobby() {
       </>
     )
   } else {
-    return <Game player_names={player_names_in_order} game_state={gameState} choices={choice_list} player={player} />
+    return <Game player_names={player_names} game_state={gameState} choices={choice_list} player={player} />
   }
 
 }
@@ -159,11 +153,11 @@ function useGameSocket(setConnected) {
   return ws
 }
 
-function PlayerList({ players }: { players: Set<string> }) {
+function PlayerList({ players }: { players: string[] }) {
   return <>
     <h2>Players:</h2>
     <ul>
-      {[...players].map((name) =>
+      {players.map((name) =>
         <li>{name}</li>
       )}
     </ul>
