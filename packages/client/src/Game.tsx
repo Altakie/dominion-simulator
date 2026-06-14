@@ -1,11 +1,10 @@
-import { serializeMessage, MessageKinds, parseMessage, type ConnectMessage, type DisconnectMessage, type PlayerNamesMessage } from "shared/messages"
-import { useEffect, useState, useRef, useContext, type JSX } from 'react'
-import { StateContext } from "./App";
+import { type JSX } from 'react'
 import './App.css'
-import type { GameState } from "shared";
+import type { GameState, Player } from "shared";
 import type { Supply } from "shared/supply";
+import type { Card } from "shared/cards"
 
-export function Game({ players, game_state, choices }: { players: string[], game_state: GameState, choices?: JSX.Element }) {
+export function Game({ player_names: players, player, game_state, choices }: { player_names: string[], player: Player, game_state: GameState, choices?: JSX.Element }) {
   if (!choices) {
     choices = <></>
   } else {
@@ -15,6 +14,7 @@ export function Game({ players, game_state, choices }: { players: string[], game
     <h1>Game</h1>
     <PlayerList players={players} />
     <VisualGameState players={players} game_state={game_state} />
+    <Hand hand={player.hand} />
     {choices}
   </>
 }
@@ -35,6 +35,7 @@ function VisualGameState({ players, game_state }: { players: string[], game_stat
       <p>Current Player: {players[game_state.current_player_index]}</p>
       <p>Phase : {game_state.phase}</p>
       <p>Played Cards: {game_state.played_cards.map((card) => card.info.name).toString()}</p>
+      <p>Trash Pile: {game_state.trash_pile.map((card) => card.info.name)}</p>
     </div>
     <div>
       <h2>Turn Info</h2>
@@ -56,10 +57,15 @@ function VisualSupply({ supply }: { supply: Supply }) {
   </>
 }
 
-function Hand() {
+function Hand({ hand }: { hand: Card[] }) {
+  return (<>
+    <h2>Current Hand</h2>
+    <p>{hand.map((card) => card.info.name).toString()}</p>
+  </>)
 }
 
-function Card() {
+// TODO: Implement proper card visuals
+function CardDisplay({ card }: { card: Card }) {
 }
 
 function Log() {

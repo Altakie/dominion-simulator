@@ -51,7 +51,7 @@ export type PlayerInfo = {
 
 // TODO: Should game be under a read write lock to avoid wait conditions?
 export class Game {
-  players: PlayerInfo[];
+  player_infos: PlayerInfo[];
   game_state: GameState;
   wait_info?: WaitInfo;
   card_count: number;
@@ -67,7 +67,7 @@ export class Game {
         socket: player.socket
       }
     })
-    this.players = shuffle(player_infos)
+    this.player_infos = shuffle(player_infos)
 
     this.game_state = new_game_state(0, new Supply(players.length))
   }
@@ -110,25 +110,25 @@ export class Game {
   }
 
   get_player_info(index: number): PlayerInfo {
-    return this.players[index]!
+    return this.player_infos[index]!
   }
 
   get_player(index: number): Player {
-    return this.players[index]!.player
+    return this.player_infos[index]!.player
   }
 
   get_players(): Player[] {
-    return this.players.map((player_info) => player_info.player)
+    return this.player_infos.map((player_info) => player_info.player)
   }
 
   get_players_by_turn_order(): Player[] {
     const current_player_index = this.game_state.current_player_index
-    return this.players.map((player_info) => player_info.player).slice(current_player_index)
-      .concat(this.players.map((player_info) => player_info.player).slice(0, current_player_index))
+    return this.player_infos.map((player_info) => player_info.player).slice(current_player_index)
+      .concat(this.player_infos.map((player_info) => player_info.player).slice(0, current_player_index))
   }
 
   get_player_names(): string[] {
-    return this.players.map((player_info) => player_info.player.name)
+    return this.player_infos.map((player_info) => player_info.player.name)
   }
 
   new_turn(next_player_index: number) {
@@ -146,7 +146,7 @@ export class Game {
 
 
   next_turn(current_player_index: number) {
-    if (current_player_index == this.players.length - 1) {
+    if (current_player_index == this.player_infos.length - 1) {
       this.game_state.turn_number += 1
     }
     let player = this.get_current_player()
@@ -158,7 +158,7 @@ export class Game {
     }
     this.draw_cards(player, 5)
 
-    this.new_turn((current_player_index + 1) % this.players.length)
+    this.new_turn((current_player_index + 1) % this.player_infos.length)
     // TODO: Send a message to all players that the next turn started
     // This should probably be a special new turn message instead of a general update message
     this.send_update()
@@ -166,35 +166,39 @@ export class Game {
   }
 
   send_update() {
-    const update_message: GameStateUpdateMessage = {
-      kind: MessageKinds.GAME_STATE_UPDATE,
 
-      game_state: this.game_state
-    }
+    for (let player_info of this.player_infos) {
+      const update_message: GameStateUpdateMessage = {
+        kind: MessageKinds.GAME_STATE_UPDATE,
 
-    const serialized_message = serializeMessage(update_message)
-    for (let player of this.players) {
-      player.socket.send(serialized_message)
+        game_state: this.game_state,
+        player: player_info.player
+      }
+
+      const serialized_message = serializeMessage(update_message)
+      player_info.socket.send(serialized_message)
     }
   }
 
   start_game() {
-    for (let player of this.players) {
+    for (let player of this.player_infos) {
       this.draw_cards(player.player, 5)
     }
 
     this.new_turn(0)
 
-    const started_msg: StartedMessage = {
-      kind: MessageKinds.STARTED,
-      player_name_order: this.get_player_names(),
-      state: this.game_state
-    }
 
-    const started_msg_str = serializeMessage(started_msg)
+    for (let player_info of this.player_infos.values()) {
+      const started_msg: StartedMessage = {
+        kind: MessageKinds.STARTED,
+        player_name_order: this.get_player_names(),
+        state: this.game_state,
 
-    for (let player of this.players.values()) {
-      player.socket.send(started_msg_str)
+        player: player_info.player
+      }
+
+      const started_msg_str = serializeMessage(started_msg)
+      player_info.socket.send(started_msg_str)
     }
 
     this.action_phase()
@@ -456,12 +460,12 @@ export class Game {
     this.game_state.played_cards.push(card)
   }
 
-  discard_card(player: Player, card_index: number, pile: Card[]) {
-    if (pile === player.deck && player.deck.length === 0) {
+  discard_card(player: Player, card_index: number, initial_pile: Card[]) {
+    if (initial_pile === player.deck && player.deck.length === 0) {
       player.deck = shuffle(player.discard_pile)
       player.discard_pile = []
     }
-    const card = this.remove_card(card_index, pile)
+    const card = this.remove_card(card_index, initial_pile)
     player.discard_pile.push(card)
   }
 

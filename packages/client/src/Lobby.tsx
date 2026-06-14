@@ -3,55 +3,59 @@ import { useEffect, useState, useRef, useContext, type JSX } from 'react'
 import { StateContext } from "./App";
 import './App.css'
 import { Game } from "./Game.tsx"
-import type { GameState } from "shared";
+import type { GameState, Player } from "shared";
 import type { Card } from "shared/cards.ts";
 import type { supplyStack } from "shared/supply.ts";
 
 export function Lobby() {
-  let [connected, setConnected] = useState(false)
-  let gameSocket = useGameSocket(setConnected);
-  let { setState } = useContext(StateContext)
+  const [connected, setConnected] = useState(false)
+  const gameSocket = useGameSocket(setConnected);
+  const { setState } = useContext(StateContext)
 
-  let [player_names, setPlayerNames] = useState<Set<string>>(new Set())
-  let [player_names_in_order, setPlayerNamesInOrder] = useState<string[]>([])
-  let [gameStarted, setGameStarted] = useState(false)
-  let [gameState, setGameState] = useState<GameState>(null)
-  let [choice_list, setChoiceList] = useState<JSX.Element>(null)
+  // TODO: combine these two to avoid data duplication
+  const [player_names, setPlayerNames] = useState<Set<string>>(new Set())
+  const [player_names_in_order, setPlayerNamesInOrder] = useState<string[]>([])
+  const [gameStarted, setGameStarted] = useState(false)
+  const [choice_list, setChoiceList] = useState<JSX.Element>(null)
+
+  const [gameState, setGameState] = useState<GameState>(null)
+  const [player, setPlayer] = useState<Player>(null)
 
 
   const resolve_message =
     (ev: MessageEvent) => {
       console.log(`Message: ${ev.data}`)
-      let message = parseMessage(ev.data)
+      const message = parseMessage(ev.data)
       if (!message) {
         return
       }
 
       switch (message.kind) {
         case MessageKinds.PLAYER_NAMES:
-          let player_msg = message as PlayerNamesMessage
+          const player_msg = message as PlayerNamesMessage
           setPlayerNames(new Set(player_msg.player_names))
           console.log(JSON.stringify([...player_names]))
           break
         case MessageKinds.CONNECT:
-          let conn_msg = message as ConnectMessage
+          const conn_msg = message as ConnectMessage
           setPlayerNames(prev => {
             prev.add(conn_msg.player_name)
             return new Set(prev)
           })
           break
         case MessageKinds.DISCONNECT:
-          let disconn_msg = message as DisconnectMessage
+          const disconn_msg = message as DisconnectMessage
           setPlayerNames(prev => {
             prev.delete(disconn_msg.player_name)
             return new Set(prev)
           })
           break
         case MessageKinds.STARTED:
-          let started_msg = message as StartedMessage
+          const started_msg = message as StartedMessage
           setPlayerNamesInOrder(started_msg.player_name_order)
           setGameState(started_msg.state)
           setGameStarted(true)
+          setPlayer(started_msg.player)
           break
         case MessageKinds.PICK_CARDS_REQUEST:
           setChoiceList(
@@ -67,8 +71,9 @@ export function Lobby() {
         // case MessageKinds.PICK_YES_NO_REQUEST:
         //   break
         case MessageKinds.GAME_STATE_UPDATE:
-          let update_message: GameStateUpdateMessage = message as GameStateUpdateMessage
+          const update_message: GameStateUpdateMessage = message as GameStateUpdateMessage
           setGameState(update_message.game_state)
+          setPlayer(update_message.player)
           break
         default:
           console.log(`Message kind ${message.kind} not recognized or implemented`)
@@ -108,7 +113,7 @@ export function Lobby() {
       </>
     )
   } else {
-    return <Game players={player_names_in_order} game_state={gameState} choices={choice_list} />
+    return <Game player_names={player_names_in_order} game_state={gameState} choices={choice_list} player={player} />
   }
 
 }
@@ -195,6 +200,7 @@ function ChooseCardsList({ message, game_socket, setChoiceList }: { message: Pic
 
   return (
     <>
+      <h3>{message.description}</h3>
       <h3>Currently Selected</h3>
       {choices.map((card) =>
         <p>{card.info.name}</p>
@@ -251,6 +257,7 @@ function ChooseSupplyPilesList({ message, game_socket, setChoiceList }: { messag
 
   return (
     <>
+      <h3>{message.description}</h3>
       <h3>Currently Selected</h3>
       {choices.map((supply_pile) =>
         <p>{supply_pile.card.name}</p>
