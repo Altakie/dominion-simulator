@@ -204,7 +204,7 @@ export class Game {
     this.action_phase()
   }
 
-  next(clientid: string, response: Message) {
+  resolve_player_choice(clientid: string, response: Message) {
     if (!this.wait_info) {
       console.log("No wait info")
       return
@@ -222,6 +222,18 @@ export class Game {
     this.wait_info.next(response)
     // WARN: Assuming that there are no errors
     // this.wait_info = undefined
+  }
+
+  eventually_cleanup(cleanup: () => void) {
+    if (this.wait_info === undefined) {
+      cleanup()
+    } else {
+      const old_next = this.wait_info.next
+      this.wait_info.next = (response: Message) => {
+        old_next(response)
+        this.eventually_cleanup(cleanup)
+      }
+    }
   }
 
 
@@ -273,20 +285,12 @@ export class Game {
           this.action_phase()
         }
 
-        if (this.wait_info == null) {
-          cleanup()
-          return
-        }
         // TODO: Need to wait for cards that require subsequent choices to finish their next funcs or smth
         // WARN: This might not work if the card has multiple chained effects
         // It will cleanup and go to the next phase after the first effect
         // Unless the effects are chained within the card, which should be the case
-        const old_next = (this.wait_info as WaitInfo).next;
-        (this.wait_info as WaitInfo).next = (response: Message) => {
-          old_next(response)
-          cleanup()
-        }
-
+        this.eventually_cleanup(cleanup)
+        return
       }
 
       this.prompt_pick_card(this.get_current_player_info(), PickCardsDescriptions.PLAY, initial_choices, 0, 1, next)
@@ -375,6 +379,7 @@ export class Game {
 
     let wrapped_next = (response: Message): void => {
       let res = response as PickCardsResponse
+      this.wait_info = undefined
 
       next(res.choices)
     }
@@ -398,6 +403,7 @@ export class Game {
 
     let wrapped_next = (response: Message): void => {
       let res = response as PickYesNoResponse
+      this.wait_info = undefined
 
       next(res.choice)
     }
@@ -423,6 +429,7 @@ export class Game {
 
     let wrapped_next = (response: Message): void => {
       let res = response as PickSupplyPileResponse
+      this.wait_info = undefined
 
       next(res.choices)
     }

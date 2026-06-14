@@ -139,7 +139,7 @@ app.use("/game", upgradeWebSocket((c,) => {
           if (!game.wait_info) {
             console.log("Received player response but game is not waiting")
           }
-          game.next(clientid, message)
+          game.resolve_player_choice(clientid, message)
           break
         default:
           console.log(`Message Kind "${message.kind}" not recognized`)
