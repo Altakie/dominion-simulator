@@ -7,17 +7,7 @@
     - Basic version done
   - Display of server presented choices
     - Basic version done
-- Client-side processing of server decision requests
-  - Missing yes no response
-- Send player who is currently playing the information about their hand and discard pile
-  - Server side logic to send
-  - Client-side logic to display when they have the information and the server tells them they are the active player
-- Messaging gamestate between client and server (Artem)
-  - Update messages whenever the state is changed
-    - For now send whole new game state
-    - Could also send a log string message to each player describing what changed, like in dominion online
 - Handle reactions
-- Decrement action counter when action played
 - Game end
   - Need to have check for game end after each players turn and send a special message when the game is over
   - Then need to return all players to lobby and terminate the current game object
@@ -26,6 +16,7 @@
   - Need to add victory points when cards are added to the deck/discard pile
   - Need to remove victory points when cards are trashed
 - Better visuals
+- Maybe a reorder decision type?
 
 ## Minor Features
 
@@ -34,3 +25,6 @@
 ## Bugs
 
 - Game does not check if there's already a game in progress before starting a new game, and any player can start the game causing it to restart
+- cards
+  - Library sends messages for all card decisions, but only prompts for the first one on the client
+  - Sentry does not keep track of what cards have been trashed properly
