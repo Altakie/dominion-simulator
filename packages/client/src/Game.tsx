@@ -14,6 +14,7 @@ export function Game({ player_names: players, player, game_state, choices }: { p
     <h1>Game</h1>
     <PlayerList players={players} />
     <VisualGameState players={players} game_state={game_state} />
+    <h2>Current Vp: <span>{player.victory_points}</span></h2>
     <Hand hand={player.hand} />
     {choices}
   </>

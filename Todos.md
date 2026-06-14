@@ -18,8 +18,18 @@
     - Could also send a log string message to each player describing what changed, like in dominion online
 - Handle reactions
 - Decrement action counter when action played
+- Game end
+  - Need to have check for game end after each players turn and send a special message when the game is over
+  - Then need to return all players to lobby and terminate the current game object
+  - Probably want a lobby on the server side as well, instead of doing everything in index.ts
+- Victory Points
+  - Need to add victory points when cards are added to the deck/discard pile
+  - Need to remove victory points when cards are trashed
+- Better visuals
 
 ## Minor Features
+
+- Maybe use zustand for better state management
 
 ## Bugs
 
