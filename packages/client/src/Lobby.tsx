@@ -1,4 +1,4 @@
-import { serializeMessage, MessageKinds, parseMessage, type ConnectMessage, type DisconnectMessage, type PlayerNamesMessage, type StartedMessage, type PickCardsResponse, type PickSupplyPileRequest, type PickSupplyPileResponse, type PickCardsRequest, type GameStateUpdateMessage, type PickYesNoRequest, type PickYesNoResponse } from "shared/messages"
+import { serializeMessage, MessageKinds, parseMessage, type Message, type ConnectMessage, type DisconnectMessage, type PlayerNamesMessage, type StartedMessage, type PickCardsResponse, type PickSupplyPileRequest, type PickSupplyPileResponse, type PickCardsRequest, type GameStateUpdateMessage, type PickYesNoRequest, type PickYesNoResponse } from "shared/messages"
 import { useEffect, useState, useRef, useContext, type JSX } from 'react'
 import { StateContext } from "./App";
 import './App.css'
@@ -17,6 +17,7 @@ export function Lobby() {
   const [choice_list, setChoiceList] = useState<JSX.Element>(null)
 
   const [gameState, setGameState] = useState<GameState>(null)
+  const [message, setMessage] = useState<Message>(null);
   const [player, setPlayer] = useState<Player>(null)
 
 
@@ -27,6 +28,8 @@ export function Lobby() {
       if (!message) {
         return
       }
+
+      setMessage(message)
 
       switch (message.kind) {
         case MessageKinds.PLAYER_NAMES:
@@ -107,7 +110,7 @@ export function Lobby() {
       </>
     )
   } else {
-    return <Game player_names={player_names} game_state={gameState} choices={choice_list} player={player} />
+    return <Game player_names={player_names} game_state={gameState} choices={choice_list} player={player} message={message} />
   }
 
 }

@@ -1,10 +1,11 @@
-import { type JSX } from 'react'
+import { useState, type Dispatch, type JSX, type SetStateAction } from 'react'
 import './App.css'
 import type { GameState, Player } from "shared";
 import type { Supply, supplyStack } from "shared/supply";
 import type { Card } from "shared/cards"
+import { type Message, MessageKinds, type PickCardsRequest } from "shared/messages"
 
-export function Game({ player_names: players, player, game_state, choices }: { player_names: string[], player: Player, game_state: GameState, choices?: JSX.Element }) {
+export function Game({ player_names: players, player, game_state, choices, message }: { player_names: string[], player: Player, game_state: GameState, choices?: JSX.Element, message?: Message }) {
   if (!choices) {
     choices = <></>
   } else {
@@ -21,10 +22,11 @@ export function Game({ player_names: players, player, game_state, choices }: { p
       <div className='flex-col w-3/5 border'>
         <VisualSupply supply={game_state.supply} />
         <PlayedCards played_cards={game_state.played_cards} />
-        <Hand hand={player.hand} />
+        <Hand hand={player.hand} message={message} />
         {choices}
       </div>
       <div className='flex-col w-1/5 border'>
+        <TurnInfo game_state={game_state} />
       </div>
     </div>
   </>
@@ -74,7 +76,7 @@ function TurnInfo({ game_state }: { game_state: GameState }) {
   )
 }
 
-function VisualSupply({ supply }: { supply: Supply }) {
+function VisualSupply({ supply }: { supply: Supply, available_buys?: supplyStack[] }) {
   return <>
     <h2>Supply</h2>
     <div className='flex flex-row flex-wrap p-4 items-end'>
@@ -95,19 +97,55 @@ function VisualSupplyStack({ supply_stack }: { supply_stack: supplyStack }) {
 }
 
 
-function Hand({ hand }: { hand: Card[] }) {
+function Hand({ hand, message }: { hand: Card[], message?: Message }) {
+  // TODO: If only one selection needed, maybe just send right away without confirming?
+  // TODO: Stop the user from selecting too many cards
+  const [selected_cards, setSelectedCards] = useState<Card[]>([]);
+  let pick_cards_req: PickCardsRequest = undefined;
+  if (message && message.kind === MessageKinds.PICK_CARDS_REQUEST) {
+    pick_cards_req = message as PickCardsRequest
+    console.log("Proper message")
+  }
+  if (message) {
+    console.log("Message exists")
+  }
+
   return (<>
     <h2>Current Hand</h2>
     <div className='flex flex-row flex-wrap items-center justify-center'>
-      {hand.map((card) => <CardDisplay card={card} />)}
+      {hand.map((card) => {
+        if (pick_cards_req != undefined && pick_cards_req.choices.some((c) => c.id === card.id)) {
+          console.log("Rendering button")
+          return <CardButton card={card} selected_cards={selected_cards} setSelectedCards={setSelectedCards} />
+        }
+        console.log("Other")
+        return <CardDisplay card={card} />
+      })}
     </div>
   </>)
 }
 
-// TODO: Implement proper card visuals
 function CardDisplay({ card }: { card: Card }) {
   return (
     <div className='border w-1/5 h-auto p-px'>
+      <p className='text-black'>{card.info.name}</p>
+      <div className='flex flex-row justify-start'>
+        <GoldCoin cost={card.info.cost} />
+      </div>
+    </div>)
+}
+
+function CardButton({ card, selected_cards, setSelectedCards }: { card: Card, selected_cards: Card[], setSelectedCards: Dispatch<SetStateAction<Card[]>> }) {
+  let selected = selected_cards.includes(card)
+  return (
+    <div className={`border w-1/5 h-auto p-px  + ${selected ? 'border-green-400 hover:border-green-600' : 'border-red-600 hover:border-red-800'}`} onClick={() => {
+      if (selected) {
+        setSelectedCards(prev => prev.filter((c) => c !== card))
+      } else {
+        setSelectedCards((prev) => [...prev, card])
+      }
+    }
+    }>
       <p className='text-black'>{card.info.name}</p>
       <div className='flex flex-row justify-start'>
         <GoldCoin cost={card.info.cost} />
