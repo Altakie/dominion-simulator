@@ -1,5 +1,5 @@
-import { type Card } from "./cards"
-import { Supply } from "./supply"
+import { type Card, type CardInfo } from "./cards"
+import { Supply, type supplyStack } from "./supply"
 
 // export const GamePhase = Object.freeze({
 //   Action: 0,
@@ -29,6 +29,8 @@ export type Player = {
 
 
   victory_points: number
+  // TODO: Use this to calculate victory points instead
+  // victory_cards: supplyStack[]
 }
 
 
