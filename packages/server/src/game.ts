@@ -92,6 +92,7 @@ export class Game {
     for (let i = 0; i < 3; i++) {
       deck.push(this.new_card(Estate))
     }
+    deck = shuffle(deck)
     return {
       name: name,
       hand: [],
