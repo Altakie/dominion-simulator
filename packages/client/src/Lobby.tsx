@@ -12,8 +12,6 @@ export function Lobby() {
   const gameSocket = useGameSocket(setConnected);
   const { setState } = useContext(StateContext)
 
-  // TODO: combine these two to avoid data duplication
-  // const [player_names, setPlayerNames] = useState<Set<string>>(new Set())
   const [player_names, setPlayerNames] = useState<string[]>([])
   const [gameStarted, setGameStarted] = useState(false)
   const [choice_list, setChoiceList] = useState<JSX.Element>(null)
@@ -259,27 +257,31 @@ function ChooseSupplyPilesList({ message, game_socket, setChoiceList }: { messag
         <p>{supply_pile.card.name}</p>
       )}
 
-      <h3>Choices</h3>
-      {
-        message.choices.map((supply_pile) => (<SupplyPileButton supply_pile={supply_pile} />))
-      }
-
-      <button
-        onClick={
-          () => {
-            let res: PickSupplyPileResponse = {
-              kind: MessageKinds.PICK_SUPPLY_PILE_RESPONSE,
-              choices: choices
-            }
-            setChoices([])
-            setChoiceList(null)
-            game_socket.send(JSON.stringify(res))
-          }
+      <div>
+        <h3>Choices</h3>
+        {
+          message.choices.map((supply_pile) => (<SupplyPileButton supply_pile={supply_pile} />))
         }
+      </div>
 
-        disabled={
-          choices.length > message.max || choices.length < message.min
-        }>Confirm Choices</button >
+      <div>
+        <button
+          onClick={
+            () => {
+              let res: PickSupplyPileResponse = {
+                kind: MessageKinds.PICK_SUPPLY_PILE_RESPONSE,
+                choices: choices
+              }
+              setChoices([])
+              setChoiceList(null)
+              game_socket.send(JSON.stringify(res))
+            }
+          }
+
+          disabled={
+            choices.length > message.max || choices.length < message.min
+          }>Confirm Choices</button >
+      </div>
     </>
   )
 }

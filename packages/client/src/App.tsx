@@ -77,10 +77,11 @@ function Home() {
           }
           ></input>
         </p>
-        <button onClick={() => {
-          setState("Game");
-          ws.current.send(name)
-        }}>
+        <button
+          onClick={() => {
+            setState("Game");
+            ws.current.send(name)
+          }}>
           Join Game
         </button>
       </section>

@@ -15,7 +15,12 @@
 - Victory Points
   - Need to add victory points when cards are added to the deck/discard pile
   - Need to remove victory points when cards are trashed
+  - Actually need to recalculate victory points each time because of gardens?
+    - Maybe store pointers to victories separately
 - Better visuals
+  - Coloring and stuff
+  - Better positioning of elements
+  - Choices overlaid on hand and supply piles
 - Maybe a reorder decision type?
 
 ## Minor Features
