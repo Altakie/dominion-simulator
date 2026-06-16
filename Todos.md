@@ -2,27 +2,20 @@
 
 ## Major Features
 
-- Gamestate rendering on client
-  - Gamestate display
-    - Basic version done
-  - Display of server presented choices
-    - Basic version done
 - Handle reactions
 - Game end
   - Need to have check for game end after each players turn and send a special message when the game is over
   - Then need to return all players to lobby and terminate the current game object
   - Probably want a lobby on the server side as well, instead of doing everything in index.ts
-- Victory Points
-  - Need to add victory points when cards are added to the deck/discard pile
-  - Need to remove victory points when cards are trashed
-  - Actually need to recalculate victory points each time because of gardens?
-    - Maybe store pointers to victories separately
 - Better visuals
   - Coloring and stuff
   - Better positioning of elements
   - Choices overlaid on hand and supply piles
 - Maybe a reorder decision type?
 - Make everything async
+- Better trash pile
+- Log on client
+- Make borders for selected cards more clear
 
 ## Minor Features
 
