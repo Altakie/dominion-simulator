@@ -14,7 +14,6 @@ import {
 import { shuffle } from "shared/shuffle"
 import { Copper } from "shared/cards/treasures";
 import { Estate } from "shared/cards/victories";
-import { Cellar, Sentry } from "shared/cards/base";
 
 type WaitResponses = typeof MessageKinds.PICK_CARDS_RESPONSE | typeof MessageKinds.PICK_SUPPLY_PILE_RESPONSE | typeof MessageKinds.PICK_YES_NO_RESPONSE
 

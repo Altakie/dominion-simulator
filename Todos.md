@@ -22,6 +22,7 @@
   - Better positioning of elements
   - Choices overlaid on hand and supply piles
 - Maybe a reorder decision type?
+- Make everything async
 
 ## Minor Features
 

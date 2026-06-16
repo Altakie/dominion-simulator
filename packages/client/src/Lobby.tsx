@@ -61,14 +61,12 @@ export function Lobby() {
           setPlayer(started_msg.player)
           break
         case MessageKinds.PICK_CARDS_REQUEST:
-          setChoiceList(
-            <ChooseCardsList message={message as PickCardsRequest} game_socket={gameSocket.current} setChoiceList={setChoiceList} />
-          )
+          // NOTE: Handled elsewhere
           break
         case MessageKinds.PICK_SUPPLY_PILE_REQUEST:
-          setChoiceList(
-            <ChooseSupplyPilesList message={message as PickSupplyPileRequest} game_socket={gameSocket.current} setChoiceList={setChoiceList} />
-          )
+          // setChoiceList(
+          //   <ChooseSupplyPilesList message={message as PickSupplyPileRequest} game_socket={gameSocket.current} setChoiceList={setChoiceList} />
+          // )
           break
         case MessageKinds.PICK_YES_NO_REQUEST:
           setChoiceList(
@@ -121,7 +119,7 @@ export function Lobby() {
     return (
       // <GameContext value={gameSocket}>
       /* </GameContext> */
-      <Game player_names={player_names} game_state={gameState} choices={choice_list} player={player} message={message} />
+      <Game player_names={player_names} game_state={gameState} choices={choice_list} player={player} message={message} setMessage={setMessage} game_socket={gameSocket} />
     )
   }
 
@@ -177,129 +175,129 @@ function PlayerList({ players }: { players: string[] }) {
   </>
 }
 
-function ChooseCardsList({ message, game_socket, setChoiceList }: { message: PickCardsRequest, game_socket: WebSocket, setChoiceList }) {
-  const [choices, setChoices] = useState<Card[]>([])
+// function ChooseCardsList({ message, game_socket, setChoiceList }: { message: PickCardsRequest, game_socket: WebSocket, setChoiceList }) {
+//   const [choices, setChoices] = useState<Card[]>([])
+//
+//   function CardChoiceButton({ card }: { card: Card }) {
+//     const selected = choices.includes(card)
+//
+//     return (
+//       <Button style={(() => {
+//         if (selected) {
+//           return {
+//             color: "red"
+//           }
+//         }
+//         else {
+//           return {}
+//         }
+//       })()}
+//         onClick={() => {
+//           if (!choices.includes(card)) {
+//             setChoices([...choices, card])
+//             return
+//           }
+//
+//           setChoices(choices.filter((c) => (c !== card)))
+//         }}
+//
+//       >{card.info.name}</Button>
+//     )
+//   }
+//
+//   return (
+//     <>
+//       <h3>{message.description}</h3>
+//       <h3>Currently Selected</h3>
+//       {choices.map((card) =>
+//         <p>{card.info.name}</p>
+//       )}
+//
+//       <h3>Choices</h3>
+//       {
+//         message.choices.map((card) => (<CardChoiceButton card={card} />))
+//       }
+//
+//       <Button
+//         onClick={
+//           () => {
+//             let res: PickCardsResponse = {
+//               kind: MessageKinds.PICK_CARDS_RESPONSE,
+//               choices: choices
+//             }
+//             setChoices([])
+//             setChoiceList(null)
+//             game_socket.send(JSON.stringify(res))
+//           }
+//         }
+//
+//         disabled={
+//           choices.length > message.max || choices.length < message.min
+//         }>Confirm Choices</Button >
+//     </>
+//   )
+// }
 
-  function CardChoiceButton({ card }: { card: Card }) {
-    const selected = choices.includes(card)
-
-    return (
-      <Button style={(() => {
-        if (selected) {
-          return {
-            color: "red"
-          }
-        }
-        else {
-          return {}
-        }
-      })()}
-        onClick={() => {
-          if (!choices.includes(card)) {
-            setChoices([...choices, card])
-            return
-          }
-
-          setChoices(choices.filter((c) => (c !== card)))
-        }}
-
-      >{card.info.name}</Button>
-    )
-  }
-
-  return (
-    <>
-      <h3>{message.description}</h3>
-      <h3>Currently Selected</h3>
-      {choices.map((card) =>
-        <p>{card.info.name}</p>
-      )}
-
-      <h3>Choices</h3>
-      {
-        message.choices.map((card) => (<CardChoiceButton card={card} />))
-      }
-
-      <Button
-        onClick={
-          () => {
-            let res: PickCardsResponse = {
-              kind: MessageKinds.PICK_CARDS_RESPONSE,
-              choices: choices
-            }
-            setChoices([])
-            setChoiceList(null)
-            game_socket.send(JSON.stringify(res))
-          }
-        }
-
-        disabled={
-          choices.length > message.max || choices.length < message.min
-        }>Confirm Choices</Button >
-    </>
-  )
-}
-
-function ChooseSupplyPilesList({ message, game_socket, setChoiceList }: { message: PickSupplyPileRequest, game_socket: WebSocket, setChoiceList }) {
-  const [choices, setChoices] = useState<supplyStack[]>([])
-
-  function SupplyPileButton({ supply_pile }: { supply_pile: supplyStack }) {
-    const selected = choices.includes(supply_pile)
-
-    return (
-      <Button style={selected ?
-        { color: "red" } : {}
-      }
-        onClick={() => {
-          if (!choices.includes(supply_pile)) {
-            setChoices([...choices, supply_pile])
-            return
-          }
-
-          setChoices(choices.filter((ss) => (ss !== supply_pile)))
-        }}
-
-      >{supply_pile.card.name} : ${supply_pile.card.cost}</Button>
-    )
-  }
-
-
-  return (
-    <>
-      <h3>{message.description}</h3>
-      <h3>Currently Selected</h3>
-      {choices.map((supply_pile) =>
-        <p>{supply_pile.card.name}</p>
-      )}
-
-      <div>
-        <h3>Choices</h3>
-        {
-          message.choices.map((supply_pile) => (<SupplyPileButton supply_pile={supply_pile} />))
-        }
-      </div>
-
-      <div>
-        <Button
-          onClick={
-            () => {
-              let res: PickSupplyPileResponse = {
-                kind: MessageKinds.PICK_SUPPLY_PILE_RESPONSE,
-                choices: choices
-              }
-              setChoices([])
-              setChoiceList(null)
-              game_socket.send(JSON.stringify(res))
-            }
-          }
-
-          disabled={
-            choices.length > message.max || choices.length < message.min
-          }>Confirm Choices</Button >
-      </div>
-    </>
-  )
-}
+// function ChooseSupplyPilesList({ message, game_socket, setChoiceList }: { message: PickSupplyPileRequest, game_socket: WebSocket, setChoiceList }) {
+//   const [choices, setChoices] = useState<supplyStack[]>([])
+//
+//   function SupplyPileButton({ supply_pile }: { supply_pile: supplyStack }) {
+//     const selected = choices.includes(supply_pile)
+//
+//     return (
+//       <Button style={selected ?
+//         { color: "red" } : {}
+//       }
+//         onClick={() => {
+//           if (!choices.includes(supply_pile)) {
+//             setChoices([...choices, supply_pile])
+//             return
+//           }
+//
+//           setChoices(choices.filter((ss) => (ss !== supply_pile)))
+//         }}
+//
+//       >{supply_pile.card.name} : ${supply_pile.card.cost}</Button>
+//     )
+//   }
+//
+//
+//   return (
+//     <>
+//       <h3>{message.description}</h3>
+//       <h3>Currently Selected</h3>
+//       {choices.map((supply_pile) =>
+//         <p>{supply_pile.card.name}</p>
+//       )}
+//
+//       <div>
+//         <h3>Choices</h3>
+//         {
+//           message.choices.map((supply_pile) => (<SupplyPileButton supply_pile={supply_pile} />))
+//         }
+//       </div>
+//
+//       <div>
+//         <Button
+//           onClick={
+//             () => {
+//               let res: PickSupplyPileResponse = {
+//                 kind: MessageKinds.PICK_SUPPLY_PILE_RESPONSE,
+//                 choices: choices
+//               }
+//               setChoices([])
+//               setChoiceList(null)
+//               game_socket.send(JSON.stringify(res))
+//             }
+//           }
+//
+//           disabled={
+//             choices.length > message.max || choices.length < message.min
+//           }>Confirm Choices</Button >
+//       </div>
+//     </>
+//   )
+// }
 
 function ChooseYesNo({ message, game_socket, setChoiceList }: { message: PickYesNoRequest, game_socket: WebSocket, setChoiceList }) {
 
@@ -314,7 +312,6 @@ function ChooseYesNo({ message, game_socket, setChoiceList }: { message: PickYes
 
   return (
     <>
-      <h3>{message.description}</h3>
       <h3>Card: {message.card.info.name}</h3>
       <h3>Choices</h3>
       <p>

@@ -72,7 +72,18 @@ export interface StartedMessage extends Message {
   player: Player
 }
 
-export interface PickCardsRequest extends Message {
+export const request_message_kinds = new Set<MessageKind>()
+request_message_kinds.add(MessageKinds.PICK_CARDS_REQUEST)
+request_message_kinds.add(MessageKinds.PICK_SUPPLY_PILE_REQUEST)
+request_message_kinds.add(MessageKinds.PICK_YES_NO_REQUEST)
+
+export interface RequestMessage extends Message {
+  kind: MessageKind,
+
+  description: string
+}
+
+export interface PickCardsRequest extends RequestMessage {
   kind: typeof MessageKinds.PICK_CARDS_REQUEST,
 
   description: PickCardsDescription,
@@ -82,7 +93,7 @@ export interface PickCardsRequest extends Message {
   max: number
 }
 
-export interface PickSupplyPileRequest extends Message {
+export interface PickSupplyPileRequest extends RequestMessage {
   kind: typeof MessageKinds.PICK_SUPPLY_PILE_REQUEST,
 
   description: GainDescription,
@@ -92,7 +103,7 @@ export interface PickSupplyPileRequest extends Message {
   max: number
 }
 
-export interface PickYesNoRequest extends Message {
+export interface PickYesNoRequest extends RequestMessage {
   kind: typeof MessageKinds.PICK_YES_NO_REQUEST,
 
   description: BinaryDescription,
