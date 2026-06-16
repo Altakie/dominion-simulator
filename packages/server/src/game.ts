@@ -14,7 +14,7 @@ import {
 import { shuffle } from "shared/shuffle"
 import { Copper } from "shared/cards/treasures";
 import { Estate } from "shared/cards/victories";
-import { Cellar } from "shared/cards/base";
+import { Cellar, Sentry } from "shared/cards/base";
 
 type WaitResponses = typeof MessageKinds.PICK_CARDS_RESPONSE | typeof MessageKinds.PICK_SUPPLY_PILE_RESPONSE | typeof MessageKinds.PICK_YES_NO_RESPONSE
 
@@ -56,10 +56,14 @@ export class Game {
   game_state: GameState;
   wait_info?: WaitInfo;
   card_count: number;
+  debug_mode: boolean;
 
   constructor(players: PlayerLobbyInfo[]) {
     this.card_count = 0
     this.wait_info = undefined
+
+    // DEBUG MODE TOGGLE
+    this.debug_mode = true
 
     const player_infos = players.map((player): PlayerInfo => {
       return {
@@ -71,6 +75,10 @@ export class Game {
     this.player_infos = shuffle(player_infos)
 
     this.game_state = new_game_state(0, new Supply(players.length))
+
+    if (this.debug_mode) {
+      this.game_state.supply.toggleDebugMode()
+    }
   }
 
   new_card(card_info: CardInfo): Card {
@@ -89,7 +97,6 @@ export class Game {
     let deck: Card[] = []
     for (let i = 0; i < 7; i++) {
       deck.push(this.new_card(Copper))
-      // deck.push(this.new_card(Cellar))
     }
     for (let i = 0; i < 3; i++) {
       deck.push(this.new_card(Estate))
@@ -100,7 +107,7 @@ export class Game {
       hand: [],
       deck: deck,
       discard_pile: [],
-      victory_points: 0
+      victory_points: 3
     }
   }
 
@@ -483,16 +490,50 @@ export class Game {
     const card = this.game_state.supply.gainCard(card_name)
     if (card) {
       pile.push(card)
+      let player = this.get_current_player()
+      player.victory_points = this.calculate_victory_points(player)
     }
   }
 
   trash_card(card_index: number, pile: Card[]) {
     const card = this.remove_card(card_index, pile)
     this.game_state.trash_pile.push(card)
+    let player = this.get_current_player()
+    player.victory_points = this.calculate_victory_points(player)
   }
 
   remove_card(card_index: number, pile: Card[]): Card {
     return pile.splice(card_index, 1)[0]!
+  }
+
+  calculate_victory_points(player: Player): number {
+    let points = 0
+    let all_cards = [
+      ...player.discard_pile,
+      ...player.hand,
+      ...this.game_state.played_cards,
+      ...player.deck
+    ]
+    for (let card of all_cards) {
+      switch (card.info.name) {
+        case "Estate":
+          points += 1
+          break
+        case "Duchy":
+          points += 3
+          break
+        case "Province":
+          points += 6
+          break
+        case "Curse":
+          points -= 1
+          break
+        case "Gardens":
+          points += Math.floor(all_cards.length / 10)
+          break
+      }
+    }
+    return points
   }
 }
 

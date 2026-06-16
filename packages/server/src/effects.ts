@@ -4,6 +4,7 @@ import { Curse } from "shared/cards/curses"
 import { BinaryDescriptions, GainDescriptions, PickCardsDescriptions } from "shared/messages"
 import type { supplyStack } from "shared/supply"
 import { Copper, Gold, Silver } from "shared/cards/treasures"
+import { Library } from "shared/cards/base"
 
 export const effect_table: Record<CardName, (game: Game) => void> = {
   "Copper": (game: Game) => {
@@ -21,25 +22,11 @@ export const effect_table: Record<CardName, (game: Game) => void> = {
   "Gold": (game: Game) => {
     game.game_state.money += 3
   },
-  "Estate": (game: Game) => {
-    game.get_current_player().victory_points += 1
-  },
-  "Duchy": (game: Game) => {
-    game.get_current_player().victory_points += 3
-  },
-  "Province": (game: Game) => {
-    game.get_current_player().victory_points += 6
-  },
-  "Gardens": (game: Game) => {
-    let player = game.get_current_player()
-    player.victory_points +=
-      Math.floor((player.deck.length +
-        player.discard_pile.length +
-        player.hand.length) / 10)
-  },
-  "Curse": (game: Game) => {
-    game.get_current_player().victory_points -= 1
-  },
+  "Estate": (game: Game) => {},
+  "Duchy": (game: Game) => {},
+  "Province": (game: Game) => {},
+  "Gardens": (game: Game) => {},
+  "Curse": (game: Game) => {},
   "Cellar": (game: Game) => {
     let player = game.get_current_player()
     const next = (choices: Card[]) => {
@@ -77,7 +64,7 @@ export const effect_table: Record<CardName, (game: Game) => void> = {
       PickCardsDescriptions.TRASH_ANY,
       player.hand,
       0,
-      Math.max(player.hand.length, 4),
+      Math.min(player.hand.length, 4),
       next
     )
   },
@@ -372,26 +359,27 @@ export const effect_table: Record<CardName, (game: Game) => void> = {
   },
   "Library": (game: Game) => {
     let player = game.get_current_player()
-    while (player.hand.length < 7 && player.deck.length + player.discard_pile.length > 0) {
-      game.draw_cards(player, 1)
-      let drawn_card = player.hand[player.hand.length - 1]!
-      if (drawn_card.info.types.includes(CardTypes.ACTION)) {
-        const next = (choice: boolean) => {
-          if (!choice) {
-            game.discard_card(
-              player,
-              player.hand.length - 1,
-              player.hand
-            )
-          }
+    game.draw_cards(player, 1)
+    let drawn_card = player.hand[player.hand.length - 1]!
+    if (drawn_card.info.types.includes(CardTypes.ACTION)) {
+      const next = (choice: boolean) => {
+        if (!choice) {
+          game.discard_card(
+            player,
+            player.hand.length - 1,
+            player.hand
+          )
         }
-        game.prompt_binary_choice(
-          game.get_current_player_info(),
-          BinaryDescriptions.BINARY_PUT_IN_HAND,
-          drawn_card,
-          next
-        )
+        if (player.hand.length < 7 && player.deck.length + player.discard_pile.length > 0) {
+          effect_table[Library.name](game)
+        }
       }
+      game.prompt_binary_choice(
+        game.get_current_player_info(),
+        BinaryDescriptions.BINARY_PUT_IN_HAND,
+        drawn_card,
+        next
+      )
     }
   },
   "Market": (game: Game) => {

@@ -3,7 +3,7 @@ import { Copper, Silver, Gold } from "./cards/treasures"
 import { Estate, Duchy, Province } from "./cards/victories"
 import { Curse } from "./cards/curses"
 import { shuffle } from "./shuffle"
-import { BaseCards } from "./cards/base"
+import { BaseCards, Chapel, Gardens } from "./cards/base"
 
 export type supplyStack = {
   card: CardInfo,
@@ -46,5 +46,19 @@ export class Supply {
       return { id: `${cardName}-${Date.now()}`, info: stack.card }
     }
     return null
+  }
+
+  toggleDebugMode() {
+    this.stacks = [
+      { card: Copper, count: 60 },
+      { card: Silver, count: 40 },
+      { card: Gold, count: 30 },
+      { card: Estate, count: 8 },
+      { card: Duchy, count: 8 },
+      { card: Province, count: 8 },
+      { card: Curse, count: 10 },
+      { card: Gardens, count: 8 },
+      { card: Chapel, count: 10 }
+    ]
   }
 }
