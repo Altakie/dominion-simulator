@@ -7,14 +7,14 @@
   - Need to have check for game end after each players turn and send a special message when the game is over
   - Then need to return all players to lobby and terminate the current game object
   - Probably want a lobby on the server side as well, instead of doing everything in index.ts
+- Maybe a reorder decision type?
+- Log on client
 - Better visuals
   - Coloring and stuff
   - Better positioning of elements
   - Choices overlaid on hand and supply piles
-- Maybe a reorder decision type?
-- Make everything async
 - Better trash pile
-- Log on client
+- Choose card decision should also allow you to choose cards not in your hand
 - Make borders for selected cards more clear
 
 ## Minor Features

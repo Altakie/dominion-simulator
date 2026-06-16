@@ -5,6 +5,7 @@ import { BinaryDescriptions, GainDescriptions, PickCardsDescriptions } from "sha
 import type { supplyStack } from "shared/supply"
 import { Copper, Gold, Silver } from "shared/cards/treasures"
 import { Library } from "shared/cards/base"
+import type { Player } from "shared"
 
 export const effect_table: Record<CardName, (game: Game) => void> = {
   "Copper": (game: Game) => {
@@ -22,11 +23,11 @@ export const effect_table: Record<CardName, (game: Game) => void> = {
   "Gold": (game: Game) => {
     game.game_state.money += 3
   },
-  "Estate": (game: Game) => {},
-  "Duchy": (game: Game) => {},
-  "Province": (game: Game) => {},
-  "Gardens": (game: Game) => {},
-  "Curse": (game: Game) => {},
+  "Estate": (game: Game) => { },
+  "Duchy": (game: Game) => { },
+  "Province": (game: Game) => { },
+  "Gardens": (game: Game) => { },
+  "Curse": (game: Game) => { },
   "Cellar": (game: Game) => {
     let player = game.get_current_player()
     const next = (choices: Card[]) => {
@@ -437,40 +438,26 @@ export const effect_table: Record<CardName, (game: Game) => void> = {
     game.draw_cards(player, 2)
     let top_cards = player.hand.slice(-2)
     if (top_cards.length > 0) {
-      const trash_next = (choices: Card[]) => {
+      const trash_next = get_trash_next(game, player, top_cards)
+
+      game.prompt_pick_card(
+        game.get_current_player_info(),
+        PickCardsDescriptions.TRASH_ANY,
+        top_cards,
+        0,
+        top_cards.length,
+        trash_next
+      )
+    }
+
+    function get_trash_next(game: Game, player: Player, top_cards: Card[]) {
+      return (choices: Card[]) => {
         for (let card of choices) {
           game.trash_card(player.hand.indexOf(card!), player.hand)
         }
         let remaining_cards = top_cards.filter(card => !choices.includes(card!))
         if (remaining_cards.length > 0) {
-          const discard_next = (choices: Card[]) => {
-            for (let card of choices) {
-              game.discard_card(player, player.hand.indexOf(card!), player.hand)
-            }
-            let final_cards = remaining_cards.filter(card => !choices.includes(card!))
-            if (final_cards.length == 2) {
-              const put_back_next = (choices: Card[]) => {
-                if (choices.includes(final_cards[0]!)) {
-                  game.remove_card(player.hand.indexOf(final_cards[0]!), player.hand)
-                  player.deck.push(final_cards[0]!)
-                } else {
-                  game.remove_card(player.hand.indexOf(final_cards[1]!), player.hand)
-                  player.deck.push(final_cards[1]!)
-                }
-              }
-              game.prompt_pick_card(
-                game.get_current_player_info(),
-                PickCardsDescriptions.PUT_ON_DECK,
-                final_cards,
-                1,
-                1,
-                put_back_next
-              )
-            } else if (final_cards.length == 1) {
-              game.remove_card(player.hand.indexOf(final_cards[0]!), player.hand)
-              player.deck.push(final_cards[0]!)
-            }
-          }
+          const discard_next = get_discard_next(game, player, remaining_cards)
           game.prompt_pick_card(
             game.get_current_player_info(),
             PickCardsDescriptions.DISCARD_ANY,
@@ -481,15 +468,45 @@ export const effect_table: Record<CardName, (game: Game) => void> = {
           )
         }
       }
-      game.prompt_pick_card(
-        game.get_current_player_info(),
-        PickCardsDescriptions.TRASH_ANY,
-        top_cards,
-        0,
-        top_cards.length,
-        trash_next
-      )
+
     }
+
+    function get_discard_next(game: Game, player: Player, remaining_cards: Card[]) {
+      return (choices: Card[]) => {
+        for (let card of choices) {
+          game.discard_card(player, player.hand.indexOf(card!), player.hand)
+        }
+        let final_cards = remaining_cards.filter(card => !choices.includes(card!))
+        if (final_cards.length == 2) {
+          const put_back_next = get_put_back_next(game, final_cards, player)
+          game.prompt_pick_card(
+            game.get_current_player_info(),
+            PickCardsDescriptions.PUT_ON_DECK,
+            final_cards,
+            1,
+            1,
+            put_back_next
+          )
+        } else if (final_cards.length == 1) {
+          game.remove_card(player.hand.indexOf(final_cards[0]!), player.hand)
+          player.deck.push(final_cards[0]!)
+        }
+      }
+    }
+
+    function get_put_back_next(game: Game, final_cards: Card[], player: Player) {
+      return (choices: Card[]) => {
+        if (choices.includes(final_cards[0]!)) {
+          game.remove_card(player.hand.indexOf(final_cards[0]!), player.hand)
+          player.deck.push(final_cards[0]!)
+        } else {
+          game.remove_card(player.hand.indexOf(final_cards[1]!), player.hand)
+          player.deck.push(final_cards[1]!)
+        }
+      }
+
+    }
+
   },
   "Witch": (game: Game) => {
     game.draw_cards(game.get_current_player(), 2)
@@ -533,4 +550,5 @@ export const effect_table: Record<CardName, (game: Game) => void> = {
     )
   }
 }
+
 
