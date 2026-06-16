@@ -14,6 +14,7 @@ import {
 import { shuffle } from "shared/shuffle"
 import { Copper } from "shared/cards/treasures";
 import { Estate } from "shared/cards/victories";
+import { Cellar } from "shared/cards/base";
 
 type WaitResponses = typeof MessageKinds.PICK_CARDS_RESPONSE | typeof MessageKinds.PICK_SUPPLY_PILE_RESPONSE | typeof MessageKinds.PICK_YES_NO_RESPONSE
 
@@ -88,6 +89,7 @@ export class Game {
     let deck: Card[] = []
     for (let i = 0; i < 7; i++) {
       deck.push(this.new_card(Copper))
+      // deck.push(this.new_card(Cellar))
     }
     for (let i = 0; i < 3; i++) {
       deck.push(this.new_card(Estate))

@@ -1,15 +1,23 @@
 import { serializeMessage, MessageKinds, parseMessage, type Message, type ConnectMessage, type DisconnectMessage, type PlayerNamesMessage, type StartedMessage, type PickCardsResponse, type PickSupplyPileRequest, type PickSupplyPileResponse, type PickCardsRequest, type GameStateUpdateMessage, type PickYesNoRequest, type PickYesNoResponse } from "shared/messages"
-import { useEffect, useState, useRef, useContext, type JSX } from 'react'
-import { StateContext } from "./App";
+import { useEffect, useState, useRef, useContext, type JSX, createContext, type RefObject } from 'react'
+import { Button, StateContext } from "./App";
 import './App.css'
 import { Game } from "./Game.tsx"
 import type { GameState, Player } from "shared";
 import type { Card } from "shared/cards.ts";
 import type { supplyStack } from "shared/supply.ts";
 
+// export const GameContext = createContext<{
+//   gameSocket: RefObject<WebSocket>,
+//   gameState: GameState,
+//   message?: Message,
+//   player: Player
+// }>(null)
+
 export function Lobby() {
   const [connected, setConnected] = useState(false)
   const gameSocket = useGameSocket(setConnected);
+
   const { setState } = useContext(StateContext)
 
   const [player_names, setPlayerNames] = useState<string[]>([])
@@ -92,25 +100,29 @@ export function Lobby() {
     return (
       <>
         <h1>Welcome to the game</h1>
-        <button onClick={() => {
+        <Button onClick={() => {
           console.log("Attempting to start game")
           gameSocket.current.send(serializeMessage({
             kind: MessageKinds.START
           }))
         }}
           disabled={!connected}
-        >Start Game</button>
+        >Start Game</Button>
 
         <PlayerList players={player_names} />
 
-        <button onClick={() => {
+        <Button onClick={() => {
           setState("Home")
           gameSocket.current.close(1000)
-        }}>Leave Game</button>
+        }}>Leave Game</Button>
       </>
     )
   } else {
-    return <Game player_names={player_names} game_state={gameState} choices={choice_list} player={player} message={message} />
+    return (
+      // <GameContext value={gameSocket}>
+      /* </GameContext> */
+      <Game player_names={player_names} game_state={gameState} choices={choice_list} player={player} message={message} />
+    )
   }
 
 }
@@ -172,7 +184,7 @@ function ChooseCardsList({ message, game_socket, setChoiceList }: { message: Pic
     const selected = choices.includes(card)
 
     return (
-      <button style={(() => {
+      <Button style={(() => {
         if (selected) {
           return {
             color: "red"
@@ -191,7 +203,7 @@ function ChooseCardsList({ message, game_socket, setChoiceList }: { message: Pic
           setChoices(choices.filter((c) => (c !== card)))
         }}
 
-      >{card.info.name}</button>
+      >{card.info.name}</Button>
     )
   }
 
@@ -208,7 +220,7 @@ function ChooseCardsList({ message, game_socket, setChoiceList }: { message: Pic
         message.choices.map((card) => (<CardChoiceButton card={card} />))
       }
 
-      <button
+      <Button
         onClick={
           () => {
             let res: PickCardsResponse = {
@@ -223,7 +235,7 @@ function ChooseCardsList({ message, game_socket, setChoiceList }: { message: Pic
 
         disabled={
           choices.length > message.max || choices.length < message.min
-        }>Confirm Choices</button >
+        }>Confirm Choices</Button >
     </>
   )
 }
@@ -235,7 +247,7 @@ function ChooseSupplyPilesList({ message, game_socket, setChoiceList }: { messag
     const selected = choices.includes(supply_pile)
 
     return (
-      <button style={selected ?
+      <Button style={selected ?
         { color: "red" } : {}
       }
         onClick={() => {
@@ -247,7 +259,7 @@ function ChooseSupplyPilesList({ message, game_socket, setChoiceList }: { messag
           setChoices(choices.filter((ss) => (ss !== supply_pile)))
         }}
 
-      >{supply_pile.card.name} : ${supply_pile.card.cost}</button>
+      >{supply_pile.card.name} : ${supply_pile.card.cost}</Button>
     )
   }
 
@@ -268,7 +280,7 @@ function ChooseSupplyPilesList({ message, game_socket, setChoiceList }: { messag
       </div>
 
       <div>
-        <button
+        <Button
           onClick={
             () => {
               let res: PickSupplyPileResponse = {
@@ -283,7 +295,7 @@ function ChooseSupplyPilesList({ message, game_socket, setChoiceList }: { messag
 
           disabled={
             choices.length > message.max || choices.length < message.min
-          }>Confirm Choices</button >
+          }>Confirm Choices</Button >
       </div>
     </>
   )
@@ -306,21 +318,21 @@ function ChooseYesNo({ message, game_socket, setChoiceList }: { message: PickYes
       <h3>Card: {message.card.info.name}</h3>
       <h3>Choices</h3>
       <p>
-        <button
+        <Button
           onClick={
             () => {
               send_choice(true)
             }
           }
-        >Yes</button >
+        >Yes</Button >
 
-        <button
+        <Button
           onClick={
             () => {
               send_choice(false)
             }
           }
-        >No</button >
+        >No</Button >
       </p>
     </>
   )

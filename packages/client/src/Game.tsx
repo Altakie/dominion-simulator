@@ -3,9 +3,10 @@ import './App.css'
 import type { GameState, Player } from "shared";
 import type { Supply, supplyStack } from "shared/supply";
 import type { Card } from "shared/cards"
-import { type Message, MessageKinds, type PickCardsRequest } from "shared/messages"
+import { type Message, MessageKinds, type PickCardsRequest, type PickCardsResponse } from "shared/messages"
+import { Button } from './App';
 
-export function Game({ player_names: players, player, game_state, choices, message }: { player_names: string[], player: Player, game_state: GameState, choices?: JSX.Element, message?: Message }) {
+export function Game({ player_names, player, game_state, choices, message }: { player_names: string[], player: Player, game_state: GameState, choices?: JSX.Element, message?: Message }) {
   if (!choices) {
     choices = <></>
   } else {
@@ -15,9 +16,9 @@ export function Game({ player_names: players, player, game_state, choices, messa
     <h1>Game</h1>
     <div className='flex flex-row flex-nowrap justify-center items-start place-content-between'>
       <div className='flex-col w-1/5 border'>
-        <PlayerList players={players} />
+        <PlayerList players={player_names} />
         <h2>Current Vp: <span>{player.victory_points}</span></h2>
-        <VisualGameState players={players} game_state={game_state} />
+        <VisualGameState players={player_names} game_state={game_state} />
       </div>
       <div className='flex-col w-3/5 border'>
         <VisualSupply supply={game_state.supply} />
@@ -108,6 +109,25 @@ function Hand({ hand, message }: { hand: Card[], message?: Message }) {
   }
   if (message) {
     console.log("Message exists")
+  }
+
+  const confirm_choices_button = () => {
+    return <Button
+      onClick={
+        () => {
+          let res: PickCardsResponse = {
+            kind: MessageKinds.PICK_CARDS_RESPONSE,
+            choices: selected_cards
+          }
+          setSelectedCards([])
+          // Need to set message to null
+          game_socket.send(JSON.stringify(res))
+        }
+      }
+
+      disabled={
+        choices.length > message.max || choices.length < message.min
+      }>Confirm Choices</Button >
   }
 
   return (<>

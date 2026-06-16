@@ -2,7 +2,6 @@ import { useEffect, useState, useRef, createContext, useContext, type RefObject 
 import './App.css'
 import { type JSX } from 'react'
 import { Lobby } from './Lobby.tsx'
-import { Game } from './Game.tsx'
 // import { BrowserRouter, Routes, Route, Link } from 'react-router-dom';
 
 
@@ -73,17 +72,18 @@ function Home() {
       <section id='center'>
 
         <p>Your Name:
-          <input value={name} onChange={(e) => setName(e.target.value)
-          }
+          <input className='border text-black'
+            value={name} onChange={(e) => setName(e.target.value)
+            }
           ></input>
         </p>
-        <button
+        <Button
           onClick={() => {
             setState("Game");
             ws.current.send(name)
           }}>
           Join Game
-        </button>
+        </Button>
       </section>
     </>
   )
@@ -117,6 +117,12 @@ function useMessageSocket() {
   )
 
   return ws
+}
+
+export function Button({ children, ...props }) {
+  return <button className={`rounded-xl text-black bg-gray-400 p-2 ${props.className}`} {...props}>
+    {children}
+  </button>
 }
 
 // function MessageLog({ messages }) {
