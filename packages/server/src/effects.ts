@@ -68,6 +68,7 @@ export const effect_table: Record<CardName, (game: Game) => void> = {
       return (choices: Card[]) => {
         for (let card of choices) {
           game.trash_card(
+            player,
             player.hand.findIndex((c) => c.id === card.id),
             player.hand
           )
@@ -152,7 +153,7 @@ export const effect_table: Record<CardName, (game: Game) => void> = {
     function get_next(): (choices: supplyStack[]) => void {
       return (choices: supplyStack[]) => {
         for (let stack of choices) {
-          game.gain_card(stack.card.name, player.discard_pile)
+          game.gain_card(player, stack.card.name, player.discard_pile)
         }
       }
     }
@@ -160,7 +161,7 @@ export const effect_table: Record<CardName, (game: Game) => void> = {
   "Bureaucrat": (game: Game) => {
     const benefit = () => {
       let player = game.get_current_player()
-      game.gain_card(Silver.name, player.deck)
+      game.gain_card(player, Silver.name, player.deck)
     }
     const next = () => {
       let player = game.get_player(game.game_state.attack_index!)
@@ -237,10 +238,7 @@ export const effect_table: Record<CardName, (game: Game) => void> = {
     function get_next(): (choices: Card[]) => void {
       return (choices: Card[]) => {
         for (let card of choices) {
-          game.trash_card(
-            player.hand.findIndex((c) => c.id === card.id),
-            player.hand
-          )
+          game.trash_card(player, player.hand.findIndex((c) => c.id === card.id), player.hand)
           game.game_state.money += 3
         }
       }
@@ -294,6 +292,7 @@ export const effect_table: Record<CardName, (game: Game) => void> = {
         for (let card of choices) {
           value = card!.info.cost + 2
           game.trash_card(
+            player,
             player.hand.findIndex((c) => c.id === card.id),
             player.hand
           )
@@ -316,7 +315,7 @@ export const effect_table: Record<CardName, (game: Game) => void> = {
     function get_gain_next(): (choices: supplyStack[]) => void {
       return (choices: supplyStack[]) => {
         for (let stack of choices) {
-          game.gain_card(stack.card.name, player.discard_pile)
+          game.gain_card(player, stack.card.name, player.discard_pile)
         }
       }
     }
@@ -352,7 +351,7 @@ export const effect_table: Record<CardName, (game: Game) => void> = {
   "Bandit": (game: Game) => {
     const benefit = () => {
       let player = game.get_current_player()
-      game.gain_card(Gold.name, player.discard_pile)
+      game.gain_card(player, Gold.name, player.discard_pile)
     }
     const next = () => {
       let player = game.get_player(game.game_state.attack_index!)
@@ -386,6 +385,7 @@ export const effect_table: Record<CardName, (game: Game) => void> = {
       return (choices: Card[]) => {
         for (let card of choices) {
           game.trash_card(
+            player,
             player.discard_pile.findIndex((c) => c.id === card.id),
             player.discard_pile
           )
@@ -463,6 +463,7 @@ export const effect_table: Record<CardName, (game: Game) => void> = {
         if (choices.length > 0) {
           let trashed_cost = choices[0]!.info.cost
           game.trash_card(
+            player,
             player.hand.findIndex((c) => c.id === choices[0]!.id),
             player.hand
           )
@@ -485,7 +486,7 @@ export const effect_table: Record<CardName, (game: Game) => void> = {
     function get_gain_next(): (choices: supplyStack[]) => void {
       return (choices: supplyStack[]) => {
         if (choices.length > 0) {
-          game.gain_card(choices[0]!.card.name, player.hand)
+          game.gain_card(player, choices[0]!.card.name, player.hand)
         }
       }
     }
@@ -510,7 +511,7 @@ export const effect_table: Record<CardName, (game: Game) => void> = {
     function get_trash_next(): (choices: Card[]) => void {
       return (choices: Card[]) => {
         for (let card of choices) {
-          game.trash_card(player.hand.findIndex((c) => c.id === card.id), player.hand)
+          game.trash_card(player, player.hand.findIndex((c) => c.id === card.id), player.hand)
         }
         let remaining_cards = top_cards.filter(card => !choices.includes(card!))
         if (remaining_cards.length > 0) {
@@ -568,7 +569,7 @@ export const effect_table: Record<CardName, (game: Game) => void> = {
 
     const next = () => {
       let player = game.get_player(game.game_state.attack_index!)
-      game.gain_card(Curse.name, player.discard_pile)
+      game.gain_card(player, Curse.name, player.discard_pile)
     }
 
     game.handle_attack(Witch.name, benefit, next)
@@ -590,7 +591,7 @@ export const effect_table: Record<CardName, (game: Game) => void> = {
     function get_gain_next(): (choices: supplyStack[]) => void {
       return (choices: supplyStack[]) => {
         if (choices.length > 0) {
-          game.gain_card(choices[0]!.card.name, player.hand)
+          game.gain_card(player, choices[0]!.card.name, player.hand)
         }
         game.prompt_pick_card(
           game.get_current_player_info(),

@@ -359,7 +359,8 @@ export class Game {
         let choice = choices[0]!
 
         // Gain the bought card to the discard pile
-        this.gain_card(choice.card.name, this.get_current_player().discard_pile)
+        let player = this.get_current_player()
+        this.gain_card(player, choice.card.name, player.discard_pile)
         this.game_state.money -= choice.card.cost
         this.game_state.buys--
 
@@ -522,19 +523,17 @@ export class Game {
     player.discard_pile.push(card)
   }
 
-  gain_card(card_name: CardName, pile: Card[]) {
+  gain_card(player: Player,card_name: CardName, pile: Card[]) {
     const card = this.game_state.supply.gainCard(card_name)
     if (card) {
       pile.push(card)
-      let player = this.get_current_player()
       player.victory_points = this.calculate_victory_points(player)
     }
   }
 
-  trash_card(card_index: number, pile: Card[]) {
+  trash_card(player: Player, card_index: number, pile: Card[]) {
     const card = this.remove_card(card_index, pile)
     this.game_state.trash_pile.push(card)
-    let player = this.get_current_player()
     player.victory_points = this.calculate_victory_points(player)
   }
 
