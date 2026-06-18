@@ -6,9 +6,10 @@ import { WSContext } from "hono/ws";
 import { type Context } from "hono";
 import { setCookie, getCookie } from "hono/cookie";
 import { parseMessage, MessageKinds, serializeMessage, type PlayerNamesMessage, type ConnectMessage, type DisconnectMessage } from "shared/messages"
-import type { PlayerInfo, PlayerLobbyInfo } from "./game";
+import type { PlayerInfo } from "./game";
 import { Game } from "./game";
 import { randomUUIDv7 } from "bun";
+import { Lobby } from "./lobby";
 
 
 const app = new Hono()
@@ -59,7 +60,7 @@ app.use("/socket", upgradeWebSocket((c) => {
   }
 }))
 
-let players: Map<string, PlayerLobbyInfo> = new Map()
+let lobby = new Lobby()
 let game: Game;
 
 app.use("/game", upgradeWebSocket((c,) => {
@@ -78,35 +79,11 @@ app.use("/game", upgradeWebSocket((c,) => {
         return
       }
 
-      players.set(clientid, {
-        socket: ws,
-        clientid: clientid,
-        name: name
-      })
+      lobby.add_player(clientid, name, ws)
 
       console.log(`Player ${clientid} joined the game`)
-      console.log(`Players: ${JSON.stringify([...players.values()].map((player) => player.name))}`)
+      console.log(`Players: ${JSON.stringify(lobby.get_player_names())}`)
 
-      let msg: ConnectMessage = {
-        kind: MessageKinds.CONNECT,
-        player_name: name
-      }
-
-      let msg_str = serializeMessage(msg)
-
-      for (let player of players.values()) {
-        if (player.clientid === clientid) {
-          let msg: PlayerNamesMessage = {
-            kind: MessageKinds.PLAYER_NAMES,
-            player_names: players.values().map((player) => player.name).toArray()
-          }
-
-          player.socket.send(serializeMessage(msg))
-          continue
-        }
-
-        player.socket.send(msg_str)
-      }
     },
     onMessage: (ev, ws) => {
       let clientid = getClientId(c)
@@ -120,30 +97,8 @@ app.use("/game", upgradeWebSocket((c,) => {
       }
 
       // NOTE: This is where player responses are resolved, other messages are resolved below
+      lobby.resolve_message(clientid, message)
 
-      switch (message.kind) {
-        case MessageKinds.START:
-          console.log("Start Message Received")
-          // if (players.size > 1) {
-          game = new Game(players.values().toArray())
-
-          game.start_game()
-
-          let player_names = players.values().map((player) => player.name).toArray()
-          console.log(`Game Started with players: ${JSON.stringify(player_names)}`)
-          // }
-          break
-        case MessageKinds.PICK_CARDS_RESPONSE:
-        case MessageKinds.PICK_SUPPLY_PILE_RESPONSE:
-        case MessageKinds.PICK_YES_NO_RESPONSE:
-          if (!game.wait_info) {
-            console.log("Received player response but game is not waiting")
-          }
-          game.resolve_player_choice(clientid, message)
-          break
-        default:
-          console.log(`Message Kind "${message.kind}" not recognized`)
-      }
     },
     onClose: async () => {
       const clientid = getClientId(c)
@@ -151,19 +106,7 @@ app.use("/game", upgradeWebSocket((c,) => {
         return
       }
 
-      let name = names.get(clientid)!
-
-      let msg: DisconnectMessage = {
-        kind: MessageKinds.DISCONNECT,
-        player_name: name
-      }
-      let msg_str = serializeMessage(msg)
-      for (let player of players.values()) {
-        player.socket.send(msg_str)
-      }
-
-      players.delete(clientid)
-      console.log(`Player ${clientid} left the game`)
+      lobby.remove_player(clientid)
     },
   }
 }
@@ -193,3 +136,4 @@ export default {
   fetch: app.fetch,
   websocket,
 }
+

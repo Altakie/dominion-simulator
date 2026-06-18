@@ -14,6 +14,7 @@ import {
 import { shuffle } from "shared/shuffle"
 import { Copper } from "shared/cards/treasures";
 import { Estate } from "shared/cards/victories";
+import type { PlayerLobbyInfo } from "./lobby";
 
 type WaitResponses = typeof MessageKinds.PICK_CARDS_RESPONSE | typeof MessageKinds.PICK_SUPPLY_PILE_RESPONSE | typeof MessageKinds.PICK_YES_NO_RESPONSE
 
@@ -23,7 +24,6 @@ type WaitInfo = {
   next: ((response: Message) => void)
 }
 
-export type PlayerLobbyInfo = { clientid: string, socket: WSContext, name: string }
 
 function new_game_state(current_player_index: number, supply: Supply): GameState {
   return {
