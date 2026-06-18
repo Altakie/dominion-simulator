@@ -39,6 +39,8 @@ export type GameState = {
   current_player_index: number;
   turn_number: number;
 
+  attack_index: number | null;
+
   played_cards: Card[];
 
   supply: Supply;
