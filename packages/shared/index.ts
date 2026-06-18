@@ -29,8 +29,6 @@ export type Player = {
 
 
   victory_points: number
-  // TODO: Use this to calculate victory points instead
-  // victory_cards: supplyStack[]
 }
 
 export type PlayerEndInfo = {
