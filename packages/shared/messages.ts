@@ -1,4 +1,4 @@
-import type { GameState, Player } from "."
+import type { GameState, Player, PlayerEndInfo } from "."
 import type { Card } from "./cards"
 import type { supplyStack } from "./supply"
 
@@ -17,7 +17,9 @@ export const MessageKinds = Object.freeze({
 
   PICK_CARDS_RESPONSE: "Pick Cards Response",
   PICK_SUPPLY_PILE_RESPONSE: "Pick Supply Pile Response",
-  PICK_YES_NO_RESPONSE: "Pick Yes No Response"
+  PICK_YES_NO_RESPONSE: "Pick Yes No Response",
+
+  GAME_END: "Game has been terminated"
 })
 
 type MessageKind = typeof MessageKinds[keyof typeof MessageKinds]
@@ -135,6 +137,12 @@ export interface GameStateUpdateMessage extends Message {
   game_state: GameState
   // TODO: Maybe the player should not have access to all of their information, such as their deck and discard pile unless specifically prompted
   player: Player,
+}
+
+export interface GameEndMessage extends Message {
+  kind: typeof MessageKinds.GAME_END,
+
+  players_in_victory_order: PlayerEndInfo[],
 }
 
 export function serializeMessage(msg: Message): string {

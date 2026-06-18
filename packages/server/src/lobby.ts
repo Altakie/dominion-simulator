@@ -19,6 +19,17 @@ export class Lobby {
       socket: ws,
     })
 
+    // TODO: Only send connect message to players in lobby
+    let players_in_lobby: PlayerLobbyInfo[];
+    if (this.game === undefined) {
+      players_in_lobby = this.player_lobby_infos.values().toArray()
+    } else {
+      players_in_lobby = this.player_lobby_infos.values().filter((player_lobby_info) =>
+        !this.game?.player_infos.some((player_info) =>
+          player_info.clientid === player_lobby_info.clientid))
+        .toArray()
+    }
+
     let msg: ConnectMessage = {
       kind: MessageKinds.CONNECT,
       player_name: name
@@ -26,7 +37,7 @@ export class Lobby {
 
     let msg_str = serializeMessage(msg)
 
-    for (let player of this.player_lobby_infos.values()) {
+    for (let player of players_in_lobby) {
       if (player.clientid === clientid) {
         let msg: PlayerNamesMessage = {
           kind: MessageKinds.PLAYER_NAMES,
@@ -46,7 +57,10 @@ export class Lobby {
       case MessageKinds.START:
         console.log("Start Message Received")
         // if (players.size > 1) {
-        this.game = new Game(this.get_player_lobby_infos())
+        if (this.game) {
+          break
+        }
+        this.game = new Game(this.get_player_lobby_infos(), this)
 
         this.game.start_game()
 
@@ -70,6 +84,8 @@ export class Lobby {
   }
 
   remove_player(clientid: string) {
+    // FIX: Only one message is stored in players so sending disconnect can break everything
+    // TODO: Only send disconnect message to players in lobby unless the player who left was in the game
     let name = this.player_lobby_infos.get(clientid)!.name
 
     let msg: DisconnectMessage = {
@@ -92,5 +108,4 @@ export class Lobby {
   get_player_lobby_infos(): PlayerLobbyInfo[] {
     return this.player_lobby_infos.values().toArray()
   }
-
 }

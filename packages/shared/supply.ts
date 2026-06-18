@@ -55,7 +55,7 @@ export class Supply {
       { card: Gold, count: 30 },
       { card: Estate, count: 8 },
       { card: Duchy, count: 8 },
-      { card: Province, count: 8 },
+      { card: Province, count: 1 },
       { card: Curse, count: 20 },
       { card: Moat, count: 10 },
       { card: Witch, count: 10 },

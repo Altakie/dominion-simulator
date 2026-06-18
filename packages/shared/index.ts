@@ -33,6 +33,12 @@ export type Player = {
   // victory_cards: supplyStack[]
 }
 
+export type PlayerEndInfo = {
+  name: string,
+  victory_points: number,
+  final_deck: Card[]
+}
+
 
 export type GameState = {
   phase: GamePhase;

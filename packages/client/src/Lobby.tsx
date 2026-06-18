@@ -1,4 +1,4 @@
-import { serializeMessage, MessageKinds, parseMessage, type Message, type ConnectMessage, type DisconnectMessage, type PlayerNamesMessage, type StartedMessage, type PickCardsResponse, type PickSupplyPileRequest, type PickSupplyPileResponse, type PickCardsRequest, type GameStateUpdateMessage, type PickYesNoRequest, type PickYesNoResponse } from "shared/messages"
+import { serializeMessage, MessageKinds, parseMessage, type Message, type ConnectMessage, type DisconnectMessage, type PlayerNamesMessage, type StartedMessage, type PickCardsResponse, type PickSupplyPileRequest, type PickSupplyPileResponse, type PickCardsRequest, type GameStateUpdateMessage, type PickYesNoRequest, type PickYesNoResponse, type GameEndMessage } from "shared/messages"
 import { useEffect, useState, useRef, useContext, type JSX, createContext, type RefObject } from 'react'
 import { Button, StateContext } from "./App";
 import './App.css'
@@ -6,6 +6,7 @@ import { Game } from "./Game.tsx"
 import type { GameState, Player } from "shared";
 import type { Card } from "shared/cards.ts";
 import type { supplyStack } from "shared/supply.ts";
+import { GameEnd } from "./GameEnd.tsx";
 
 // export const GameContext = createContext<{
 //   gameSocket: RefObject<WebSocket>,
@@ -14,6 +15,12 @@ import type { supplyStack } from "shared/supply.ts";
 //   player: Player
 // }>(null)
 
+export const LobbyState = {
+  LOBBY: "Lobby",
+  GAME_STARTED: "Game Started",
+  GAME_END: "Game End"
+}
+
 export function Lobby() {
   const [connected, setConnected] = useState(false)
   const gameSocket = useGameSocket(setConnected);
@@ -21,7 +28,7 @@ export function Lobby() {
   const { setState } = useContext(StateContext)
 
   const [player_names, setPlayerNames] = useState<string[]>([])
-  const [gameStarted, setGameStarted] = useState(false)
+  const [gameStarted, setGameStarted] = useState<typeof LobbyState[keyof typeof LobbyState]>(LobbyState.LOBBY)
   const [choice_list, setChoiceList] = useState<JSX.Element>(null)
 
   const [gameState, setGameState] = useState<GameState>(null)
@@ -37,7 +44,6 @@ export function Lobby() {
         return
       }
 
-      setMessage(message)
 
       switch (message.kind) {
         case MessageKinds.PLAYER_NAMES:
@@ -57,27 +63,34 @@ export function Lobby() {
           const started_msg = message as StartedMessage
           setPlayerNames(started_msg.player_name_order)
           setGameState(started_msg.state)
-          setGameStarted(true)
+          setGameStarted(LobbyState.GAME_STARTED)
           setPlayer(started_msg.player)
           break
         case MessageKinds.PICK_CARDS_REQUEST:
           // NOTE: Handled elsewhere
           setChoiceList(<ChooseCardsList message={message as PickCardsRequest} game_socket={gameSocket.current} setChoiceList={setChoiceList} />)
+          setMessage(message)
           break
         case MessageKinds.PICK_SUPPLY_PILE_REQUEST:
           // setChoiceList(
           //   <ChooseSupplyPilesList message={message as PickSupplyPileRequest} game_socket={gameSocket.current} setChoiceList={setChoiceList} />
           // )
+          setMessage(message)
           break
         case MessageKinds.PICK_YES_NO_REQUEST:
           setChoiceList(
             <ChooseYesNo message={message as PickYesNoRequest} game_socket={gameSocket.current} setChoiceList={setChoiceList} />
           )
+          setMessage(message)
           break
         case MessageKinds.GAME_STATE_UPDATE:
           const update_message: GameStateUpdateMessage = message as GameStateUpdateMessage
           setGameState(update_message.game_state)
           setPlayer(update_message.player)
+          break
+        case MessageKinds.GAME_END:
+          setMessage(message)
+          setGameStarted(LobbyState.GAME_END)
           break
         default:
           console.log(`Message kind ${message.kind} not recognized or implemented`)
@@ -95,33 +108,45 @@ export function Lobby() {
     , [gameSocket]
   )
 
+  switch (gameStarted) {
+    case LobbyState.LOBBY:
+      return (
+        <>
+          <h1>Welcome to the game</h1>
+          <Button onClick={() => {
+            console.log("Attempting to start game")
+            gameSocket.current.send(serializeMessage({
+              kind: MessageKinds.START
+            }))
+          }}
+            disabled={!connected}
+          >Start Game</Button>
+
+          <PlayerList players={player_names} />
+
+          <Button onClick={() => {
+            setState("Home")
+            gameSocket.current.close(1000)
+          }}>Leave Game</Button>
+        </>
+      )
+    case LobbyState.GAME_STARTED:
+      return (
+        // <GameContext value={gameSocket}>
+        /* </GameContext> */
+        <Game player_names={player_names} game_state={gameState} choices={choice_list} player={player} message={message} setMessage={setMessage} game_socket={gameSocket} />
+      )
+    case LobbyState.GAME_END:
+      // FIX: Fix this cast you freak
+      return (
+        <GameEnd setLobbyState={setGameStarted} game_end_message={message as GameEndMessage}></GameEnd>
+      )
+
+
+  }
+
   if (!gameStarted) {
-    return (
-      <>
-        <h1>Welcome to the game</h1>
-        <Button onClick={() => {
-          console.log("Attempting to start game")
-          gameSocket.current.send(serializeMessage({
-            kind: MessageKinds.START
-          }))
-        }}
-          disabled={!connected}
-        >Start Game</Button>
-
-        <PlayerList players={player_names} />
-
-        <Button onClick={() => {
-          setState("Home")
-          gameSocket.current.close(1000)
-        }}>Leave Game</Button>
-      </>
-    )
   } else {
-    return (
-      // <GameContext value={gameSocket}>
-      /* </GameContext> */
-      <Game player_names={player_names} game_state={gameState} choices={choice_list} player={player} message={message} setMessage={setMessage} game_socket={gameSocket} />
-    )
   }
 
 }

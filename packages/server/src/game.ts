@@ -1,5 +1,5 @@
 import type { WSContext } from "hono/ws"
-import { type Player, type GameState, GamePhases } from "shared"
+import { type Player, type GameState, GamePhases, type PlayerEndInfo } from "shared"
 import { effect_table } from "./effects";
 import { Supply, type supplyStack } from "shared/supply";
 import { CardTypes, type Card, type CardInfo, type CardName } from "shared/cards"
@@ -10,12 +10,13 @@ import {
   type PickSupplyPileResponse,
   type PickYesNoResponse,
   type GameStateUpdateMessage,
-  BinaryDescriptions
+  BinaryDescriptions,
+  type GameEndMessage
 } from "shared/messages"
 import { shuffle } from "shared/shuffle"
 import { Copper } from "shared/cards/treasures";
-import { Estate } from "shared/cards/victories";
-import type { PlayerLobbyInfo } from "./lobby";
+import { Estate, Province } from "shared/cards/victories";
+import type { Lobby, PlayerLobbyInfo } from "./lobby";
 
 type WaitResponses = typeof MessageKinds.PICK_CARDS_RESPONSE | typeof MessageKinds.PICK_SUPPLY_PILE_RESPONSE | typeof MessageKinds.PICK_YES_NO_RESPONSE
 
@@ -54,13 +55,17 @@ export type PlayerInfo = {
 
 // TODO: Should game be under a read write lock to avoid wait conditions?
 export class Game {
+  lobby: Lobby;
+
   player_infos: PlayerInfo[];
   game_state: GameState;
   wait_info?: WaitInfo;
   card_count: number;
   debug_mode: boolean;
 
-  constructor(players: PlayerLobbyInfo[]) {
+  constructor(players: PlayerLobbyInfo[], lobby: Lobby) {
+    this.lobby = lobby
+
     this.card_count = 0
     this.wait_info = undefined
 
@@ -156,21 +161,24 @@ export class Game {
     this.game_state.buys = 1
   }
 
-
-  next_turn(current_player_index: number) {
-    if (current_player_index == this.player_infos.length - 1) {
-      this.game_state.turn_number += 1
-    }
+  cleanup() {
     let player = this.get_current_player()
-    while (player.hand.length > 0) {
-      this.discard_card(player, 0, player.hand)
-    }
+    this.discard_hand(player)
     while (this.game_state.played_cards.length > 0) {
       this.discard_card(player, 0, this.game_state.played_cards)
     }
     this.draw_cards(player, 5)
+  }
 
-    this.new_turn((current_player_index + 1) % this.player_infos.length)
+
+  next_turn() {
+    if (this.game_state.current_player_index == this.player_infos.length - 1) {
+      this.game_state.turn_number += 1
+    }
+
+    this.cleanup()
+
+    this.new_turn((this.game_state.current_player_index + 1) % this.player_infos.length)
     // TODO: Send a message to all players that the next turn started
     // This should probably be a special new turn message instead of a general update message
     this.send_update()
@@ -334,7 +342,11 @@ export class Game {
     const end_phase = () => {
       console.log(`End of buy phase ${this.game_state.turn_number}`)
       this.send_update()
-      this.next_turn(this.game_state.current_player_index)
+      if (this.game_over()) {
+        this.send_game_over()
+        return
+      }
+      this.next_turn()
     }
 
     if (this.game_state.buys > 0) {
@@ -381,7 +393,7 @@ export class Game {
   handle_attack(card_name: CardName, benefit: () => void, next: () => void) {
     if (this.game_state.attack_index === null) {
       benefit()
-      this.game_state.attack_index = 
+      this.game_state.attack_index =
         (this.game_state.current_player_index + 1) % this.player_infos.length
       effect_table[card_name](this)
     } else if (this.game_state.attack_index === this.game_state.current_player_index) {
@@ -523,7 +535,13 @@ export class Game {
     player.discard_pile.push(card)
   }
 
-  gain_card(player: Player,card_name: CardName, pile: Card[]) {
+  discard_hand(player: Player) {
+    while (player.hand.length > 0) {
+      this.discard_card(player, 0, player.hand)
+    }
+  }
+
+  gain_card(player: Player, card_name: CardName, pile: Card[]) {
     const card = this.game_state.supply.gainCard(card_name)
     if (card) {
       pile.push(card)
@@ -569,6 +587,41 @@ export class Game {
       }
     }
     return points
+  }
+
+  game_over(): boolean {
+    const empty_piles_count = this.game_state.supply.getStacks().filter((stack) => stack.count === 0).length
+    const province_count = this.game_state.supply.getStacks().find((stack) => stack.card === Province)?.count
+
+    return empty_piles_count >= 3 || province_count === 0
+  }
+
+  send_game_over() {
+    this.cleanup()
+
+    let player_end_infos: PlayerEndInfo[] = this.player_infos.map((player_info): PlayerEndInfo => {
+      this.discard_hand(player_info.player)
+      const final_deck = player_info.player.deck.concat(player_info.player.discard_pile).sort((a, b) => a.info.name.localeCompare(b.info.name))
+
+      return {
+        name: player_info.player.name,
+        victory_points: player_info.player.victory_points,
+        final_deck: final_deck
+      }
+    })
+
+    player_end_infos.sort((a, b) => a.victory_points - b.victory_points)
+    const game_end_message: GameEndMessage = {
+      kind: MessageKinds.GAME_END,
+
+      players_in_victory_order: player_end_infos
+    }
+    const serialized_game_end_message = serializeMessage(game_end_message)
+    for (const player_info of this.player_infos) {
+      player_info.socket.send(serialized_game_end_message)
+    }
+
+    this.lobby.game = undefined
   }
 }
 
