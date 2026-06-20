@@ -58,7 +58,9 @@ function VisualGameState({ players, game_state }: { players: string[], game_stat
       <h2>GameState Info</h2>
       <p>Current Player: {players[game_state.current_player_index]}</p>
       <p>Phase : {game_state.phase}</p>
-      <p>Trash Pile: {game_state.trash_pile.map((card) => card.info.name)}</p>
+      <div className='text-wrap w-full'>
+        <p>Trash Pile: {game_state.trash_pile.map((card) => card.info.name).join(", ")}</p>
+      </div>
     </div>
   </>
 }
@@ -253,7 +255,10 @@ function CardButton({ card, selected_cards, setSelectedCards }: { card: Card, se
     </div>)
 }
 
-function Log() {
+function Log(messages: string[]) {
+  return (<div>
+    {messages.map((message) => <p>{message}</p>)}
+  </div>)
 }
 
 
