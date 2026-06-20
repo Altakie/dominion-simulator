@@ -610,11 +610,11 @@ export class Game {
       }
     })
 
-    player_end_infos.sort((a, b) => a.victory_points - b.victory_points)
+    player_end_infos.sort((a, b) => b.victory_points - a.victory_points)
     const game_end_message: GameEndMessage = {
       kind: MessageKinds.GAME_END,
 
-      players_in_victory_order: player_end_infos
+      players_end_infos_in_victory_order: player_end_infos
     }
     const serialized_game_end_message = serializeMessage(game_end_message)
     for (const player_info of this.player_infos) {

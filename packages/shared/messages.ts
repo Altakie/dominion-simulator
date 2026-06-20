@@ -142,7 +142,7 @@ export interface GameStateUpdateMessage extends Message {
 export interface GameEndMessage extends Message {
   kind: typeof MessageKinds.GAME_END,
 
-  players_in_victory_order: PlayerEndInfo[],
+  players_end_infos_in_victory_order: PlayerEndInfo[],
 }
 
 export function serializeMessage(msg: Message): string {

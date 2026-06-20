@@ -10,7 +10,7 @@ export function GameEnd({ setLobbyState, game_end_message }: { setLobbyState: Di
   return (
     <>
       <h1>Game End</h1>
-      {game_end_message.player_end_infos_in_victory_order.map((player_end_info) => <PlayerStats player_end_info={player_end_info} />)}
+      {game_end_message.players_end_infos_in_victory_order.map((player_end_info) => <PlayerStats player_end_info={player_end_info} />)}
       <Button onClick={() => {
         setLobbyState(LobbyState.LOBBY)
       }}>Back to Lobby</Button>
