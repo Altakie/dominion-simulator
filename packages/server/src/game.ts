@@ -161,14 +161,6 @@ export class Game {
     this.game_state.buys = 1
   }
 
-  cleanup() {
-    let player = this.get_current_player()
-    this.discard_hand(player)
-    while (this.game_state.played_cards.length > 0) {
-      this.discard_card(player, 0, this.game_state.played_cards)
-    }
-    this.draw_cards(player, 5)
-  }
 
 
   next_turn() {
@@ -176,7 +168,12 @@ export class Game {
       this.game_state.turn_number += 1
     }
 
-    this.cleanup()
+    let player = this.get_current_player()
+    this.discard_hand(player)
+    while (this.game_state.played_cards.length > 0) {
+      this.discard_card(player, 0, this.game_state.played_cards)
+    }
+    this.draw_cards(player, 5)
 
     this.new_turn((this.game_state.current_player_index + 1) % this.player_infos.length)
     // TODO: Send a message to all players that the next turn started
@@ -533,6 +530,7 @@ export class Game {
     }
     const card = this.remove_card(card_index, initial_pile)
     player.discard_pile.push(card)
+    console.log(`${player.name} discarded ${card?.info.name}`)
   }
 
   discard_hand(player: Player) {
@@ -546,6 +544,7 @@ export class Game {
     if (card) {
       pile.push(card)
       player.victory_points = this.calculate_victory_points(player)
+      console.log(`${player.name} gained ${card?.info.name}`)
     }
   }
 
@@ -597,7 +596,11 @@ export class Game {
   }
 
   send_game_over() {
-    this.cleanup()
+    const player = this.get_current_player()
+    this.discard_hand(player)
+    while (this.game_state.played_cards.length > 0) {
+      this.discard_card(player, 0, this.game_state.played_cards)
+    }
 
     let player_end_infos: PlayerEndInfo[] = this.player_infos.map((player_info): PlayerEndInfo => {
       this.discard_hand(player_info.player)
