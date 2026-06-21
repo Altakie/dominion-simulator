@@ -1,4 +1,4 @@
-import { serializeMessage, MessageKinds, parseMessage, type Message, type ConnectMessage, type DisconnectMessage, type PlayerNamesMessage, type StartedMessage, type PickCardsResponse, type PickSupplyPileRequest, type PickSupplyPileResponse, type PickCardsRequest, type GameStateUpdateMessage, type PickYesNoRequest, type PickYesNoResponse, type GameEndMessage } from "shared/messages"
+import { serializeMessage, MessageKinds, parseMessage, type Message, type ConnectMessage, type DisconnectMessage, type PlayerNamesMessage, type StartedMessage, type PickCardsResponse, type PickSupplyPileRequest, type PickSupplyPileResponse, type PickCardsRequest, type GameStateUpdateMessage, type PickYesNoRequest, type PickYesNoResponse, type GameEndMessage, type LogMessage } from "shared/messages"
 import { useEffect, useState, useRef, useContext, type JSX, createContext, type RefObject } from 'react'
 import { Button, StateContext } from "./App";
 import './App.css'
@@ -44,6 +44,9 @@ type LobbyStore = {
   set_message: (message?: Message) => void,
   player?: Player,
   set_player: (player?: Player) => void,
+  log_messages: string[],
+  add_log_message: (message: string) => void,
+  clear_log: () => void,
 }
 
 export const useLobbyStore = create<LobbyStore>((set) => ({
@@ -65,7 +68,10 @@ export const useLobbyStore = create<LobbyStore>((set) => ({
 
   set_game_state: (game_state) => { set(() => ({ game_state: game_state })) },
   set_message: (message) => { set(() => ({ message: message })) },
-  set_player: (player) => { set(() => ({ player: player })) }
+  set_player: (player) => { set(() => ({ player: player })) },
+  log_messages: [],
+  add_log_message: (message: string) => { set((state) => ({ log_messages: [...state.log_messages, message] })) },
+  clear_log: () => { set(() => ({ log_messages: [] })) }
 }))
 
 
@@ -98,7 +104,9 @@ export function Lobby() {
 
       set_game_state: state.set_game_state,
       set_message: state.set_message,
-      set_player: state.set_player
+      set_player: state.set_player,
+      add_log_message: state.add_log_message,
+      clear_log: state.clear_log
     }
   )))
 
@@ -158,6 +166,11 @@ export function Lobby() {
         case MessageKinds.GAME_END:
           lobby_store.set_message(message)
           lobby_store.set_game_started(LobbyState.GAME_END)
+          lobby_store.clear_log()
+          break
+        case MessageKinds.LOG:
+          const log_message = message as LogMessage
+          lobby_store.add_log_message(log_message.log_message)
           break
         default:
           console.log(`Message kind ${message.kind} not recognized or implemented`)

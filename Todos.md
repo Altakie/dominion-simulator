@@ -3,7 +3,6 @@
 ## Major Features
 
 - Maybe a reorder decision type?
-- Log on client
 - Better visuals
   - Coloring and stuff
   - Better positioning of elements
@@ -12,6 +11,7 @@
 - Better handling of choose card decisions
   - Choose card decision should also allow you to choose cards not in your hand but in a clean way
 - Make borders for selected cards more clear
+- Log maybe shouldn't show hand of other players
 
 ## Minor Features
 

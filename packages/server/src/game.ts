@@ -153,13 +153,15 @@ export class Game {
     this.game_state.phase = GamePhases.ACTION
     this.game_state.current_player_index = next_player_index
 
-    console.log(`Current hand: ${[...this.get_current_player().hand.map((card) => card.info.name)]}`)
+    // console.log(`Current hand: ${[...this.get_current_player().hand.map((card) => card.info.name)]}`)
 
     this.game_state.played_cards = []
 
     this.game_state.actions = 1
     this.game_state.money = 0
     this.game_state.buys = 1
+
+    this.send_log_message(`Turn ${this.game_state.turn_number} - ${this.get_current_player().name}`)
   }
 
 

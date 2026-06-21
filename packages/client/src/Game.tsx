@@ -23,20 +23,21 @@ export function Game() {
   return <>
     <h1>Game</h1>
     <div className='flex flex-row flex-nowrap justify-center items-start place-content-between'>
-      <div className='flex-col w-1/5 border'>
+      <div className='flex-col w-1/5 border h-screen'>
         <PlayerList />
         <h2>Current Vp: <span>{player.victory_points}</span></h2>
         <VisualGameState />
       </div>
-      <div className='flex-col w-3/5 border'>
+      <div className='flex-col w-3/5 border h-screen'>
         <VisualSupply supply={game_state.supply} />
         <PlayedCards played_cards={game_state.played_cards} />
         <Hand hand={player.hand} />
         <Description />
         {choices}
       </div>
-      <div className='flex-col w-1/5 border'>
+      <div className='flex-col w-1/5 border h-screen'>
         <TurnInfo />
+        <Log />
       </div>
     </div>
   </>
@@ -275,9 +276,17 @@ function CardButton({ card, selected_cards, setSelectedCards }: { card: Card, se
     </div>)
 }
 
-function Log(messages: string[]) {
-  return (<div>
-    {messages.map((message) => <p>{message}</p>)}
+function Log() {
+  const log_messages = useLobbyStore((state) => state.log_messages)
+
+  return (<div className='bg-gray-300 overflow-auto max-h-1/2'>
+    {log_messages.map((message) => {
+      if (message.includes("Turn")) {
+        return <h3 className='text-black border text-wrap'><b>{message}</b></h3>
+
+      }
+      return <p className='text-black border text-wrap'>{message}</p>
+    })}
   </div>)
 }
 
