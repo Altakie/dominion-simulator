@@ -59,6 +59,7 @@ export class Supply {
       { card: Curse, count: 20 },
       { card: Moat, count: 10 },
       { card: Witch, count: 10 },
+      { card: Chapel, count: 10 }
     ]
   }
 }

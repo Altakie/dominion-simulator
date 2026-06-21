@@ -1,20 +1,23 @@
 import type { Dispatch, SetStateAction } from "react";
 import type { PlayerEndInfo } from "shared";
 import type { GameEndMessage } from "shared/messages";
-import { LobbyState } from "./Lobby";
+import { LobbyState, useLobbyStore } from "./Lobby";
 import { Button } from "./App";
 import type { Card, CardName } from "shared/cards";
 import { type supplyStack } from "shared/supply";
 
-export function GameEnd({ setLobbyState, game_end_message }: { setLobbyState: Dispatch<SetStateAction<typeof LobbyState[keyof typeof LobbyState]>>, game_end_message: GameEndMessage }) {
+export function GameEnd() {
   // const victory_message = game_end_message.player_end_infos_in_victory_order[0].name 
+  const set_lobby_state = useLobbyStore((state) => state.set_game_started)
+  const message = useLobbyStore((state) => state.message)
+  const game_end_message = message as GameEndMessage
 
   return (
     <>
       <h1>Game End</h1>
       {game_end_message.players_end_infos_in_victory_order.map((player_end_info) => <PlayerStats player_end_info={player_end_info} />)}
       <Button onClick={() => {
-        setLobbyState(LobbyState.LOBBY)
+        set_lobby_state(LobbyState.LOBBY)
       }}>Back to Lobby</Button>
     </>
   )

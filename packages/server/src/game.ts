@@ -11,7 +11,8 @@ import {
   type PickYesNoResponse,
   type GameStateUpdateMessage,
   BinaryDescriptions,
-  type GameEndMessage
+  type GameEndMessage,
+  type LogMessage
 } from "shared/messages"
 import { shuffle } from "shared/shuffle"
 import { Copper } from "shared/cards/treasures";
@@ -511,16 +512,22 @@ export class Game {
         player.discard_pile = []
       }
       const card = player.deck.pop()!
-      console.log(`Drew ${card.info.name}`)
       player.hand.push(card)
+
+      const log_message = `${player.name} drew ${card.info.name}`
+      console.log(log_message)
+      this.send_log_message(log_message)
     }
   }
 
   play_card(card_index: number, pile: Card[]) {
     const card = this.remove_card(card_index, pile)
-    console.log(`Playing ${card.info.name}`)
     effect_table[card.info.name](this)
     this.game_state.played_cards.push(card)
+
+    const log_message = `${this.get_current_player().name} played ${card.info.name}`
+    console.log(log_message)
+    this.send_log_message(log_message)
   }
 
   discard_card(player: Player, card_index: number, initial_pile: Card[]) {
@@ -530,7 +537,10 @@ export class Game {
     }
     const card = this.remove_card(card_index, initial_pile)
     player.discard_pile.push(card)
-    console.log(`${player.name} discarded ${card?.info.name}`)
+
+    const log_message = `${player.name} discarded ${card?.info.name}`
+    console.log(log_message)
+    this.send_log_message(log_message)
   }
 
   discard_hand(player: Player) {
@@ -544,7 +554,10 @@ export class Game {
     if (card) {
       pile.push(card)
       player.victory_points = this.calculate_victory_points(player)
-      console.log(`${player.name} gained ${card?.info.name}`)
+
+      const log_message = `${player.name} gained ${card?.info.name}`
+      console.log(log_message)
+      this.send_log_message(log_message)
     }
   }
 
@@ -552,6 +565,10 @@ export class Game {
     const card = this.remove_card(card_index, pile)
     this.game_state.trash_pile.push(card)
     player.victory_points = this.calculate_victory_points(player)
+
+    const log_message = `${player.name} trashed ${card?.info.name}`
+    console.log(log_message)
+    this.send_log_message(log_message)
   }
 
   remove_card(card_index: number, pile: Card[]): Card {
@@ -625,6 +642,19 @@ export class Game {
     }
 
     this.lobby.game = undefined
+  }
+
+  send_log_message(log_message: string) {
+    const msg: LogMessage = {
+      kind: MessageKinds.LOG,
+
+      log_message: log_message
+    }
+    const ser_msg = serializeMessage(msg)
+
+    for (const player_info of this.player_infos) {
+      player_info.socket.send(ser_msg)
+    }
   }
 }
 

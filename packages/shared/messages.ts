@@ -19,7 +19,9 @@ export const MessageKinds = Object.freeze({
   PICK_SUPPLY_PILE_RESPONSE: "Pick Supply Pile Response",
   PICK_YES_NO_RESPONSE: "Pick Yes No Response",
 
-  GAME_END: "Game has been terminated"
+  GAME_END: "Game has been terminated",
+
+  LOG: "Log"
 })
 
 type MessageKind = typeof MessageKinds[keyof typeof MessageKinds]
@@ -143,6 +145,12 @@ export interface GameEndMessage extends Message {
   kind: typeof MessageKinds.GAME_END,
 
   players_end_infos_in_victory_order: PlayerEndInfo[],
+}
+
+export interface LogMessage extends Message {
+  kind: typeof MessageKinds.LOG,
+
+  log_message: string
 }
 
 export function serializeMessage(msg: Message): string {

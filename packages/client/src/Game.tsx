@@ -5,8 +5,16 @@ import type { Supply, supplyStack } from "shared/supply";
 import type { Card } from "shared/cards"
 import { type Message, MessageKinds, type PickCardsRequest, type PickCardsResponse, type PickSupplyPileRequest, type PickSupplyPileResponse, type RequestMessage, request_message_kinds } from "shared/messages"
 import { Button } from './App';
+import { create } from 'zustand';
+import { game_socket, useLobbyStore } from './Lobby';
 
-export function Game({ player_names, player, game_state, choices, message, setMessage, game_socket }: { player_names: string[], player: Player, game_state: GameState, choices?: JSX.Element, message?: Message, setMessage: Dispatch<SetStateAction<Message>>, game_socket: RefObject<WebSocket> }) {
+
+
+export function Game() {
+  let choices = useLobbyStore((state) => state.choice_list)
+  const player = useLobbyStore((state) => state.player)
+  const game_state = useLobbyStore((state) => state.game_state)
+
   if (!choices) {
     choices = <></>
   } else {
@@ -16,25 +24,26 @@ export function Game({ player_names, player, game_state, choices, message, setMe
     <h1>Game</h1>
     <div className='flex flex-row flex-nowrap justify-center items-start place-content-between'>
       <div className='flex-col w-1/5 border'>
-        <PlayerList players={player_names} />
+        <PlayerList />
         <h2>Current Vp: <span>{player.victory_points}</span></h2>
-        <VisualGameState players={player_names} game_state={game_state} />
+        <VisualGameState />
       </div>
       <div className='flex-col w-3/5 border'>
-        <VisualSupply supply={game_state.supply} message={message} setMessage={setMessage} game_socket={game_socket} />
+        <VisualSupply supply={game_state.supply} />
         <PlayedCards played_cards={game_state.played_cards} />
-        <Hand hand={player.hand} message={message} setMessage={setMessage} game_socket={game_socket} />
-        <Description message={message} />
+        <Hand hand={player.hand} />
+        <Description />
         {choices}
       </div>
       <div className='flex-col w-1/5 border'>
-        <TurnInfo game_state={game_state} />
+        <TurnInfo />
       </div>
     </div>
   </>
 }
 
-function Description({ message }: { message: Message }) {
+function Description() {
+  const message = useLobbyStore((state) => state.message)
   if (message && request_message_kinds.has(message.kind)) {
     const req = message as RequestMessage
 
@@ -43,7 +52,8 @@ function Description({ message }: { message: Message }) {
   return <></>
 }
 
-function PlayerList({ players }: { players: string[] }) {
+function PlayerList() {
+  const players = useLobbyStore((state) => state.player_names)
   return <>
     <h2>Players</h2>
     <ol>
@@ -52,7 +62,10 @@ function PlayerList({ players }: { players: string[] }) {
   </>
 }
 
-function VisualGameState({ players, game_state }: { players: string[], game_state: GameState }) {
+function VisualGameState() {
+  const players = useLobbyStore((state) => state.player_names)
+  const game_state = useLobbyStore((state) => state.game_state)
+
   return <>
     <div>
       <h2>GameState Info</h2>
@@ -76,7 +89,8 @@ function PlayedCards({ played_cards }: { played_cards: Card[] }) {
   )
 }
 
-function TurnInfo({ game_state }: { game_state: GameState }) {
+function TurnInfo() {
+  const game_state = useLobbyStore((state) => state.game_state)
   return (<>
     <div>
       <h2>Turn Info</h2>
@@ -89,8 +103,11 @@ function TurnInfo({ game_state }: { game_state: GameState }) {
   )
 }
 
-function VisualSupply({ supply, message, setMessage, game_socket }:
-  { supply: Supply, message: Message, setMessage: Dispatch<SetStateAction<Message>>, game_socket: RefObject<WebSocket> }) {
+function VisualSupply({ supply }:
+  { supply: Supply }) {
+  const message = useLobbyStore((state) => state.message)
+  const setMessage = useLobbyStore((state) => state.set_message)
+
   const [selected_stacks, setSelectedStacks] = useState<supplyStack[]>([]);
   let pick_stacks_req: PickSupplyPileRequest = undefined;
   if (message && message.kind === MessageKinds.PICK_SUPPLY_PILE_REQUEST) {
@@ -113,7 +130,7 @@ function VisualSupply({ supply, message, setMessage, game_socket }:
               }
               setSelectedStacks([])
               setMessage(null)
-              game_socket.current.send(JSON.stringify(res))
+              game_socket.send(JSON.stringify(res))
             }
           }
 
@@ -171,7 +188,10 @@ function SupplyStackButton({ supply_stack, selected_stacks, setSelectedStacks }:
 }
 
 
-function Hand({ hand, message, setMessage, game_socket }: { hand: Card[], message?: Message, setMessage: Dispatch<SetStateAction<Message>>, game_socket: RefObject<WebSocket> }) {
+function Hand({ hand }: { hand: Card[] }) {
+  const message = useLobbyStore((state) => state.message)
+  const setMessage = useLobbyStore((state) => state.set_message)
+
   // TODO: If only one selection needed, maybe just send right away without confirming?
   // TODO: Stop the user from selecting too many cards
   const [selected_cards, setSelectedCards] = useState<Card[]>([]);
@@ -200,7 +220,7 @@ function Hand({ hand, message, setMessage, game_socket }: { hand: Card[], messag
               setSelectedCards([])
               setMessage(null)
               // Need to set message to null
-              game_socket.current.send(JSON.stringify(res))
+              game_socket.send(JSON.stringify(res))
             }
           }
 

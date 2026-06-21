@@ -7,6 +7,8 @@ import type { GameState, Player } from "shared";
 import type { Card } from "shared/cards.ts";
 import type { supplyStack } from "shared/supply.ts";
 import { GameEnd } from "./GameEnd.tsx";
+import { create } from "zustand"
+import { useShallow } from "zustand/shallow";
 
 // export const GameContext = createContext<{
 //   gameSocket: RefObject<WebSocket>,
@@ -14,6 +16,9 @@ import { GameEnd } from "./GameEnd.tsx";
 //   message?: Message,
 //   player: Player
 // }>(null)
+//
+
+export let game_socket: WebSocket = null;
 
 export const LobbyState = {
   LOBBY: "Lobby",
@@ -21,19 +26,81 @@ export const LobbyState = {
   GAME_END: "Game End"
 }
 
+type LobbyStore = {
+  connected: boolean,
+  set_connected: (connected: boolean) => void,
+  player_names: string[],
+  add_player_name: (name: string) => void,
+  remove_player_name: (name: string) => void,
+  set_player_names: (names: string[]) => void,
+  game_started: typeof LobbyState[keyof typeof LobbyState],
+  set_game_started: (game_started: typeof LobbyState[keyof typeof LobbyState]) => void,
+  choice_list?: JSX.Element,
+  set_choice_list: (choice_list?: JSX.Element) => void,
+
+  game_state?: GameState,
+  set_game_state: (game_state: GameState) => void,
+  message?: Message,
+  set_message: (message?: Message) => void,
+  player?: Player,
+  set_player: (player?: Player) => void,
+}
+
+export const useLobbyStore = create<LobbyStore>((set) => ({
+  connected: false,
+  set_connected: (connected: boolean) => { set(() => ({ connected: connected })) },
+  player_names: [],
+  add_player_name: (name) => {
+    set((state) =>
+      ({ player_names: [...state.player_names, name] }))
+  },
+  remove_player_name: (name) => {
+    set((state) =>
+      ({ player_names: state.player_names.filter((n) => n !== name) }))
+  },
+  set_player_names: (names) => { set(() => ({ player_names: names })) },
+  game_started: LobbyState.LOBBY,
+  set_game_started: (game_started) => { set(() => ({ game_started: game_started })) },
+  set_choice_list: (choice_list) => { set(() => ({ choice_list: choice_list })) },
+
+  set_game_state: (game_state) => { set(() => ({ game_state: game_state })) },
+  set_message: (message) => { set(() => ({ message: message })) },
+  set_player: (player) => { set(() => ({ player: player })) }
+}))
+
+
 export function Lobby() {
-  const [connected, setConnected] = useState(false)
-  const gameSocket = useGameSocket(setConnected);
-
+  // const [connected, setConnected] = useState(false)
+  // const gameSocket = useGameSocket(setConnected);
+  useGameSocket();
+  //
   const { setState } = useContext(StateContext)
+  //
+  // const [player_names, setPlayerNames] = useState<string[]>([])
+  // const [gameStarted, setGameStarted] = useState<typeof LobbyState[keyof typeof LobbyState]>(LobbyState.LOBBY)
+  // const [choice_list, setChoiceList] = useState<JSX.Element>(null)
+  //
+  // const [gameState, setGameState] = useState<GameState>(null)
+  // const [message, setMessage] = useState<Message>(null);
+  // const [player, setPlayer] = useState<Player>(null)
+  const lobby_store = useLobbyStore(useShallow((state) =>
+  (
+    {
+      connected: state.connected,
+      set_connected: state.set_connected,
+      game_started: state.game_started,
+      set_game_started: state.set_game_started,
+      player_names: state.player_names,
+      add_player_name: state.add_player_name,
+      remove_player_name: state.remove_player_name,
+      set_player_names: state.set_player_names,
+      set_choice_list: state.set_choice_list,
 
-  const [player_names, setPlayerNames] = useState<string[]>([])
-  const [gameStarted, setGameStarted] = useState<typeof LobbyState[keyof typeof LobbyState]>(LobbyState.LOBBY)
-  const [choice_list, setChoiceList] = useState<JSX.Element>(null)
-
-  const [gameState, setGameState] = useState<GameState>(null)
-  const [message, setMessage] = useState<Message>(null);
-  const [player, setPlayer] = useState<Player>(null)
+      set_game_state: state.set_game_state,
+      set_message: state.set_message,
+      set_player: state.set_player
+    }
+  )))
 
 
   const resolve_message =
@@ -48,49 +115,49 @@ export function Lobby() {
       switch (message.kind) {
         case MessageKinds.PLAYER_NAMES:
           const player_msg = message as PlayerNamesMessage
-          setPlayerNames(player_msg.player_names)
-          console.log(JSON.stringify(player_names))
+          lobby_store.set_player_names(player_msg.player_names)
+          console.log(JSON.stringify(lobby_store.player_names))
           break
         case MessageKinds.CONNECT:
           const conn_msg = message as ConnectMessage
-          setPlayerNames(prev => [...prev, conn_msg.player_name])
+          lobby_store.add_player_name(conn_msg.player_name)
           break
         case MessageKinds.DISCONNECT:
           const disconn_msg = message as DisconnectMessage
-          setPlayerNames(prev => prev.filter((name) => name !== disconn_msg.player_name))
+          lobby_store.remove_player_name(disconn_msg.player_name)
           break
         case MessageKinds.STARTED:
           const started_msg = message as StartedMessage
-          setPlayerNames(started_msg.player_name_order)
-          setGameState(started_msg.state)
-          setGameStarted(LobbyState.GAME_STARTED)
-          setPlayer(started_msg.player)
+          lobby_store.set_player_names(started_msg.player_name_order)
+          lobby_store.set_game_state(started_msg.state)
+          lobby_store.set_game_started(LobbyState.GAME_STARTED)
+          lobby_store.set_player(started_msg.player)
           break
         case MessageKinds.PICK_CARDS_REQUEST:
           // NOTE: Handled elsewhere
-          setChoiceList(<ChooseCardsList message={message as PickCardsRequest} game_socket={gameSocket.current} setChoiceList={setChoiceList} />)
-          setMessage(message)
+          lobby_store.set_choice_list(<ChooseCardsList message={message as PickCardsRequest} />)
+          lobby_store.set_message(message)
           break
         case MessageKinds.PICK_SUPPLY_PILE_REQUEST:
-          // setChoiceList(
-          //   <ChooseSupplyPilesList message={message as PickSupplyPileRequest} game_socket={gameSocket.current} setChoiceList={setChoiceList} />
+          // lobby_store.set_choice_list(
+          //   <ChooseSupplyPilesList message={message as PickSupplyPileRequest} game_socket={gameSocket.current} lobby_store.set_choice_list={setChoiceList} />
           // )
-          setMessage(message)
+          lobby_store.set_message(message)
           break
         case MessageKinds.PICK_YES_NO_REQUEST:
-          setChoiceList(
-            <ChooseYesNo message={message as PickYesNoRequest} game_socket={gameSocket.current} setChoiceList={setChoiceList} />
+          lobby_store.set_choice_list(
+            <ChooseYesNo message={message as PickYesNoRequest} />
           )
-          setMessage(message)
+          lobby_store.set_message(message)
           break
         case MessageKinds.GAME_STATE_UPDATE:
           const update_message: GameStateUpdateMessage = message as GameStateUpdateMessage
-          setGameState(update_message.game_state)
-          setPlayer(update_message.player)
+          lobby_store.set_game_state(update_message.game_state)
+          lobby_store.set_player(update_message.player)
           break
         case MessageKinds.GAME_END:
-          setMessage(message)
-          setGameStarted(LobbyState.GAME_END)
+          lobby_store.set_message(message)
+          lobby_store.set_game_started(LobbyState.GAME_END)
           break
         default:
           console.log(`Message kind ${message.kind} not recognized or implemented`)
@@ -100,33 +167,33 @@ export function Lobby() {
 
   useEffect(
     () => {
-      if (!gameSocket) {
+      if (!game_socket) {
         return
       }
-      gameSocket.current.onmessage = resolve_message
+      game_socket.onmessage = resolve_message
     }
-    , [gameSocket]
+    , [game_socket]
   )
 
-  switch (gameStarted) {
+  switch (lobby_store.game_started) {
     case LobbyState.LOBBY:
       return (
         <>
           <h1>Welcome to the game</h1>
           <Button onClick={() => {
             console.log("Attempting to start game")
-            gameSocket.current.send(serializeMessage({
+            game_socket.send(serializeMessage({
               kind: MessageKinds.START
             }))
           }}
-            disabled={!connected}
+            disabled={!lobby_store.connected}
           >Start Game</Button>
 
-          <PlayerList players={player_names} />
+          <PlayerList />
 
           <Button onClick={() => {
             setState("Home")
-            gameSocket.current.close(1000)
+            game_socket.close(1000)
           }}>Leave Game</Button>
         </>
       )
@@ -134,45 +201,44 @@ export function Lobby() {
       return (
         // <GameContext value={gameSocket}>
         /* </GameContext> */
-        <Game player_names={player_names} game_state={gameState} choices={choice_list} player={player} message={message} setMessage={setMessage} game_socket={gameSocket} />
+        <Game />
       )
     case LobbyState.GAME_END:
-      // FIX: Fix this cast you freak
       return (
-        <GameEnd setLobbyState={setGameStarted} game_end_message={message as GameEndMessage}></GameEnd>
+        <GameEnd />
       )
 
 
   }
 
-  if (!gameStarted) {
+  if (!lobby_store.game_started) {
   } else {
   }
 
 }
 
 
-function useGameSocket(setConnected) {
-  const ws = useRef<WebSocket>(null)
+function useGameSocket() {
+  const set_connected = useLobbyStore((state) => state.set_connected)
   // new WebSocket('/socket')
   useEffect(
     () => {
       function connect(attempt: number) {
-        ws.current = new WebSocket("/game")
-        ws.current.onopen = () => {
+        game_socket = new WebSocket("/game")
+        game_socket.onopen = () => {
           console.log("Joined Game!")
-          setConnected(true)
+          set_connected(true)
         }
 
 
-        ws.current.onclose = (ev) => {
+        game_socket.onclose = (ev) => {
           console.log(ev.code)
           if (ev.code !== 1000) {
             setTimeout(() => connect(attempt + 1), Math.min(2000 ** attempt, 30000))
             return
           }
 
-          setConnected(false)
+          set_connected(false)
           console.log(`Closed Socket on attempt ${attempt}`)
         }
       }
@@ -183,14 +249,14 @@ function useGameSocket(setConnected) {
       //   kind: MessageKind.CONNECT,
       // }))
 
-      return () => ws.current.close(1000)
+      return () => game_socket.close(1000)
     }, []
   )
 
-  return ws
 }
 
-function PlayerList({ players }: { players: string[] }) {
+function PlayerList() {
+  const players = useLobbyStore((state) => state.player_names)
   return <>
     <h2>Players:</h2>
     <ul>
@@ -201,7 +267,8 @@ function PlayerList({ players }: { players: string[] }) {
   </>
 }
 
-function ChooseCardsList({ message, game_socket, setChoiceList }: { message: PickCardsRequest, game_socket: WebSocket, setChoiceList }) {
+function ChooseCardsList({ message }: { message: PickCardsRequest }) {
+  const set_choice_list = useLobbyStore((state) => state.set_choice_list)
   const [choices, setChoices] = useState<Card[]>([])
 
   function CardChoiceButton({ card }: { card: Card }) {
@@ -252,7 +319,7 @@ function ChooseCardsList({ message, game_socket, setChoiceList }: { message: Pic
               choices: choices
             }
             setChoices([])
-            setChoiceList(null)
+            set_choice_list(null)
             game_socket.send(JSON.stringify(res))
           }
         }
@@ -264,7 +331,7 @@ function ChooseCardsList({ message, game_socket, setChoiceList }: { message: Pic
   )
 }
 
-// function ChooseSupplyPilesList({ message, game_socket, setChoiceList }: { message: PickSupplyPileRequest, game_socket: WebSocket, setChoiceList }) {
+// function ChooseSupplyPilesList({ message, game_socket, lobby_store.set_choice_list }: { message: PickSupplyPileRequest, game_socket: WebSocket, setChoiceList }) {
 //   const [choices, setChoices] = useState<supplyStack[]>([])
 //
 //   function SupplyPileButton({ supply_pile }: { supply_pile: supplyStack }) {
@@ -312,7 +379,7 @@ function ChooseCardsList({ message, game_socket, setChoiceList }: { message: Pic
 //                 choices: choices
 //               }
 //               setChoices([])
-//               setChoiceList(null)
+//               lobby_store.set_choice_list(null)
 //               game_socket.send(JSON.stringify(res))
 //             }
 //           }
@@ -325,14 +392,15 @@ function ChooseCardsList({ message, game_socket, setChoiceList }: { message: Pic
 //   )
 // }
 
-function ChooseYesNo({ message, game_socket, setChoiceList }: { message: PickYesNoRequest, game_socket: WebSocket, setChoiceList }) {
+function ChooseYesNo({ message }: { message: PickYesNoRequest }) {
+  const set_choice_list = useLobbyStore((state) => state.set_choice_list)
 
   function send_choice(choice: boolean) {
     let res: PickYesNoResponse = {
       kind: MessageKinds.PICK_YES_NO_RESPONSE,
       choice: choice
     }
-    setChoiceList(null)
+    set_choice_list(null)
     game_socket.send(JSON.stringify(res))
   }
 
