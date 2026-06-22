@@ -1,14 +1,20 @@
-import { useEffect, useState, useRef, createContext, useContext, type RefObject } from 'react'
-import './App.css'
-import { type JSX } from 'react'
-import { Lobby } from './Lobby.tsx'
+import {
+  createContext,
+  type RefObject,
+  useContext,
+  useEffect,
+  useRef,
+  useState,
+} from "react";
+import "./App.css";
+import type { JSX } from "react";
+import { Lobby } from "./Lobby.tsx";
 // import { BrowserRouter, Routes, Route, Link } from 'react-router-dom';
 
-
 export const StateContext = createContext<{
-  state: string,
-  setState: (s: string) => void
-}>(null)
+  state: string;
+  setState: (s: string) => void;
+}>(null);
 function App() {
   // return (<>
   //   <BrowserRouter>
@@ -19,110 +25,113 @@ function App() {
   //   </BrowserRouter>
   // </>)
 
-  let [state, setState] = useState("Home")
+  const [state, setState] = useState("Home");
 
-
-  return <>
-    <StateContext value={{ state: state, setState: setState }}>
-      {stateTable[state]}
-    </StateContext>
-  </>
+  return (
+    <>
+      <StateContext value={{ state: state, setState: setState }}>
+        {stateTable[state]}
+      </StateContext>
+    </>
+  );
 }
 
-let stateTable: Record<string, JSX.Element> = {
-  "Home": <Home />,
-  "Game": <Lobby />,
-  "Test": <Test />
-}
+const stateTable: Record<string, JSX.Element> = {
+  Home: <Home />,
+  Game: <Lobby />,
+  Test: <Test />,
+};
 
 function Test() {
-  return <h1>Hi!</h1>
+  return <h1>Hi!</h1>;
 }
 
 function Home() {
-  const [messages, setMessages] = useState<string[]>([])
-  const [name, setName] = useState("")
+  const [messages, setMessages] = useState<string[]>([]);
+  const [name, setName] = useState("");
 
+  const ws = useMessageSocket();
 
-  let ws = useMessageSocket()
-
-  let { setState } = useContext(StateContext)
+  const { setState } = useContext(StateContext);
 
   useEffect(() => {
     if (ws.current) {
       ws.current.onmessage = (ev) => {
-        let json = JSON.parse(ev.data)
+        const json = JSON.parse(ev.data);
         if (json.msg) {
-          setMessages([...messages, json.msg])
+          setMessages([...messages, json.msg]);
         }
 
         // queryClient.invalidateQueries({
         //   queryKey: ['count']
         // })
-      }
+      };
     }
-  }
-    , [ws, messages])
-
+  }, [ws, messages]);
 
   // ws.send("Skeeby Deeby")
 
   return (
     <>
-      <section id='center'>
-
-        <p>Your Name:
-          <input className='border text-black'
-            value={name} onChange={(e) => setName(e.target.value)
-            }
+      <section id="center">
+        <p>
+          Your Name:
+          <input
+            className="border text-black"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
           ></input>
         </p>
         <Button
           onClick={() => {
             setState("Game");
-            ws.current.send(name)
-          }}>
+            ws.current.send(name);
+          }}
+        >
           Join Game
         </Button>
       </section>
     </>
-  )
+  );
 }
 
-
 function useMessageSocket() {
-  const ws = useRef<WebSocket>(null)
+  const ws = useRef<WebSocket>(null);
   // new WebSocket('/socket')
-  useEffect(
-    () => {
-      function connect(attempt: number) {
-        ws.current = new WebSocket("/socket")
-        ws.current.onopen = () => {
-          console.log("Opened Connection!")
+  useEffect(() => {
+    function connect(attempt: number) {
+      ws.current = new WebSocket("/socket");
+      ws.current.onopen = () => {
+        console.log("Opened Connection!");
+      };
+
+      ws.current.onclose = (ev) => {
+        if (ev.code !== 1000) {
+          setTimeout(
+            () => connect(attempt + 1),
+            Math.min(2000 ** attempt, 30000),
+          );
         }
+      };
+    }
 
+    connect(0);
 
-        ws.current.onclose = (ev,) => {
-          if (ev.code !== 1000) {
-            setTimeout(() => connect(attempt + 1), Math.min(2000 ** attempt, 30000))
+    return () => ws.current.close(1000);
+  }, []);
 
-          }
-        }
-      }
-
-      connect(0)
-
-      return () => ws.current.close(1000)
-    }, []
-  )
-
-  return ws
+  return ws;
 }
 
 export function Button({ children, ...props }) {
-  return <button className={`rounded-xl text-black bg-gray-400 p-2 ${props.className}`} {...props}>
-    {children}
-  </button>
+  return (
+    <button
+      className={`rounded-xl text-black bg-gray-400 p-2 ${props.className}`}
+      {...props}
+    >
+      {children}
+    </button>
+  );
 }
 
 // function MessageLog({ messages }) {
@@ -141,6 +150,4 @@ export function Button({ children, ...props }) {
 //   setInput("")
 // }
 
-
-
-export default App
+export default App;

@@ -1,9 +1,7 @@
-type Option = Some | None
+type Option = Some | None;
 
 type Some = {
-  value: any
-}
+  value: any;
+};
 
-type None = undefined
-
-
+type None = undefined;

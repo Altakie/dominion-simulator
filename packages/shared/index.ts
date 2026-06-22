@@ -1,5 +1,5 @@
-import { type Card, type CardInfo } from "./cards"
-import { Supply, type supplyStack } from "./supply"
+import type { Card, CardInfo } from "./cards";
+import type { Supply, supplyStack } from "./supply";
 
 // export const GamePhase = Object.freeze({
 //   Action: 0,
@@ -9,34 +9,30 @@ import { Supply, type supplyStack } from "./supply"
 //   Cleanup: 4
 // })
 
-
-
 export const GamePhases = Object.freeze({
   ACTION: "Action",
   MONEY: "Money",
   BUY: "Buy",
   REACTION: "Reaction",
   // CLEANUP: "Cleanup"
-})
+});
 
-export type GamePhase = typeof GamePhases[keyof typeof GamePhases]
+export type GamePhase = (typeof GamePhases)[keyof typeof GamePhases];
 
 export type Player = {
-  name: string,
-  hand: Card[],
-  deck: Card[],
-  discard_pile: Card[],
+  name: string;
+  hand: Card[];
+  deck: Card[];
+  discard_pile: Card[];
 
-
-  victory_points: number
-}
+  victory_points: number;
+};
 
 export type PlayerEndInfo = {
-  name: string,
-  victory_points: number,
-  final_deck: Card[]
-}
-
+  name: string;
+  victory_points: number;
+  final_deck: Card[];
+};
 
 export type GameState = {
   phase: GamePhase;
@@ -48,10 +44,9 @@ export type GameState = {
   played_cards: Card[];
 
   supply: Supply;
-  trash_pile: Card[]
+  trash_pile: Card[];
 
   actions: number;
   money: number;
   buys: number;
-}
-
+};

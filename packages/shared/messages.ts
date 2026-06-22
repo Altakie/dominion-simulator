@@ -1,6 +1,6 @@
-import type { GameState, Player, PlayerEndInfo } from "."
-import type { Card } from "./cards"
-import type { supplyStack } from "./supply"
+import type { GameState, Player, PlayerEndInfo } from ".";
+import type { Card } from "./cards";
+import type { supplyStack } from "./supply";
 
 export const MessageKinds = Object.freeze({
   CONNECT: "Connect",
@@ -21,10 +21,10 @@ export const MessageKinds = Object.freeze({
 
   GAME_END: "Game has been terminated",
 
-  LOG: "Log"
-})
+  LOG: "Log",
+});
 
-type MessageKind = typeof MessageKinds[keyof typeof MessageKinds]
+type MessageKind = (typeof MessageKinds)[keyof typeof MessageKinds];
 
 export const PickCardsDescriptions = Object.freeze({
   DISCARD_ANY: "Choose card(s) to discard",
@@ -32,137 +32,139 @@ export const PickCardsDescriptions = Object.freeze({
 
   PLAY: "Choose a card to play",
   PUT_ON_DECK: "Choose a card to put on top of your deck",
-})
+});
 
 export const BinaryDescriptions = Object.freeze({
   BINARY_PLAY: "Play this card?",
   BINARY_PUT_IN_HAND: "Put this card in your hand?",
   BINARY_REACT: "Reveal this card to block attack?",
-})
+});
 
 export const GainDescriptions = Object.freeze({
   GAIN: "Choose a card to gain from the supply",
-})
+});
 
-export type PickCardsDescription = typeof PickCardsDescriptions[keyof typeof PickCardsDescriptions]
-export type BinaryDescription = typeof BinaryDescriptions[keyof typeof BinaryDescriptions]
-export type GainDescription = typeof GainDescriptions[keyof typeof GainDescriptions]
+export type PickCardsDescription =
+  (typeof PickCardsDescriptions)[keyof typeof PickCardsDescriptions];
+export type BinaryDescription =
+  (typeof BinaryDescriptions)[keyof typeof BinaryDescriptions];
+export type GainDescription =
+  (typeof GainDescriptions)[keyof typeof GainDescriptions];
 
 export interface Message {
-  kind: MessageKind,
+  kind: MessageKind;
 }
 
 export interface ConnectMessage extends Message {
-  kind: typeof MessageKinds.CONNECT,
-  player_name: string,
+  kind: typeof MessageKinds.CONNECT;
+  player_name: string;
 }
 
 export interface DisconnectMessage extends Message {
-  kind: typeof MessageKinds.DISCONNECT,
-  player_name: string,
+  kind: typeof MessageKinds.DISCONNECT;
+  player_name: string;
 }
 
 export interface PlayerNamesMessage extends Message {
-  kind: typeof MessageKinds.PLAYER_NAMES,
-  player_names: string[],
+  kind: typeof MessageKinds.PLAYER_NAMES;
+  player_names: string[];
 }
 
 export interface StartedMessage extends Message {
-  kind: typeof MessageKinds.STARTED,
-  player_name_order: string[],
+  kind: typeof MessageKinds.STARTED;
+  player_name_order: string[];
   // TODO: Does it make sense to just have a started message include an update message?
-  state: GameState,
+  state: GameState;
 
-  player: Player
+  player: Player;
 }
 
-export const request_message_kinds = new Set<MessageKind>()
-request_message_kinds.add(MessageKinds.PICK_CARDS_REQUEST)
-request_message_kinds.add(MessageKinds.PICK_SUPPLY_PILE_REQUEST)
-request_message_kinds.add(MessageKinds.PICK_YES_NO_REQUEST)
+export const request_message_kinds = new Set<MessageKind>();
+request_message_kinds.add(MessageKinds.PICK_CARDS_REQUEST);
+request_message_kinds.add(MessageKinds.PICK_SUPPLY_PILE_REQUEST);
+request_message_kinds.add(MessageKinds.PICK_YES_NO_REQUEST);
 
 export interface RequestMessage extends Message {
-  kind: MessageKind,
+  kind: MessageKind;
 
-  description: string
+  description: string;
 }
 
 export interface PickCardsRequest extends RequestMessage {
-  kind: typeof MessageKinds.PICK_CARDS_REQUEST,
+  kind: typeof MessageKinds.PICK_CARDS_REQUEST;
 
-  description: PickCardsDescription,
+  description: PickCardsDescription;
 
-  choices: Card[],
-  min: number,
-  max: number
+  choices: Card[];
+  min: number;
+  max: number;
 }
 
 export interface PickSupplyPileRequest extends RequestMessage {
-  kind: typeof MessageKinds.PICK_SUPPLY_PILE_REQUEST,
+  kind: typeof MessageKinds.PICK_SUPPLY_PILE_REQUEST;
 
-  description: GainDescription,
+  description: GainDescription;
 
-  choices: supplyStack[],
-  min: number,
-  max: number
+  choices: supplyStack[];
+  min: number;
+  max: number;
 }
 
 export interface PickYesNoRequest extends RequestMessage {
-  kind: typeof MessageKinds.PICK_YES_NO_REQUEST,
+  kind: typeof MessageKinds.PICK_YES_NO_REQUEST;
 
-  description: BinaryDescription,
+  description: BinaryDescription;
 
-  card: Card
+  card: Card;
 }
 
 export interface PickCardsResponse extends Message {
-  kind: typeof MessageKinds.PICK_CARDS_RESPONSE,
+  kind: typeof MessageKinds.PICK_CARDS_RESPONSE;
 
-  choices: Card[],
+  choices: Card[];
 }
 
 export interface PickSupplyPileResponse extends Message {
-  kind: typeof MessageKinds.PICK_SUPPLY_PILE_RESPONSE,
+  kind: typeof MessageKinds.PICK_SUPPLY_PILE_RESPONSE;
 
-  choices: supplyStack[],
+  choices: supplyStack[];
 }
 
 export interface PickYesNoResponse extends Message {
-  kind: typeof MessageKinds.PICK_YES_NO_RESPONSE,
+  kind: typeof MessageKinds.PICK_YES_NO_RESPONSE;
 
-  choice: boolean
+  choice: boolean;
 }
 
 export interface GameStateUpdateMessage extends Message {
-  kind: typeof MessageKinds.GAME_STATE_UPDATE,
+  kind: typeof MessageKinds.GAME_STATE_UPDATE;
 
-  game_state: GameState
+  game_state: GameState;
   // TODO: Maybe the player should not have access to all of their information, such as their deck and discard pile unless specifically prompted
-  player: Player,
+  player: Player;
 }
 
 export interface GameEndMessage extends Message {
-  kind: typeof MessageKinds.GAME_END,
+  kind: typeof MessageKinds.GAME_END;
 
-  players_end_infos_in_victory_order: PlayerEndInfo[],
+  players_end_infos_in_victory_order: PlayerEndInfo[];
 }
 
 export interface LogMessage extends Message {
-  kind: typeof MessageKinds.LOG,
+  kind: typeof MessageKinds.LOG;
 
-  log_message: string
+  log_message: string;
 }
 
 export function serializeMessage(msg: Message): string {
-  return JSON.stringify(msg)
+  return JSON.stringify(msg);
 }
 
-
 export function parseMessage(msg: string): Message | undefined {
-  let parsed = JSON.parse(msg)
+  const parsed = JSON.parse(msg);
   if (!parsed.kind) {
-    return undefined
+    return undefined;
   }
 
-  return parsed
+  return parsed;
 }
