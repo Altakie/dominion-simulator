@@ -16,6 +16,7 @@
   },
   "scripts": {
     "dev": "conc 'bun run --cwd packages/server dev' 'bun run --cwd packages/client watch'",
+    "format": "biome format",
     "lint": "biome check --fix",
     "lint:unsafe": "biome check --fix --unsafe",
     "typecheck": "tsgo --noEmit"
