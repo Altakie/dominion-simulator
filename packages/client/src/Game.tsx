@@ -2,7 +2,7 @@ import { useState, type Dispatch, type JSX, type Ref, type RefObject, type SetSt
 import './App.css'
 import type { GameState, Player } from "shared";
 import type { Supply, supplyStack } from "shared/supply";
-import type { Card } from "shared/cards"
+import { CardTypes, type Card, type CardInfo } from "shared/cards"
 import { type Message, MessageKinds, type PickCardsRequest, type PickCardsResponse, type PickSupplyPileRequest, type PickSupplyPileResponse, type RequestMessage, request_message_kinds } from "shared/messages"
 import { Button } from './App';
 import { create } from 'zustand';
@@ -159,7 +159,7 @@ function VisualSupply({ supply }:
 
 function VisualSupplyStack({ supply_stack }: { supply_stack: supplyStack }) {
   return (
-    <div className='border w-1/5 h-auto p-px'>
+    <div className={`border w-1/5 h-auto p-px ${card_bg(supply_stack.card)}`}>
       <p className='text-black'>{supply_stack.card.name}</p>
       <div className='flex flex-row justify-between'>
         <GoldCoin cost={supply_stack.card.cost} />
@@ -172,14 +172,15 @@ function SupplyStackButton({ supply_stack, selected_stacks, setSelectedStacks }:
   let selected = selected_stacks.includes(supply_stack)
 
   return (
-    <div className={`border w-1/5 h-auto p-px  + ${selected ? 'border-green-400 hover:border-green-600' : 'border-red-600 hover:border-red-800'}`} onClick={() => {
-      if (selected) {
-        setSelectedStacks(prev => prev.filter((c) => c !== supply_stack))
-      } else {
-        setSelectedStacks((prev) => [...prev, supply_stack])
+    <div className={`border w-1/5 h-auto p-px  + ${selected ? 'border-green-400 hover:border-green-600' : 'border-red-600 hover:border-red-800'} ${card_bg(supply_stack.card)}`}
+      onClick={() => {
+        if (selected) {
+          setSelectedStacks(prev => prev.filter((c) => c !== supply_stack))
+        } else {
+          setSelectedStacks((prev) => [...prev, supply_stack])
+        }
       }
-    }
-    }>
+      }>
       <p className='text-black'>{supply_stack.card.name}</p>
       <div className='flex flex-row justify-between'>
         <GoldCoin cost={supply_stack.card.cost} />
@@ -250,7 +251,7 @@ function Hand({ hand }: { hand: Card[] }) {
 
 function CardDisplay({ card }: { card: Card }) {
   return (
-    <div className='border w-1/5 h-auto p-px'>
+    <div className={`border w-1/5 h-auto p-px ${card_bg(card.info)}`}>
       <p className='text-black'>{card.info.name}</p>
       <div className='flex flex-row justify-start'>
         <GoldCoin cost={card.info.cost} />
@@ -258,17 +259,36 @@ function CardDisplay({ card }: { card: Card }) {
     </div>)
 }
 
+function card_bg(card_info: CardInfo): string {
+  if (card_info.types.includes(CardTypes.VICTORY)) {
+    return 'bg-green-500'
+  }
+  if (card_info.types.includes(CardTypes.TREASURE)) {
+    return 'bg-yellow-200'
+  }
+  if (card_info.types.includes(CardTypes.REACTION)) {
+    return 'bg-blue-400'
+  }
+  if (card_info.types.includes(CardTypes.CURSE)) {
+    return 'bg-purple-400'
+  }
+  if (card_info.types.includes(CardTypes.ACTION)) {
+    return 'bg-white'
+  }
+}
+
 function CardButton({ card, selected_cards, setSelectedCards }: { card: Card, selected_cards: Card[], setSelectedCards: Dispatch<SetStateAction<Card[]>> }) {
   let selected = selected_cards.includes(card)
   return (
-    <div className={`border w-1/5 h-auto p-px  + ${selected ? 'border-green-400 hover:border-green-600' : 'border-red-600 hover:border-red-800'}`} onClick={() => {
-      if (selected) {
-        setSelectedCards(prev => prev.filter((c) => c !== card))
-      } else {
-        setSelectedCards((prev) => [...prev, card])
+    <div className={`border w-1/5 h-auto p-px  + ${selected ? 'border-green-400 hover:border-green-600' : 'border-red-600 hover:border-red-800'} ${card_bg(card.info)}`}
+      onClick={() => {
+        if (selected) {
+          setSelectedCards(prev => prev.filter((c) => c !== card))
+        } else {
+          setSelectedCards((prev) => [...prev, card])
+        }
       }
-    }
-    }>
+      }>
       <p className='text-black'>{card.info.name}</p>
       <div className='flex flex-row justify-start'>
         <GoldCoin cost={card.info.cost} />

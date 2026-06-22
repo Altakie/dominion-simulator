@@ -71,7 +71,7 @@ export class Game {
     this.wait_info = undefined
 
     // DEBUG MODE TOGGLE
-    this.debug_mode = true
+    this.debug_mode = false
 
     const player_infos = players.map((player): PlayerInfo => {
       return {

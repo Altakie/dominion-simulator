@@ -23,3 +23,4 @@
 - cards
   - Library sends messages for all card decisions, but only prompts for the first one on the client
   - Sentry does not keep track of what cards have been trashed properly
+  - Throne room artisan doesn't work

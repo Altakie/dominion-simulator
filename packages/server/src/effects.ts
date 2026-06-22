@@ -367,7 +367,7 @@ export const effect_table: Record<CardName, (game: Game) => void> = {
       )
       let discarded = player.discard_pile.slice(-2)
       if (discarded.some(card => card.info.types.includes(CardTypes.TREASURE)
-          && card.info.name !== Copper.name)) {
+        && card.info.name !== Copper.name)) {
         game.prompt_pick_card(
           game.get_current_player_info(),
           PickCardsDescriptions.TRASH_ANY,
