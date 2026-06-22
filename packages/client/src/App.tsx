@@ -1,20 +1,39 @@
 import {
   createContext,
   type RefObject,
-  useContext,
+  use,
   useEffect,
   useRef,
   useState,
 } from "react";
 import "./App.css";
-import type { JSX } from "react";
+import type { Dispatch, ReactNode, SetStateAction } from "react";
 import { Lobby } from "./Lobby.tsx";
 // import { BrowserRouter, Routes, Route, Link } from 'react-router-dom';
 
-export const StateContext = createContext<{
-  state: string;
-  setState: (s: string) => void;
-}>(null);
+const ROUTE_TABLE = {
+  Home: <Home />,
+  Game: <Lobby />,
+  Test: <Test />,
+} as const satisfies Record<string, ReactNode>;
+
+type Route = keyof typeof ROUTE_TABLE;
+
+export interface RouterContext {
+    route: Route,
+    setRoute: Dispatch<SetStateAction<Route>>,
+}
+export const RouterContext = createContext<RouterContext | null>(null);
+export function useRouter() {
+    const routerCtx = use(RouterContext);
+    if (routerCtx === null) {
+        throw new Error("`useRouter` must be used from a component that's a descendant of `RouterContext`.");
+    }
+    return routerCtx;
+}
+
+
+
 function App() {
   // return (<>
   //   <BrowserRouter>
@@ -25,22 +44,14 @@ function App() {
   //   </BrowserRouter>
   // </>)
 
-  const [state, setState] = useState("Home");
+  const [route, setRoute] = useState<Route>("Home");
 
   return (
-    <>
-      <StateContext value={{ state: state, setState: setState }}>
-        {stateTable[state]}
-      </StateContext>
-    </>
+      <RouterContext value={{ route, setRoute }}>
+        {ROUTE_TABLE[route]}
+      </RouterContext>
   );
 }
-
-const stateTable: Record<string, JSX.Element> = {
-  Home: <Home />,
-  Game: <Lobby />,
-  Test: <Test />,
-};
 
 function Test() {
   return <h1>Hi!</h1>;
@@ -52,7 +63,7 @@ function Home() {
 
   const ws = useMessageSocket();
 
-  const { setState } = useContext(StateContext);
+  const { setRoute } = useRouter();
 
   useEffect(() => {
     if (ws.current) {
@@ -84,7 +95,7 @@ function Home() {
         </p>
         <Button
           onClick={() => {
-            setState("Game");
+            setRoute("Game");
             ws.current.send(name);
           }}
         >

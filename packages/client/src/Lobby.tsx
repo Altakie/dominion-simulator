@@ -2,7 +2,6 @@ import {
   createContext,
   type JSX,
   type RefObject,
-  useContext,
   useEffect,
   useRef,
   useState,
@@ -26,7 +25,7 @@ import {
   type StartedMessage,
   serializeMessage,
 } from "shared/messages";
-import { Button, StateContext } from "./App";
+import { Button, RouterContext, useRouter } from "./App";
 import "./App.css";
 import type { GameState, Player } from "shared";
 import type { Card } from "shared/cards.ts";
@@ -125,7 +124,7 @@ export function Lobby() {
   // const gameSocket = useGameSocket(setConnected);
   useGameSocket();
   //
-  const { setState } = useContext(StateContext);
+  const { setRoute } = useRouter();
   //
   // const [player_names, setPlayerNames] = useState<string[]>([])
   // const [gameStarted, setGameStarted] = useState<typeof LobbyState[keyof typeof LobbyState]>(LobbyState.LOBBY)
@@ -260,7 +259,7 @@ export function Lobby() {
 
           <Button
             onClick={() => {
-              setState("Home");
+              setRoute("Home");
               game_socket.close(1000);
             }}
           >
