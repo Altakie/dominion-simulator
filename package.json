@@ -7,13 +7,19 @@
     "packages/*"
   ],
   "devDependencies": {
-    "@types/bun": "latest"
+    "@biomejs/biome": "^2.5.0",
+    "@types/bun": "latest",
+    "@typescript/native-preview": "^7.0.0-dev.20260621.1"
   },
   "peerDependencies": {
     "typescript": "^5"
   },
   "scripts": {
-    "dev": "conc 'bun run --cwd packages/server dev' 'bun run --cwd packages/client watch'"
+    "dev": "conc 'bun run --cwd packages/server dev' 'bun run --cwd packages/client watch'",
+    "format": "biome format --fix",
+    "lint": "biome check --fix",
+    "lint:unsafe": "biome check --fix --unsafe",
+    "typecheck": "tsgo --noEmit"
   },
   "dependencies": {
     "@tanstack/react-query": "^5.100.9",
