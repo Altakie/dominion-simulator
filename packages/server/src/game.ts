@@ -391,7 +391,7 @@ export class Game {
 
     if (this.game_state.buys > 0) {
       // Prompt the player to pick a singular supply pile
-      const supply_piles = this.game_state.supply.stacks.filter(
+      const supply_piles = this.game_state.supply.getStacks().filter(
         (pile) => pile.card.cost <= this.game_state.money && pile.count > 0,
       );
       const next = (choices: supplyStack[]) => {

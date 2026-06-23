@@ -11,11 +11,12 @@ export type supplyStack = {
 };
 
 export class Supply {
+  fixed_stacks: supplyStack[];
   stacks: supplyStack[];
 
   constructor(playerCount: number) {
     const victoryCount: number = playerCount === 2 ? 8 : 12;
-    this.stacks = [
+    this.fixed_stacks = [
       { card: Copper, count: 60 - 7 * playerCount },
       { card: Silver, count: 40 },
       { card: Gold, count: 30 },
@@ -24,6 +25,8 @@ export class Supply {
       { card: Province, count: victoryCount },
       { card: Curse, count: 10 * playerCount },
     ];
+
+    this.stacks = []
 
     const kingdomCards = shuffle(Object.values(BaseCards)).slice(0, 10);
     for (const card of kingdomCards) {
@@ -36,7 +39,7 @@ export class Supply {
   }
 
   getStacks(): supplyStack[] {
-    return this.stacks;
+    return this.fixed_stacks.concat(this.stacks);
   }
 
   gainCard(cardName: string): Card | null {

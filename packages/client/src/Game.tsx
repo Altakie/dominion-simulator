@@ -110,7 +110,7 @@ function PlayedCards({ played_cards }: { played_cards: Card[] }) {
   return (
     <>
       <h2>Played Cards</h2>
-      <div className="flex flex-row flex-wrap justify-center items-center">
+      <div className="flex flex-row flex-wrap gap-4 justify-center items-center">
         {played_cards.map((card) => (
           <CardDisplay card={card} />
         ))}
@@ -175,7 +175,28 @@ function VisualSupply({ supply }: { supply: Supply }) {
   return (
     <>
       <h2>Supply</h2>
-      <div className="flex flex-row flex-wrap p-4 items-end">
+      <div className="flex flex-row flex-wrap p-4 gap-4 justify-center items-center">
+        {supply.fixed_stacks.map((supply_stack) => {
+          if (
+            pick_stacks_req &&
+            pick_stacks_req.choices.some(
+              (stack) =>
+                stack.card.name === supply_stack.card.name &&
+                stack.count === supply_stack.count,
+            )
+          ) {
+            return (
+              <SupplyStackButton
+                supply_stack={supply_stack}
+                selected_stacks={selected_stacks}
+                setSelectedStacks={setSelectedStacks}
+              />
+            );
+          }
+          return <VisualSupplyStack supply_stack={supply_stack} />;
+        })}
+      </div>
+      <div className="flex flex-row flex-wrap p-4 gap-4 justify-center items-center">
         {supply.stacks.map((supply_stack) => {
           if (
             pick_stacks_req &&
@@ -203,15 +224,14 @@ function VisualSupply({ supply }: { supply: Supply }) {
 
 function VisualSupplyStack({ supply_stack }: { supply_stack: supplyStack }) {
   return (
-    <div className={`border w-1/5 h-auto p-px ${card_bg(supply_stack.card)}`}>
-      <p className="text-black">{supply_stack.card.name}</p>
+    <CardShell card_info={supply_stack.card}>
       <div className="flex flex-row justify-between">
         <GoldCoin cost={supply_stack.card.cost} />
-        <div className="bg-red-800 text-white rounded-sm w-6 h-6">
+        <div className="bg-red-800 text-white rounded-sm w-6 h-6 flex justify-center items-center">
           {supply_stack.count}
         </div>
       </div>
-    </div>
+    </CardShell>
   );
 }
 
@@ -227,8 +247,8 @@ function SupplyStackButton({
   const selected = selected_stacks.includes(supply_stack);
 
   return (
-    <div
-      className={`border w-1/5 h-auto p-px  + ${selected ? "border-green-400 hover:border-green-600" : "border-red-600 hover:border-red-800"} ${card_bg(supply_stack.card)}`}
+    <CardShell card_info={supply_stack.card}
+      className={`${selected ? "border-green-400 hover:border-green-600" : "border-red-600 hover:border-red-800"}`}
       onClick={() => {
         if (selected) {
           setSelectedStacks((prev) => prev.filter((c) => c !== supply_stack));
@@ -237,14 +257,13 @@ function SupplyStackButton({
         }
       }}
     >
-      <p className="text-black">{supply_stack.card.name}</p>
       <div className="flex flex-row justify-between">
         <GoldCoin cost={supply_stack.card.cost} />
-        <div className="bg-red-800 text-white rounded-sm w-6 h-6">
+        <div className="bg-red-800 text-white rounded-sm w-6 h-6 flex justify-center items-center">
           {supply_stack.count}
         </div>
       </div>
-    </div>
+    </CardShell>
   );
 }
 
@@ -295,7 +314,7 @@ function Hand({ hand }: { hand: Card[] }) {
   return (
     <>
       <h2>Current Hand</h2>
-      <div className="flex flex-row flex-wrap items-center justify-center">
+      <div className="flex flex-row flex-wrap gap-4 items-center justify-center">
         {hand.map((card) => {
           if (
             pick_cards_req != undefined &&
@@ -319,14 +338,22 @@ function Hand({ hand }: { hand: Card[] }) {
   );
 }
 
+function CardShell({ card_info, children, className = "", ...props }) {
+  return (
+    <div className={`text-xs border-4 rounded-lg w-22 h-20 p-px flex flex-col justify-between ${card_bg(card_info)} ${className}`} {...props}>
+      <p className="text-black">{card_info.name}</p>
+      {children}
+    </div>
+  );
+}
+
 function CardDisplay({ card }: { card: Card }) {
   return (
-    <div className={`border w-1/5 h-auto p-px ${card_bg(card.info)}`}>
-      <p className="text-black">{card.info.name}</p>
+    <CardShell card_info={card.info}>
       <div className="flex flex-row justify-start">
         <GoldCoin cost={card.info.cost} />
       </div>
-    </div>
+    </CardShell>
   );
 }
 
@@ -359,8 +386,7 @@ function CardButton({
 }) {
   const selected = selected_cards.includes(card);
   return (
-    <div
-      className={`border w-1/5 h-auto p-px  + ${selected ? "border-green-400 hover:border-green-600" : "border-red-600 hover:border-red-800"} ${card_bg(card.info)}`}
+    <CardShell card_info={card.info} className={selected ? "border-green-400 hover:border-green-600" : "border-red-600 hover:border-red-800"}
       onClick={() => {
         if (selected) {
           setSelectedCards((prev) => prev.filter((c) => c !== card));
@@ -369,11 +395,10 @@ function CardButton({
         }
       }}
     >
-      <p className="text-black">{card.info.name}</p>
       <div className="flex flex-row justify-start">
         <GoldCoin cost={card.info.cost} />
       </div>
-    </div>
+    </CardShell>
   );
 }
 
