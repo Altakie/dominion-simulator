@@ -92,7 +92,7 @@ export class Lobby {
         if (!this.game) {
           break;
         }
-        if (!this.game.wait_info) {
+        if (this.game.wait_infos.isEmpty()) {
           console.log("Received player response but game is not waiting");
         }
         this.game.resolve_player_choice(clientid, message);

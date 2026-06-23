@@ -37,6 +37,7 @@ import { shuffle } from "shared/shuffle";
 import { Supply, type supplyStack } from "shared/supply";
 import { effect_table } from "./effects";
 import type { Lobby, PlayerLobbyInfo } from "./lobby";
+import { Stack } from "./stack";
 
 type WaitResponses =
   | typeof MessageKinds.PICK_CARDS_RESPONSE
@@ -84,7 +85,7 @@ export class Game {
 
   player_infos: PlayerInfo[];
   game_state: GameState;
-  wait_info?: WaitInfo;
+  wait_infos: Stack<WaitInfo>;
   card_count: number;
   debug_mode: boolean;
 
@@ -92,7 +93,7 @@ export class Game {
     this.lobby = lobby;
 
     this.card_count = 0;
-    this.wait_info = undefined;
+    this.wait_infos = new Stack();
 
     // DEBUG MODE TOGGLE
     this.debug_mode = false;
@@ -255,36 +256,37 @@ export class Game {
   }
 
   resolve_player_choice(clientid: string, response: Message) {
-    if (!this.wait_info) {
+    if (this.wait_infos.isEmpty()) {
       console.log("No wait info");
       return;
     }
-    if (clientid !== this.wait_info.player_info.clientid) {
+    const wait_info = this.wait_infos.peek()!
+    if (clientid !== wait_info.player_info.clientid) {
       console.log("Wrong Player sent response");
       return;
     }
-    if (response.kind != this.wait_info.response_type) {
+    if (response.kind != wait_info.response_type) {
       console.log("Wrong response type");
       return;
     }
     console.log(`Player responded with ${response.kind}`);
 
-    this.wait_info.next(response);
+    wait_info.next(response);
     // WARN: Assuming that there are no errors
     // this.wait_info = undefined
   }
 
-  eventually_cleanup(cleanup: () => void) {
-    if (this.wait_info === undefined) {
-      cleanup();
-    } else {
-      const old_next = this.wait_info.next;
-      this.wait_info.next = (response: Message) => {
-        old_next(response);
-        this.eventually_cleanup(cleanup);
-      };
-    }
-  }
+  // eventually_cleanup(cleanup: () => void) {
+  //   if (this.wait_infos === undefined) {
+  //     cleanup();
+  //   } else {
+  //     const old_next = this.wait_infos.next;
+  //     this.wait_infos.next = (response: Message) => {
+  //       old_next(response);
+  //       this.eventually_cleanup(cleanup);
+  //     };
+  //   }
+  // }
 
   action_phase() {
     const end_phase = () => {
@@ -320,18 +322,16 @@ export class Game {
           end_phase();
           return;
         }
-        // NOTE: Maybe Need to reset the wait info before any effects go off
-        this.wait_info = undefined;
 
         const card_index = hand.findIndex((card) => card.id === choices[0]!.id);
         console.log(
           `Player chose ${choices[0]!.info.name} which has an index of ${card_index}`,
         );
 
+        this.game_state.actions--;
         // Resolve the action effect
         this.play_card(card_index, hand);
         const cleanup = () => {
-          this.game_state.actions--;
           // Send the new gamestate to all players
           this.send_update();
           // Run the action phase again
@@ -342,7 +342,18 @@ export class Game {
         // WARN: This might not work if the card has multiple chained effects
         // It will cleanup and go to the next phase after the first effect
         // Unless the effects are chained within the card, which should be the case
-        this.eventually_cleanup(cleanup);
+        const last_wait = this.wait_infos.bottom()
+        if (last_wait !== undefined) {
+          const old_next = last_wait.next
+          last_wait.next = (res) => {
+            old_next(res)
+            cleanup()
+          }
+          return
+        }
+
+        cleanup()
+        // this.eventually_cleanup(cleanup);
         return;
       };
 
@@ -507,7 +518,7 @@ export class Game {
 
     const wrapped_next = (response: Message): void => {
       const res = response as PickCardsResponse;
-      this.wait_info = undefined;
+      this.wait_infos.pop()
 
       next(res.choices);
     };
@@ -518,7 +529,7 @@ export class Game {
       response_type: MessageKinds.PICK_CARDS_RESPONSE,
       next: wrapped_next,
     };
-    this.wait_info = waiting;
+    this.wait_infos.push(waiting);
     player.socket.send(req_str);
   }
 
@@ -536,7 +547,7 @@ export class Game {
 
     const wrapped_next = (response: Message): void => {
       const res = response as PickYesNoResponse;
-      this.wait_info = undefined;
+      this.wait_infos.pop();
 
       next(res.choice);
     };
@@ -547,7 +558,7 @@ export class Game {
       response_type: MessageKinds.PICK_YES_NO_RESPONSE,
       next: wrapped_next,
     };
-    this.wait_info = waiting;
+    this.wait_infos.push(waiting);
     player.socket.send(req_str);
   }
 
@@ -569,7 +580,7 @@ export class Game {
 
     const wrapped_next = (response: Message): void => {
       const res = response as PickSupplyPileResponse;
-      this.wait_info = undefined;
+      this.wait_infos.pop();
 
       next(res.choices);
     };
@@ -580,7 +591,7 @@ export class Game {
       response_type: MessageKinds.PICK_SUPPLY_PILE_RESPONSE,
       next: wrapped_next,
     };
-    this.wait_info = waiting;
+    this.wait_infos.push(waiting);
     player.socket.send(req_str);
   }
 
