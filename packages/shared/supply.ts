@@ -1,9 +1,9 @@
-import type { Card, CardInfo } from "./cards";
-import { BaseCards, Chapel, Gardens, Moat, Witch } from "./cards/base";
-import { Curse } from "./cards/curses";
-import { Copper, Gold, Silver } from "./cards/treasures";
-import { Duchy, Estate, Province } from "./cards/victories";
-import { shuffle } from "./shuffle";
+import type { Card, CardInfo } from "./cards"
+import { Copper, Silver, Gold } from "./cards/treasures"
+import { Estate, Duchy, Province } from "./cards/victories"
+import { Curse } from "./cards/curses"
+import { shuffle } from "./shuffle"
+import { Artisan, BaseCards, Cellar, Chapel, Gardens, Harbinger, Library, Merchant, Mine, Moat, Moneylender, Poacher, Remodel, Sentry, ThroneRoom, Vassal, Village, Witch, Workshop } from "./cards/base"
 
 export type supplyStack = {
   card: CardInfo;
@@ -60,9 +60,9 @@ export class Supply {
       { card: Duchy, count: 8 },
       { card: Province, count: 1 },
       { card: Curse, count: 20 },
-      { card: Moat, count: 10 },
-      { card: Witch, count: 10 },
       { card: Chapel, count: 10 },
-    ];
+      { card: Workshop, count: 10 },
+      { card: ThroneRoom, count: 10 },
+    ]
   }
 }

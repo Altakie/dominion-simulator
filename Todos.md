@@ -16,11 +16,11 @@
 ## Minor Features
 
 - Maybe use zustand for better state management
+- Manual testing to ensure that all card effects work as intended
 
 ## Bugs
 
-- Game does not check if there's already a game in progress before starting a new game, and any player can start the game causing it to restart
-- cards
-  - Library sends messages for all card decisions, but only prompts for the first one on the client
-  - Sentry does not keep track of what cards have been trashed properly
-  - Throne room artisan doesn't work
+- Choices at bottom aren't always derendered after processing
+- All card effect bugs:
+  - Harbinger choices aren't rendered properly in certain circumstances
+  - Throne Room chaining doesn't work
