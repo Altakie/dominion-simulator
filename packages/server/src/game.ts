@@ -37,18 +37,83 @@ import { shuffle } from "shared/shuffle";
 import { Supply, type supplyStack } from "shared/supply";
 import { effect_table } from "./effects";
 import type { Lobby, PlayerLobbyInfo } from "./lobby";
-import { Stack } from "./stack";
+import { Deque } from "shared/stack";
 
 type WaitResponses =
   | typeof MessageKinds.PICK_CARDS_RESPONSE
   | typeof MessageKinds.PICK_SUPPLY_PILE_RESPONSE
   | typeof MessageKinds.PICK_YES_NO_RESPONSE;
 
-type WaitInfo = {
+interface Cc {
+  wait: boolean
+}
+
+interface WaitInfo extends Cc {
+  wait: true
   player_info: PlayerInfo;
   response_type: WaitResponses;
-  next: (response: Message) => void;
+  cc: (response: Message) => void;
 };
+
+interface NonBlockingCc extends Cc {
+  wait: false
+  cc: () => void;
+}
+
+class WaitQueue {
+  wait_queue: Deque<Cc>;
+
+  constructor() {
+    this.wait_queue = new Deque()
+  }
+
+  resolve(response: Message, clientid: string) {
+    const front = this.wait_queue.peek_front()
+    if (front === undefined) {
+      return
+    }
+    if (!front.wait) {
+      console.log("Front is not a waiter?")
+      return
+    }
+
+    const wait_info = front as WaitInfo
+
+    if (clientid !== wait_info.player_info.clientid) {
+      console.log("Wrong Player sent response");
+      return;
+    }
+    if (response.kind != wait_info.response_type) {
+      console.log("Wrong response type");
+      return;
+    }
+    console.log(`Player responded with ${response.kind}`);
+
+    // NOTE: Popping is handled within the prompt methods
+    wait_info.cc(response)
+
+    while (this.wait_queue.peek_front() !== undefined && !this.wait_queue.peek_front()?.wait) {
+      const non_blocking = this.wait_queue.pop_front() as NonBlockingCc
+      non_blocking.cc()
+    }
+  }
+
+  push_front(cc: Cc) {
+    this.wait_queue.push_front(cc)
+  }
+
+  pop_front(): Cc | undefined {
+    return this.wait_queue.pop_front()
+  }
+
+  push_back(cc: Cc) {
+    this.wait_queue.push_back(cc)
+  }
+
+  isEmpty(): boolean {
+    return this.wait_queue.isEmpty()
+  }
+}
 
 function new_game_state(
   current_player_index: number,
@@ -85,7 +150,7 @@ export class Game {
 
   player_infos: PlayerInfo[];
   game_state: GameState;
-  wait_infos: Stack<WaitInfo>;
+  wait_queue: WaitQueue;
   card_count: number;
   debug_mode: boolean;
 
@@ -93,7 +158,7 @@ export class Game {
     this.lobby = lobby;
 
     this.card_count = 0;
-    this.wait_infos = new Stack();
+    this.wait_queue = new WaitQueue()
 
     // DEBUG MODE TOGGLE
     this.debug_mode = false;
@@ -256,22 +321,12 @@ export class Game {
   }
 
   resolve_player_choice(clientid: string, response: Message) {
-    if (this.wait_infos.isEmpty()) {
+    if (this.wait_queue.isEmpty()) {
       console.log("No wait info");
       return;
     }
-    const wait_info = this.wait_infos.peek()!
-    if (clientid !== wait_info.player_info.clientid) {
-      console.log("Wrong Player sent response");
-      return;
-    }
-    if (response.kind != wait_info.response_type) {
-      console.log("Wrong response type");
-      return;
-    }
-    console.log(`Player responded with ${response.kind}`);
+    this.wait_queue.resolve(response, clientid)
 
-    wait_info.next(response);
     // WARN: Assuming that there are no errors
     // this.wait_info = undefined
   }
@@ -313,7 +368,7 @@ export class Game {
           console.log("Cannot play more than one card at a time");
         }
         // TODO: Reprompt if it goes wrong
-        if (!isSubset(choices, hand)) {
+        if (!isSubset(choices, initial_choices)) {
           console.log("Error: Improper Choice");
           return;
         }
@@ -342,13 +397,9 @@ export class Game {
         // WARN: This might not work if the card has multiple chained effects
         // It will cleanup and go to the next phase after the first effect
         // Unless the effects are chained within the card, which should be the case
-        const last_wait = this.wait_infos.bottom()
-        if (last_wait !== undefined) {
-          const old_next = last_wait.next
-          last_wait.next = (res) => {
-            old_next(res)
-            cleanup()
-          }
+        if (!this.wait_queue.isEmpty()) {
+          const cleanup_cc: NonBlockingCc = { wait: false, cc: cleanup }
+          this.wait_queue.push_back(cleanup_cc)
           return
         }
 
@@ -518,18 +569,26 @@ export class Game {
 
     const wrapped_next = (response: Message): void => {
       const res = response as PickCardsResponse;
-      this.wait_infos.pop()
+      // If response is wrong, resend request
+      if (res.choices.length > req.max || res.choices.length < req.min || !isSubset(res.choices, req.choices)) {
+        const req_str = serializeMessage(req);
+        player.socket.send(req_str);
 
+        return
+      }
+
+      this.wait_queue.pop_front()
       next(res.choices);
     };
 
     const req_str = serializeMessage(req);
     const waiting: WaitInfo = {
+      wait: true,
       player_info: player,
       response_type: MessageKinds.PICK_CARDS_RESPONSE,
-      next: wrapped_next,
+      cc: wrapped_next,
     };
-    this.wait_infos.push(waiting);
+    this.wait_queue.push_front(waiting);
     player.socket.send(req_str);
   }
 
@@ -547,18 +606,19 @@ export class Game {
 
     const wrapped_next = (response: Message): void => {
       const res = response as PickYesNoResponse;
-      this.wait_infos.pop();
+      this.wait_queue.pop_front();
 
       next(res.choice);
     };
 
     const req_str = serializeMessage(req);
     const waiting: WaitInfo = {
+      wait: true,
       player_info: player,
       response_type: MessageKinds.PICK_YES_NO_RESPONSE,
-      next: wrapped_next,
+      cc: wrapped_next,
     };
-    this.wait_infos.push(waiting);
+    this.wait_queue.push_front(waiting);
     player.socket.send(req_str);
   }
 
@@ -580,18 +640,26 @@ export class Game {
 
     const wrapped_next = (response: Message): void => {
       const res = response as PickSupplyPileResponse;
-      this.wait_infos.pop();
+      if (res.choices.length > req.max || res.choices.length < req.min || !isSubset(res.choices, req.choices)) {
+        const req_str = serializeMessage(req);
+        player.socket.send(req_str);
+
+        return
+      }
+
+      this.wait_queue.pop_front();
 
       next(res.choices);
     };
 
     const req_str = serializeMessage(req);
     const waiting: WaitInfo = {
+      wait: true,
       player_info: player,
       response_type: MessageKinds.PICK_SUPPLY_PILE_RESPONSE,
-      next: wrapped_next,
+      cc: wrapped_next,
     };
-    this.wait_infos.push(waiting);
+    this.wait_queue.push_front(waiting);
     player.socket.send(req_str);
   }
 

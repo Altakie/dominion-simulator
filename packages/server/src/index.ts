@@ -65,7 +65,6 @@ app.use(
 );
 
 const lobby = new Lobby();
-let game: Game;
 
 app.use(
   "/game",
