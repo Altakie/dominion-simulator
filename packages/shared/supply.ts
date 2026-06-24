@@ -60,9 +60,7 @@ export class Supply {
       { card: Duchy, count: 8 },
       { card: Province, count: 1 },
       { card: Curse, count: 20 },
-      { card: Chapel, count: 10 },
-      { card: Workshop, count: 10 },
-      { card: ThroneRoom, count: 10 },
+      { card: Harbinger, count: 10 },
     ]
   }
 }

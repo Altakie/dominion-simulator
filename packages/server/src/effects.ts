@@ -99,12 +99,11 @@ export const effect_table: Record<CardName, (game: Game) => void> = {
     function get_next(): (choices: Card[]) => void {
       return (choices: Card[]) => {
         if (choices.length > 0) {
-          const card = choices[0]!;
-          game.remove_card(
+          let card = choices[0]!
+          player.deck.push(game.remove_card(
             player.discard_pile.findIndex((c) => c.id === card.id),
-            player.discard_pile,
-          );
-          player.deck.push(card!);
+            player.discard_pile
+          ))
         }
       };
     }
