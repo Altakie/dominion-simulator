@@ -1,6 +1,7 @@
 import {
   type Dispatch,
   type JSX,
+  type ReactNode,
   type Ref,
   type RefObject,
   type SetStateAction,
@@ -16,24 +17,37 @@ import {
   type PickCardsResponse,
   type PickSupplyPileRequest,
   type PickSupplyPileResponse,
+  type PickYesNoRequest,
+  type PickYesNoResponse,
   type RequestMessage,
   request_message_kinds,
 } from "shared/messages";
 import type { Supply, supplyStack } from "shared/supply";
 import { create } from "zustand";
-import { Button } from "./App";
+import { Button } from "./components/ui/button.tsx";
+import { Dialog, DialogClose, DialogContent, DialogDescription, DialogTrigger } from "./components/ui/dialog.tsx";
 import { game_socket, useLobbyStore } from "./Lobby";
 
 export function Game() {
-  let choices = useLobbyStore((state) => state.choice_list);
-  const player = useLobbyStore((state) => state.player);
-  const game_state = useLobbyStore((state) => state.game_state);
+  // let choices = useLobbyStore((state) => state.choice_list);
+  const player = useLobbyStore((state) => state.player)!;
+  const game_state = useLobbyStore((state) => state.game_state)!;
+  const message = useLobbyStore((state) => state.message)!;
 
-  if (!choices) {
-    choices = <></>;
-  } else {
-    console.log("Rendering choices");
+  let pop_up = <></>;
+  switch (message?.kind) {
+    case MessageKinds.PICK_YES_NO_REQUEST:
+      pop_up = <ChooseYesNo />
+      break
+    case MessageKinds.PICK_CARDS_REQUEST:
+      const pick_cards_req = message as PickCardsRequest
+      const cards_not_in_hand = pick_cards_req.choices.filter((card) => !player.hand.some((c) => c.id === card.id))
+      if (cards_not_in_hand.length > 0) {
+        pop_up = <ChooseCardsList extra_cards={cards_not_in_hand} />
+      }
+      break
   }
+
   return (
     <>
       <h1>Game</h1>
@@ -50,7 +64,8 @@ export function Game() {
           <PlayedCards played_cards={game_state.played_cards} />
           <Hand hand={player.hand} />
           <Description />
-          {choices}
+          {/* {choices} */}
+          {pop_up}
         </div>
         <div className="flex-col w-1/5 border h-screen">
           <TurnInfo />
@@ -87,7 +102,7 @@ function PlayerList() {
 
 function VisualGameState() {
   const players = useLobbyStore((state) => state.player_names);
-  const game_state = useLobbyStore((state) => state.game_state);
+  const game_state = useLobbyStore((state) => state.game_state)!;
 
   return (
     <>
@@ -120,7 +135,7 @@ function PlayedCards({ played_cards }: { played_cards: Card[] }) {
 }
 
 function TurnInfo() {
-  const game_state = useLobbyStore((state) => state.game_state);
+  const game_state = useLobbyStore((state) => state.game_state)!;
   return (
     <>
       <div>
@@ -158,8 +173,8 @@ function VisualSupply({ supply }: { supply: Supply }) {
               choices: selected_stacks,
             };
             setSelectedStacks([]);
-            setMessage(null);
-            game_socket.send(JSON.stringify(res));
+            setMessage(undefined);
+            game_socket?.send(JSON.stringify(res));
           }}
           disabled={
             selected_stacks.length > pick_stacks_req.max ||
@@ -296,9 +311,9 @@ function Hand({ hand }: { hand: Card[] }) {
               choices: selected_cards,
             };
             setSelectedCards([]);
-            setMessage(null);
+            setMessage(undefined);
             // Need to set message to null
-            game_socket.send(JSON.stringify(res));
+            game_socket?.send(JSON.stringify(res));
           }}
           disabled={
             selected_cards.length > pick_cards_req.max ||
@@ -338,9 +353,9 @@ function Hand({ hand }: { hand: Card[] }) {
   );
 }
 
-function CardShell({ card_info, children, className = "", ...props }) {
+function CardShell({ card_info, children, className = "", ...props }: { card_info: CardInfo, children: ReactNode, className?: string } & React.HTMLAttributes<HTMLDivElement>) {
   return (
-    <div className={`text-xs border-4 rounded-lg w-22 h-20 p-px flex flex-col justify-between ${card_bg(card_info)} ${className}`} {...props}>
+    <div className={`text-xs border-4 border-gray-400 rounded-lg w-22 h-20 p-px flex flex-col shrink-0 grow-0 justify-between text-center ${card_bg(card_info)} ${className}`} {...props}>
       <p className="text-black">{card_info.name}</p>
       {children}
     </div>
@@ -370,9 +385,7 @@ function card_bg(card_info: CardInfo): string {
   if (card_info.types.includes(CardTypes.CURSE)) {
     return "bg-purple-400";
   }
-  if (card_info.types.includes(CardTypes.ACTION)) {
-    return "bg-white";
-  }
+  return "bg-white";
 }
 
 function CardButton({
@@ -428,3 +441,161 @@ function GoldCoin({ cost }: { cost: number }) {
     </div>
   );
 }
+
+function ChooseCardsList({ extra_cards }: { extra_cards: Card[] }) {
+  // const set_choice_list = useLobbyStore((state) => state.set_choice_list);
+  const [choices, setChoices] = useState<Card[]>([]);
+  const message = useLobbyStore((state) => state.message as PickCardsRequest)
+  const set_message = useLobbyStore((state) => state.set_message)
+
+  return (
+    <>
+      <Dialog open={true}>
+        <DialogContent>
+          <h3>Currently Selected</h3>
+          {choices.map((card) => (
+            <p>{card.info.name}</p>
+          ))}
+
+          <h3>Choices</h3>
+          <div className="flex flex-row flex-nowrap justify-between overflow-auto">
+            {extra_cards.map((card) => (
+              <CardButton card={card} selected_cards={choices} setSelectedCards={setChoices} />
+            ))}
+          </div>
+
+          <DialogClose>
+            <Button
+              onClick={() => {
+                const res: PickCardsResponse = {
+                  kind: MessageKinds.PICK_CARDS_RESPONSE,
+                  choices: choices,
+                };
+                set_message(undefined)
+                setChoices([]);
+                game_socket?.send(JSON.stringify(res));
+              }}
+              disabled={choices.length > message.max || choices.length < message.min}
+            >
+              Confirm Choices
+            </Button>
+          </DialogClose>
+        </DialogContent>
+      </Dialog>
+    </>
+  );
+}
+
+// function ChooseSupplyPilesList({ message, game_socket, lobby_store.set_choice_list }: { message: PickSupplyPileRequest, game_socket: WebSocket, setChoiceList }) {
+//   const [choices, setChoices] = useState<supplyStack[]>([])
+//
+//   function SupplyPileButton({ supply_pile }: { supply_pile: supplyStack }) {
+//     const selected = choices.includes(supply_pile)
+//
+//     return (
+//       <Button style={selected ?
+//         { color: "red" } : {}
+//       }
+//         onClick={() => {
+//           if (!choices.includes(supply_pile)) {
+//             setChoices([...choices, supply_pile])
+//             return
+//           }
+//
+//           setChoices(choices.filter((ss) => (ss !== supply_pile)))
+//         }}
+//
+//       >{supply_pile.card.name} : ${supply_pile.card.cost}</Button>
+//     )
+//   }
+//
+//
+//   return (
+//     <>
+//       <h3>{message.description}</h3>
+//       <h3>Currently Selected</h3>
+//       {choices.map((supply_pile) =>
+//         <p>{supply_pile.card.name}</p>
+//       )}
+//
+//       <div>
+//         <h3>Choices</h3>
+//         {
+//           message.choices.map((supply_pile) => (<SupplyPileButton supply_pile={supply_pile} />))
+//         }
+//       </div>
+//
+//       <div>
+//         <Button
+//           onClick={
+//             () => {
+//               let res: PickSupplyPileResponse = {
+//                 kind: MessageKinds.PICK_SUPPLY_PILE_RESPONSE,
+//                 choices: choices
+//               }
+//               setChoices([])
+//               lobby_store.set_choice_list(null)
+//               game_socket.send(JSON.stringify(res))
+//             }
+//           }
+//
+//           disabled={
+//             choices.length > message.max || choices.length < message.min
+//           }>Confirm Choices</Button >
+//       </div>
+//     </>
+//   )
+// }
+
+function ChooseYesNo() {
+  // const set_choice_list = useLobbyStore((state) => state.set_choice_list);
+  const message = useLobbyStore((state) => state.message as PickYesNoRequest)
+  const set_message = useLobbyStore((state) => state.set_message)
+
+  function send_choice(choice: boolean) {
+    const res: PickYesNoResponse = {
+      kind: MessageKinds.PICK_YES_NO_RESPONSE,
+      choice: choice,
+    };
+    set_message(undefined)
+    game_socket?.send(JSON.stringify(res));
+  }
+
+  return (
+    <>
+      <Dialog open={true}>
+        <DialogContent>
+          <div className="flex justify-center">
+            <h2>{message.description}</h2>
+            <CardDisplay card={message.card} />
+            {/* <h3>Choices</h3> */}
+            <DialogClose>
+              <p>
+                <Button
+                  onClick={() => {
+                    send_choice(true);
+                  }}
+                >
+                  Yes
+                </Button>
+
+                <Button
+                  onClick={() => {
+                    send_choice(false);
+                  }}
+                >
+                  No
+                </Button>
+              </p>
+            </DialogClose>
+          </div>
+        </DialogContent>
+      </Dialog>
+    </>
+  );
+}
+
+// function PopUp({children}) {
+//   <div className="bg-black z-1">
+//   </div>
+// }

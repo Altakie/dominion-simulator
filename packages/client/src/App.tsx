@@ -9,6 +9,7 @@ import {
 import "./App.css";
 import type { JSX } from "react";
 import { Lobby } from "./Lobby.tsx";
+import { Button } from "./components/ui/button.tsx";
 // import { BrowserRouter, Routes, Route, Link } from 'react-router-dom';
 
 export const StateContext = createContext<{
@@ -123,16 +124,16 @@ function useMessageSocket() {
   return ws;
 }
 
-export function Button({ children, ...props }) {
-  return (
-    <button
-      className={`rounded-xl text-black bg-gray-400 p-2 ${props.className}`}
-      {...props}
-    >
-      {children}
-    </button>
-  );
-}
+// export function Button({ children, ...props }) {
+//   return (
+//     <button
+//       className={`rounded-xl text-black bg-gray-400 p-2 ${props.className}`}
+//       {...props}
+//     >
+//       {children}
+//     </button>
+//   );
+// }
 
 // function MessageLog({ messages }) {
 //

@@ -161,7 +161,7 @@ export class Game {
     this.wait_queue = new WaitQueue()
 
     // DEBUG MODE TOGGLE
-    this.debug_mode = false;
+    this.debug_mode = true;
 
     const player_infos = players.map((player): PlayerInfo => {
       return {

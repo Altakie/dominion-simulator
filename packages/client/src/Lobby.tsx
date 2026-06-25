@@ -26,7 +26,8 @@ import {
   type StartedMessage,
   serializeMessage,
 } from "shared/messages";
-import { Button, StateContext } from "./App";
+import { StateContext } from "./App";
+import { Button } from "./components/ui/button.tsx";
 import "./App.css";
 import type { GameState, Player } from "shared";
 import type { Card } from "shared/cards.ts";

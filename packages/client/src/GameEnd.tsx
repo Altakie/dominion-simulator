@@ -3,7 +3,7 @@ import type { PlayerEndInfo } from "shared";
 import type { Card, CardName } from "shared/cards";
 import type { GameEndMessage } from "shared/messages";
 import type { supplyStack } from "shared/supply";
-import { Button } from "./App";
+import { Button } from "./components/ui/button.tsx";
 import { LobbyState, useLobbyStore } from "./Lobby";
 
 export function GameEnd() {
@@ -64,4 +64,4 @@ function FinalDeckDisplay({ deck }: { deck: Card[] }) {
   );
 }
 
-function VpDisplay() {}
+function VpDisplay() { }
