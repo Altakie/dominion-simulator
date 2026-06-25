@@ -34,10 +34,10 @@ import {
   serializeMessage,
 } from "shared/messages";
 import { shuffle } from "shared/shuffle";
+import { Deque } from "shared/deque";
 import { Supply, type supplyStack } from "shared/supply";
 import { effect_table } from "./effects";
 import type { Lobby, PlayerLobbyInfo } from "./lobby";
-import { Deque } from "shared/stack";
 
 type WaitResponses =
   | typeof MessageKinds.PICK_CARDS_RESPONSE
@@ -45,18 +45,18 @@ type WaitResponses =
   | typeof MessageKinds.PICK_YES_NO_RESPONSE;
 
 interface Cc {
-  wait: boolean
+  wait: boolean;
 }
 
 interface WaitInfo extends Cc {
-  wait: true
+  wait: true;
   player_info: PlayerInfo;
   response_type: WaitResponses;
   cc: (response: Message) => void;
-};
+}
 
-interface NonBlockingCc extends Cc {
-  wait: false
+export interface NonBlockingCc extends Cc {
+  wait: false;
   cc: () => void;
 }
 
@@ -64,20 +64,20 @@ class WaitQueue {
   wait_queue: Deque<Cc>;
 
   constructor() {
-    this.wait_queue = new Deque()
+    this.wait_queue = new Deque();
   }
 
   resolve(response: Message, clientid: string) {
-    const front = this.wait_queue.peek_front()
+    const front = this.wait_queue.peek_front();
     if (front === undefined) {
-      return
+      return;
     }
     if (!front.wait) {
-      console.log("Front is not a waiter?")
-      return
+      console.log("Front is not a waiter?");
+      return;
     }
 
-    const wait_info = front as WaitInfo
+    const wait_info = front as WaitInfo;
 
     if (clientid !== wait_info.player_info.clientid) {
       console.log("Wrong Player sent response");
@@ -90,28 +90,35 @@ class WaitQueue {
     console.log(`Player responded with ${response.kind}`);
 
     // NOTE: Popping is handled within the prompt methods
-    wait_info.cc(response)
+    wait_info.cc(response);
 
-    while (this.wait_queue.peek_front() !== undefined && !this.wait_queue.peek_front()?.wait) {
-      const non_blocking = this.wait_queue.pop_front() as NonBlockingCc
-      non_blocking.cc()
+    while (
+      this.wait_queue.peek_front() !== undefined &&
+      !this.wait_queue.peek_front()?.wait
+    ) {
+      const non_blocking = this.wait_queue.pop_front() as NonBlockingCc;
+      non_blocking.cc();
     }
   }
 
   push_front(cc: Cc) {
-    this.wait_queue.push_front(cc)
+    this.wait_queue.push_front(cc);
   }
 
   pop_front(): Cc | undefined {
-    return this.wait_queue.pop_front()
+    return this.wait_queue.pop_front();
+  }
+
+  peek_front(): Cc | undefined {
+    return this.wait_queue.peek_front();
   }
 
   push_back(cc: Cc) {
-    this.wait_queue.push_back(cc)
+    this.wait_queue.push_back(cc);
   }
 
   isEmpty(): boolean {
-    return this.wait_queue.isEmpty()
+    return this.wait_queue.isEmpty();
   }
 }
 
@@ -158,7 +165,7 @@ export class Game {
     this.lobby = lobby;
 
     this.card_count = 0;
-    this.wait_queue = new WaitQueue()
+    this.wait_queue = new WaitQueue();
 
     // DEBUG MODE TOGGLE
     this.debug_mode = true;
@@ -325,7 +332,7 @@ export class Game {
       console.log("No wait info");
       return;
     }
-    this.wait_queue.resolve(response, clientid)
+    this.wait_queue.resolve(response, clientid);
 
     // WARN: Assuming that there are no errors
     // this.wait_info = undefined
@@ -398,12 +405,12 @@ export class Game {
         // It will cleanup and go to the next phase after the first effect
         // Unless the effects are chained within the card, which should be the case
         if (!this.wait_queue.isEmpty()) {
-          const cleanup_cc: NonBlockingCc = { wait: false, cc: cleanup }
-          this.wait_queue.push_back(cleanup_cc)
-          return
+          const cleanup_cc: NonBlockingCc = { wait: false, cc: cleanup };
+          this.wait_queue.push_back(cleanup_cc);
+          return;
         }
 
-        cleanup()
+        cleanup();
         // this.eventually_cleanup(cleanup);
         return;
       };
@@ -453,9 +460,11 @@ export class Game {
 
     if (this.game_state.buys > 0) {
       // Prompt the player to pick a singular supply pile
-      const supply_piles = this.game_state.supply.getStacks().filter(
-        (pile) => pile.card.cost <= this.game_state.money && pile.count > 0,
-      );
+      const supply_piles = this.game_state.supply
+        .getStacks()
+        .filter(
+          (pile) => pile.card.cost <= this.game_state.money && pile.count > 0,
+        );
       const next = (choices: supplyStack[]) => {
         // TODO: Reprompt the buy if it goes wrong??
         if (choices.length > 1) {
@@ -570,14 +579,18 @@ export class Game {
     const wrapped_next = (response: Message): void => {
       const res = response as PickCardsResponse;
       // If response is wrong, resend request
-      if (res.choices.length > req.max || res.choices.length < req.min || !isSubset(res.choices, req.choices)) {
+      if (
+        res.choices.length > req.max ||
+        res.choices.length < req.min ||
+        !isSubset(res.choices, req.choices)
+      ) {
         const req_str = serializeMessage(req);
         player.socket.send(req_str);
 
-        return
+        return;
       }
 
-      this.wait_queue.pop_front()
+      this.wait_queue.pop_front();
       next(res.choices);
     };
 
@@ -640,11 +653,15 @@ export class Game {
 
     const wrapped_next = (response: Message): void => {
       const res = response as PickSupplyPileResponse;
-      if (res.choices.length > req.max || res.choices.length < req.min || !isSubset(res.choices, req.choices)) {
+      if (
+        res.choices.length > req.max ||
+        res.choices.length < req.min ||
+        !isSubset(res.choices, req.choices)
+      ) {
         const req_str = serializeMessage(req);
         player.socket.send(req_str);
 
-        return
+        return;
       }
 
       this.wait_queue.pop_front();
@@ -695,6 +712,12 @@ export class Game {
     if (initial_pile === player.deck && player.deck.length === 0) {
       player.deck = shuffle(player.discard_pile);
       player.discard_pile = [];
+      initial_pile = player.deck;
+    }
+    if (initial_pile.length === 0) {
+      console.log("No cards to discard");
+      this.send_log_message(`${player.name} has no cards to discard`);
+      return;
     }
     const card = this.remove_card(card_index, initial_pile);
     player.discard_pile.push(card);

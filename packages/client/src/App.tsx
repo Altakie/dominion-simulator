@@ -8,8 +8,8 @@ import {
 } from "react";
 import "./App.css";
 import type { JSX } from "react";
-import { Lobby } from "./Lobby.tsx";
 import { Button } from "./components/ui/button.tsx";
+import { Lobby } from "./Lobby.tsx";
 // import { BrowserRouter, Routes, Route, Link } from 'react-router-dom';
 
 export const StateContext = createContext<{

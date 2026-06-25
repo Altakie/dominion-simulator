@@ -64,4 +64,4 @@ function FinalDeckDisplay({ deck }: { deck: Card[] }) {
   );
 }
 
-function VpDisplay() { }
+function VpDisplay() {}
