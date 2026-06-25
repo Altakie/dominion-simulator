@@ -34,7 +34,7 @@ import {
   serializeMessage,
 } from "shared/messages";
 import { shuffle } from "shared/shuffle";
-import { Deque } from "shared/stack";
+import { Deque } from "shared/deque";
 import { Supply, type supplyStack } from "shared/supply";
 import { effect_table } from "./effects";
 import type { Lobby, PlayerLobbyInfo } from "./lobby";
@@ -712,6 +712,12 @@ export class Game {
     if (initial_pile === player.deck && player.deck.length === 0) {
       player.deck = shuffle(player.discard_pile);
       player.discard_pile = [];
+      initial_pile = player.deck;
+    }
+    if (initial_pile.length === 0) {
+      console.log("No cards to discard");
+      this.send_log_message(`${player.name} has no cards to discard`);
+      return;
     }
     const card = this.remove_card(card_index, initial_pile);
     player.discard_pile.push(card);

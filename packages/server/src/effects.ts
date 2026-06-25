@@ -11,6 +11,7 @@ import {
 } from "shared/messages";
 import type { supplyStack } from "shared/supply";
 import type { Game, NonBlockingCc } from "./game";
+import { shuffle } from "shared/shuffle";
 
 export const effect_table: Record<CardName, (game: Game) => void> = {
   Copper: (game: Game) => {
@@ -127,7 +128,7 @@ export const effect_table: Record<CardName, (game: Game) => void> = {
     game.game_state.money += 2;
     game.discard_card(player, player.deck.length - 1, player.deck);
     const discarded = player.discard_pile.at(-1);
-    if (discarded!.info.types.includes(CardTypes.ACTION)) {
+    if (discarded !== undefined && discarded!.info.types.includes(CardTypes.ACTION)) {
       game.prompt_binary_choice(
         game.get_current_player_info(),
         BinaryDescriptions.BINARY_PLAY,
@@ -400,7 +401,7 @@ export const effect_table: Record<CardName, (game: Game) => void> = {
         )
       ) {
         game.prompt_pick_card(
-          game.get_current_player_info(),
+          game.get_player_info(game.get_players().indexOf(player)),
           PickCardsDescriptions.TRASH_ANY,
           discarded.filter(
             (card) =>
@@ -540,8 +541,16 @@ export const effect_table: Record<CardName, (game: Game) => void> = {
     game.draw_cards(game.get_current_player(), 1);
     game.game_state.actions += 1;
     const player = game.get_current_player();
-    game.draw_cards(player, 2);
-    const top_cards = player.hand.slice(-2);
+    const top_cards: Card[] = [];
+    for (let i = 0; i < 2; i++) {
+      if (player.deck.length === 0 && player.discard_pile.length > 0) {
+        player.deck = shuffle(player.discard_pile);
+        player.discard_pile = [];
+      }
+      if (player.deck.length > 0) {
+        top_cards.push(player.deck.pop()!);
+      }
+    }
     if (top_cards.length > 0) {
       game.prompt_pick_card(
         game.get_current_player_info(),
@@ -559,8 +568,8 @@ export const effect_table: Record<CardName, (game: Game) => void> = {
         for (const card of choices) {
           game.trash_card(
             player,
-            player.hand.findIndex((c) => c.id === card.id),
-            player.hand,
+            top_cards.findIndex((c) => c.id === card.id),
+            top_cards,
           );
           remaining_cards = remaining_cards.filter((c) => c.id !== card.id);
         }
@@ -585,12 +594,12 @@ export const effect_table: Record<CardName, (game: Game) => void> = {
         for (const card of choices) {
           game.discard_card(
             player,
-            player.hand.findIndex((c) => c.id === card.id),
-            player.hand,
+            remaining_cards.findIndex((c) => c.id === card.id),
+            remaining_cards,
           );
           final_cards = final_cards.filter((c) => c.id !== card.id);
         }
-        if (final_cards.length == 2) {
+        if (final_cards.length === 2) {
           game.prompt_pick_card(
             game.get_current_player_info(),
             PickCardsDescriptions.PUT_ON_DECK,
@@ -599,11 +608,7 @@ export const effect_table: Record<CardName, (game: Game) => void> = {
             1,
             get_put_back_next(final_cards),
           );
-        } else if (final_cards.length == 1) {
-          game.remove_card(
-            player.hand.findIndex((c) => c.id === final_cards[0]!.id),
-            player.hand,
-          );
+        } else if (final_cards.length === 1) {
           player.deck.push(final_cards[0]!);
         }
       };
@@ -611,17 +616,11 @@ export const effect_table: Record<CardName, (game: Game) => void> = {
 
     function get_put_back_next(final_cards: Card[]): (choices: Card[]) => void {
       return (choices: Card[]) => {
-        if (choices.includes(final_cards[0]!)) {
-          game.remove_card(
-            player.hand.findIndex((c) => c.id === final_cards[0]!.id),
-            player.hand,
-          );
+        if (choices.find((c) => c.id === final_cards[0]!.id)) {
+          player.deck.push(final_cards[1]!);
           player.deck.push(final_cards[0]!);
         } else {
-          game.remove_card(
-            player.hand.findIndex((c) => c.id === final_cards[1]!.id),
-            player.hand,
-          );
+          player.deck.push(final_cards[0]!);
           player.deck.push(final_cards[1]!);
         }
       };

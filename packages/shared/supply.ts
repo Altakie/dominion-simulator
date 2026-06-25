@@ -1,13 +1,16 @@
 import type { Card, CardInfo } from "./cards";
 import {
   Artisan,
+  Bandit,
   BaseCards,
+  Bureaucrat,
   Cellar,
   Chapel,
   Gardens,
   Harbinger,
   Library,
   Merchant,
+  Militia,
   Mine,
   Moat,
   Moneylender,
@@ -74,8 +77,7 @@ export class Supply {
   toggleDebugMode() {
     this.stacks = [
       { card: Chapel, count: 10 },
-      { card: Workshop, count: 10 },
-      { card: ThroneRoom, count: 10 },
+      { card: Sentry, count: 10 },
     ];
   }
 }
