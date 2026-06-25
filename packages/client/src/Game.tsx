@@ -25,7 +25,13 @@ import {
 import type { Supply, supplyStack } from "shared/supply";
 import { create } from "zustand";
 import { Button } from "./components/ui/button.tsx";
-import { Dialog, DialogClose, DialogContent, DialogDescription, DialogTrigger } from "./components/ui/dialog.tsx";
+import {
+  Dialog,
+  DialogClose,
+  DialogContent,
+  DialogDescription,
+  DialogTrigger,
+} from "./components/ui/dialog.tsx";
 import { game_socket, useLobbyStore } from "./Lobby";
 
 export function Game() {
@@ -37,15 +43,18 @@ export function Game() {
   let pop_up = <></>;
   switch (message?.kind) {
     case MessageKinds.PICK_YES_NO_REQUEST:
-      pop_up = <ChooseYesNo />
-      break
-    case MessageKinds.PICK_CARDS_REQUEST:
-      const pick_cards_req = message as PickCardsRequest
-      const cards_not_in_hand = pick_cards_req.choices.filter((card) => !player.hand.some((c) => c.id === card.id))
+      pop_up = <ChooseYesNo />;
+      break;
+    case MessageKinds.PICK_CARDS_REQUEST: {
+      const pick_cards_req = message as PickCardsRequest;
+      const cards_not_in_hand = pick_cards_req.choices.filter(
+        (card) => !player.hand.some((c) => c.id === card.id),
+      );
       if (cards_not_in_hand.length > 0) {
-        pop_up = <ChooseCardsList extra_cards={cards_not_in_hand} />
+        pop_up = <ChooseCardsList extra_cards={cards_not_in_hand} />;
       }
-      break
+      break;
+    }
   }
 
   return (
@@ -262,7 +271,8 @@ function SupplyStackButton({
   const selected = selected_stacks.includes(supply_stack);
 
   return (
-    <CardShell card_info={supply_stack.card}
+    <CardShell
+      card_info={supply_stack.card}
       className={`${selected ? "border-green-400 hover:border-green-600" : "border-red-600 hover:border-red-800"}`}
       onClick={() => {
         if (selected) {
@@ -353,9 +363,21 @@ function Hand({ hand }: { hand: Card[] }) {
   );
 }
 
-function CardShell({ card_info, children, className = "", ...props }: { card_info: CardInfo, children: ReactNode, className?: string } & React.HTMLAttributes<HTMLDivElement>) {
+function CardShell({
+  card_info,
+  children,
+  className = "",
+  ...props
+}: {
+  card_info: CardInfo;
+  children: ReactNode;
+  className?: string;
+} & React.HTMLAttributes<HTMLDivElement>) {
   return (
-    <div className={`text-xs border-4 border-gray-400 rounded-lg w-22 h-20 p-px flex flex-col shrink-0 grow-0 justify-between text-center ${card_bg(card_info)} ${className}`} {...props}>
+    <div
+      className={`text-xs border-4 border-gray-400 rounded-lg w-22 h-20 p-px flex flex-col shrink-0 grow-0 justify-between text-center ${card_bg(card_info)} ${className}`}
+      {...props}
+    >
       <p className="text-black">{card_info.name}</p>
       {children}
     </div>
@@ -399,7 +421,13 @@ function CardButton({
 }) {
   const selected = selected_cards.includes(card);
   return (
-    <CardShell card_info={card.info} className={selected ? "border-green-400 hover:border-green-600" : "border-red-600 hover:border-red-800"}
+    <CardShell
+      card_info={card.info}
+      className={
+        selected
+          ? "border-green-400 hover:border-green-600"
+          : "border-red-600 hover:border-red-800"
+      }
       onClick={() => {
         if (selected) {
           setSelectedCards((prev) => prev.filter((c) => c !== card));
@@ -445,8 +473,8 @@ function GoldCoin({ cost }: { cost: number }) {
 function ChooseCardsList({ extra_cards }: { extra_cards: Card[] }) {
   // const set_choice_list = useLobbyStore((state) => state.set_choice_list);
   const [choices, setChoices] = useState<Card[]>([]);
-  const message = useLobbyStore((state) => state.message as PickCardsRequest)
-  const set_message = useLobbyStore((state) => state.set_message)
+  const message = useLobbyStore((state) => state.message as PickCardsRequest);
+  const set_message = useLobbyStore((state) => state.set_message);
 
   return (
     <>
@@ -460,7 +488,11 @@ function ChooseCardsList({ extra_cards }: { extra_cards: Card[] }) {
           <h3>Choices</h3>
           <div className="flex flex-row flex-nowrap justify-between overflow-auto">
             {extra_cards.map((card) => (
-              <CardButton card={card} selected_cards={choices} setSelectedCards={setChoices} />
+              <CardButton
+                card={card}
+                selected_cards={choices}
+                setSelectedCards={setChoices}
+              />
             ))}
           </div>
 
@@ -471,11 +503,13 @@ function ChooseCardsList({ extra_cards }: { extra_cards: Card[] }) {
                   kind: MessageKinds.PICK_CARDS_RESPONSE,
                   choices: choices,
                 };
-                set_message(undefined)
+                set_message(undefined);
                 setChoices([]);
                 game_socket?.send(JSON.stringify(res));
               }}
-              disabled={choices.length > message.max || choices.length < message.min}
+              disabled={
+                choices.length > message.max || choices.length < message.min
+              }
             >
               Confirm Choices
             </Button>
@@ -549,15 +583,15 @@ function ChooseCardsList({ extra_cards }: { extra_cards: Card[] }) {
 
 function ChooseYesNo() {
   // const set_choice_list = useLobbyStore((state) => state.set_choice_list);
-  const message = useLobbyStore((state) => state.message as PickYesNoRequest)
-  const set_message = useLobbyStore((state) => state.set_message)
+  const message = useLobbyStore((state) => state.message as PickYesNoRequest);
+  const set_message = useLobbyStore((state) => state.set_message);
 
   function send_choice(choice: boolean) {
     const res: PickYesNoResponse = {
       kind: MessageKinds.PICK_YES_NO_RESPONSE,
       choice: choice,
     };
-    set_message(undefined)
+    set_message(undefined);
     game_socket?.send(JSON.stringify(res));
   }
 

@@ -3,85 +3,84 @@ export class Deque<T> {
   tail?: Node<T>;
   len: number;
 
-
   constructor() {
-    this.len = 0
+    this.len = 0;
   }
 
   push_front(item: T) {
-    this.len += 1
+    this.len += 1;
     if (this.head === undefined) {
-      this.head = new Node(item)
-      this.tail = this.head
-      return
+      this.head = new Node(item);
+      this.tail = this.head;
+      return;
     }
 
-    this.head.prev = new Node(item)
-    this.head.prev.next = this.head
-    this.head = this.head.prev
+    this.head.prev = new Node(item);
+    this.head.prev.next = this.head;
+    this.head = this.head.prev;
   }
 
   pop_front(): T | undefined {
-    const res = this.head?.value
+    const res = this.head?.value;
     if (this.head === undefined) {
-      return res
+      return res;
     }
 
-    this.head = this.head.next
-    this.len -= 1
+    this.head = this.head.next;
+    this.len -= 1;
     if (this.head !== undefined) {
-      this.head.prev = undefined
+      this.head.prev = undefined;
     } else {
-      this.tail = undefined
+      this.tail = undefined;
     }
 
-    return res
+    return res;
   }
 
   peek_front(): T | undefined {
-    return this.head?.value
+    return this.head?.value;
   }
 
   peek_back(): T | undefined {
-    return this.tail?.value
+    return this.tail?.value;
   }
 
   push_back(item: T) {
-    this.len += 1
+    this.len += 1;
     if (this.head === undefined) {
-      this.head = new Node(item)
-      this.tail = this.head
-      return
+      this.head = new Node(item);
+      this.tail = this.head;
+      return;
     }
 
-    this.tail!.next = new Node(item)
-    this.tail!.next.prev = this.tail
-    this.tail = this.tail!.next
+    this.tail!.next = new Node(item);
+    this.tail!.next.prev = this.tail;
+    this.tail = this.tail!.next;
   }
 
   pop_back(): T | undefined {
-    const res = this.tail?.value
+    const res = this.tail?.value;
     if (this.tail === undefined) {
-      return res
+      return res;
     }
 
-    this.tail = this.tail.prev
-    this.len -= 1
+    this.tail = this.tail.prev;
+    this.len -= 1;
     if (this.tail !== undefined) {
-      this.tail.next = undefined
+      this.tail.next = undefined;
     } else {
-      this.head = undefined
+      this.head = undefined;
     }
 
-    return res
+    return res;
   }
 
   length(): number {
-    return this.len
+    return this.len;
   }
 
   isEmpty(): boolean {
-    return this.length() === 0
+    return this.length() === 0;
   }
 }
 
@@ -91,6 +90,6 @@ class Node<T> {
   next?: Node<T>;
 
   constructor(value: T) {
-    this.value = value
+    this.value = value;
   }
 }

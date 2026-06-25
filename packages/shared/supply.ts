@@ -1,9 +1,29 @@
-import type { Card, CardInfo } from "./cards"
-import { Copper, Silver, Gold } from "./cards/treasures"
-import { Estate, Duchy, Province } from "./cards/victories"
-import { Curse } from "./cards/curses"
-import { shuffle } from "./shuffle"
-import { Artisan, BaseCards, Cellar, Chapel, Gardens, Harbinger, Library, Merchant, Mine, Moat, Moneylender, Poacher, Remodel, Sentry, ThroneRoom, Vassal, Village, Witch, Workshop } from "./cards/base"
+import type { Card, CardInfo } from "./cards";
+import {
+  Artisan,
+  BaseCards,
+  Cellar,
+  Chapel,
+  Gardens,
+  Harbinger,
+  Library,
+  Merchant,
+  Mine,
+  Moat,
+  Moneylender,
+  Poacher,
+  Remodel,
+  Sentry,
+  ThroneRoom,
+  Vassal,
+  Village,
+  Witch,
+  Workshop,
+} from "./cards/base";
+import { Curse } from "./cards/curses";
+import { Copper, Gold, Silver } from "./cards/treasures";
+import { Duchy, Estate, Province } from "./cards/victories";
+import { shuffle } from "./shuffle";
 
 export type supplyStack = {
   card: CardInfo;
@@ -26,7 +46,7 @@ export class Supply {
       { card: Curse, count: 10 * playerCount },
     ];
 
-    this.stacks = []
+    this.stacks = [];
 
     const kingdomCards = shuffle(Object.values(BaseCards)).slice(0, 10);
     for (const card of kingdomCards) {
@@ -43,7 +63,7 @@ export class Supply {
   }
 
   gainCard(cardName: string): Card | null {
-    const stack = this.stacks.find((s) => s.card.name === cardName);
+    const stack = this.getStacks().find((s) => s.card.name === cardName);
     if (stack && stack.count > 0) {
       stack.count--;
       return { id: `${cardName}-${Date.now()}`, info: stack.card };
@@ -53,16 +73,9 @@ export class Supply {
 
   toggleDebugMode() {
     this.stacks = [
-      { card: Copper, count: 46 },
-      { card: Silver, count: 40 },
-      { card: Gold, count: 30 },
-      { card: Estate, count: 8 },
-      { card: Duchy, count: 8 },
-      { card: Province, count: 1 },
-      { card: Curse, count: 20 },
       { card: Chapel, count: 10 },
-      { card: Vassal, count: 10 },
-      { card: Harbinger, count: 10 },
-    ]
+      { card: Workshop, count: 10 },
+      { card: ThroneRoom, count: 10 },
+    ];
   }
 }
