@@ -480,12 +480,8 @@ function ChooseCardsList({ extra_cards }: { extra_cards: Card[] }) {
     <>
       <Dialog open={true}>
         <DialogContent>
-          <h3>Currently Selected</h3>
-          {choices.map((card) => (
-            <p>{card.info.name}</p>
-          ))}
+          <h2>{message.description}</h2>
 
-          <h3>Choices</h3>
           <div className="flex flex-row flex-nowrap justify-between overflow-auto">
             {extra_cards.map((card) => (
               <CardButton
@@ -520,67 +516,6 @@ function ChooseCardsList({ extra_cards }: { extra_cards: Card[] }) {
   );
 }
 
-// function ChooseSupplyPilesList({ message, game_socket, lobby_store.set_choice_list }: { message: PickSupplyPileRequest, game_socket: WebSocket, setChoiceList }) {
-//   const [choices, setChoices] = useState<supplyStack[]>([])
-//
-//   function SupplyPileButton({ supply_pile }: { supply_pile: supplyStack }) {
-//     const selected = choices.includes(supply_pile)
-//
-//     return (
-//       <Button style={selected ?
-//         { color: "red" } : {}
-//       }
-//         onClick={() => {
-//           if (!choices.includes(supply_pile)) {
-//             setChoices([...choices, supply_pile])
-//             return
-//           }
-//
-//           setChoices(choices.filter((ss) => (ss !== supply_pile)))
-//         }}
-//
-//       >{supply_pile.card.name} : ${supply_pile.card.cost}</Button>
-//     )
-//   }
-//
-//
-//   return (
-//     <>
-//       <h3>{message.description}</h3>
-//       <h3>Currently Selected</h3>
-//       {choices.map((supply_pile) =>
-//         <p>{supply_pile.card.name}</p>
-//       )}
-//
-//       <div>
-//         <h3>Choices</h3>
-//         {
-//           message.choices.map((supply_pile) => (<SupplyPileButton supply_pile={supply_pile} />))
-//         }
-//       </div>
-//
-//       <div>
-//         <Button
-//           onClick={
-//             () => {
-//               let res: PickSupplyPileResponse = {
-//                 kind: MessageKinds.PICK_SUPPLY_PILE_RESPONSE,
-//                 choices: choices
-//               }
-//               setChoices([])
-//               lobby_store.set_choice_list(null)
-//               game_socket.send(JSON.stringify(res))
-//             }
-//           }
-//
-//           disabled={
-//             choices.length > message.max || choices.length < message.min
-//           }>Confirm Choices</Button >
-//       </div>
-//     </>
-//   )
-// }
-
 function ChooseYesNo() {
   // const set_choice_list = useLobbyStore((state) => state.set_choice_list);
   const message = useLobbyStore((state) => state.message as PickYesNoRequest);
@@ -602,7 +537,6 @@ function ChooseYesNo() {
           <div className="flex justify-center">
             <h2>{message.description}</h2>
             <CardDisplay card={message.card} />
-            {/* <h3>Choices</h3> */}
             <DialogClose>
               <p>
                 <Button
