@@ -10,13 +10,6 @@
 
 ## Minor Features
 
-- Show message description within dialog
-- Sort supply piles first by cost then alphabetically
-- Send game-state updates at different times
-  - After draw cards
-  - After a gain event
-  - After a trash event
-  - Maybe every time a log message is sent?
 - Maybe have played cards in a straight line but allow them to overflow?
   - Should always scroll to end
 - Display vp of all players, not just yours

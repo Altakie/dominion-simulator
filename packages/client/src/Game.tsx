@@ -5,6 +5,8 @@ import {
   type Ref,
   type RefObject,
   type SetStateAction,
+  useEffect,
+  useRef,
   useState,
 } from "react";
 import "./App.css";
@@ -131,10 +133,17 @@ function VisualGameState() {
 }
 
 function PlayedCards({ played_cards }: { played_cards: Card[] }) {
+  const scroll_ref: Ref<HTMLDivElement> = useRef(null);
+  useEffect(() => {
+    if (scroll_ref.current !== null) {
+      scroll_ref.current.scrollTop = scroll_ref.current.scrollHeight
+    }
+  }, [played_cards])
+
   return (
     <>
       <h2>Played Cards</h2>
-      <div className="flex flex-row flex-wrap gap-4 justify-center items-center">
+      <div className="flex flex-row flex-wrap overflow-auto gap-4 justify-center items-center h-22" ref={scroll_ref}>
         {played_cards.map((card) => (
           <CardDisplay card={card} />
         ))}
