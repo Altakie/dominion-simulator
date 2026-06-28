@@ -286,7 +286,6 @@ export class Game {
     );
     // TODO: Send a message to all players that the next turn started
     // This should probably be a special new turn message instead of a general update message
-    this.send_update();
     this.action_phase();
   }
 
@@ -351,10 +350,11 @@ export class Game {
   // }
 
   action_phase() {
+    this.send_update();
     const end_phase = () => {
       this.game_state.phase = GamePhases.MONEY;
       console.log(`End of action phase ${this.game_state.turn_number}`);
-      this.send_update();
+      // this.send_update();
       this.money_phase();
     };
 
@@ -395,7 +395,7 @@ export class Game {
         this.play_card(card_index, hand);
         const cleanup = () => {
           // Send the new gamestate to all players
-          this.send_update();
+          // this.send_update();
           // Run the action phase again
           this.action_phase();
         };
@@ -448,9 +448,10 @@ export class Game {
   buy_phase() {
     // prompt the player to buy as many cards as they have buys from the supply
     //
+    this.send_update();
     const end_phase = () => {
       console.log(`End of buy phase ${this.game_state.turn_number}`);
-      this.send_update();
+      // this.send_update();
       if (this.game_over()) {
         this.send_game_over();
         return;
@@ -489,9 +490,8 @@ export class Game {
         this.game_state.money -= choice.card.cost;
         this.game_state.buys--;
 
-        // Resolve the action effect
         // Send the new gamestate to all players
-        this.send_update();
+        // this.send_update();
         // Run the action phase again
         this.buy_phase();
       };
@@ -692,20 +692,22 @@ export class Game {
       const card = player.deck.pop()!;
       player.hand.push(card);
 
-      const log_message = `${player.name} drew ${card.info.name}`;
-      console.log(log_message);
-      this.send_log_message(log_message);
     }
+
+    const log_message = `${player.name} drew ${num_cards} cards`;
+    console.log(log_message);
+    this.send_log_message(log_message);
   }
 
   play_card(card_index: number, pile: Card[]) {
     const card = this.remove_card(card_index, pile);
-    effect_table[card.info.name](this);
     this.game_state.played_cards.push(card);
 
     const log_message = `${this.get_current_player().name} played ${card.info.name}`;
     console.log(log_message);
     this.send_log_message(log_message);
+
+    effect_table[card.info.name](this);
   }
 
   discard_card(player: Player, card_index: number, initial_pile: Card[]) {
@@ -843,10 +845,10 @@ export class Game {
       log_message: log_message,
     };
     const ser_msg = serializeMessage(msg);
-
     for (const player_info of this.player_infos) {
       player_info.socket.send(ser_msg);
     }
+    this.send_update()
   }
 }
 
