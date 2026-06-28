@@ -469,18 +469,38 @@ export const effect_table: Record<CardName, (game: Game) => void> = {
       player.deck.length + player.discard_pile.length > 0
     ) {
       effect_table[Library.name](game);
+    } else {
+      for (const card of game.game_state.set_aside_cards) {
+        game.discard_card(
+          player,
+          game.game_state.set_aside_cards.findIndex((c) => c.id === card.id),
+          game.game_state.set_aside_cards,
+        );
+      }
     }
 
     function get_next(): (choice: boolean) => void {
       return (choice: boolean) => {
         if (!choice) {
-          game.discard_card(player, player.hand.length - 1, player.hand);
+          game.game_state.set_aside_cards.push(
+            game.remove_card(player.hand.length - 1, player.hand),
+          );
         }
         if (
           player.hand.length < 7 &&
           player.deck.length + player.discard_pile.length > 0
         ) {
           effect_table[Library.name](game);
+        } else {
+          for (const card of game.game_state.set_aside_cards) {
+            game.discard_card(
+              player,
+              game.game_state.set_aside_cards.findIndex(
+                (c) => c.id === card.id,
+              ),
+              game.game_state.set_aside_cards,
+            );
+          }
         }
       };
     }
