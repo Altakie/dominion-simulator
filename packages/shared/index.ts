@@ -42,6 +42,7 @@ export type GameState = {
   attack_index: number | null;
 
   played_cards: Card[];
+  set_aside_cards: Card[];
 
   supply: Supply;
   trash_pile: Card[];

@@ -48,7 +48,3 @@
     - Cards should be color coded by type and highlighted within the message
 
 ## Bugs
-
-- All card effect bugs:
-  - Library infinite recursion
-- Game automatically switched to lobby without confirming whether you've connected to the lobby or not
