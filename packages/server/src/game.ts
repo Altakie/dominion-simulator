@@ -38,6 +38,7 @@ import { Deque } from "shared/deque";
 import { Supply, type supplyStack } from "shared/supply";
 import { effect_table } from "./effects";
 import type { Lobby, PlayerLobbyInfo } from "./lobby";
+import { env } from "bun";
 
 type WaitResponses =
   | typeof MessageKinds.PICK_CARDS_RESPONSE
@@ -168,7 +169,11 @@ export class Game {
     this.wait_queue = new WaitQueue();
 
     // DEBUG MODE TOGGLE
-    this.debug_mode = false;
+    if (process.env.DEBUG?.toLowerCase() === "1" || process.env.DEBUG?.toLowerCase() === "true") {
+      this.debug_mode = true
+    } else {
+      this.debug_mode = false
+    }
 
     const player_infos = players.map((player): PlayerInfo => {
       return {
