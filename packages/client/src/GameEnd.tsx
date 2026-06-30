@@ -1,8 +1,6 @@
-import type { Dispatch, SetStateAction } from "react";
 import type { PlayerEndInfo } from "shared";
 import type { Card, CardName } from "shared/cards";
 import type { GameEndMessage } from "shared/messages";
-import type { supplyStack } from "shared/supply";
 import { Button } from "./components/ui/button.tsx";
 import { LobbyState, useLobbyStore } from "./Lobby";
 
@@ -16,8 +14,12 @@ export function GameEnd() {
     <>
       <h1>Game End</h1>
       {game_end_message.players_end_infos_in_victory_order.map(
+        // WARN: Key is not unique here, can maybe use clientid?
         (player_end_info) => (
-          <PlayerStats player_end_info={player_end_info} />
+          <PlayerStats
+            key={player_end_info.name}
+            player_end_info={player_end_info}
+          />
         ),
       )}
       <Button
@@ -48,14 +50,15 @@ function FinalDeckDisplay({ deck }: { deck: Card[] }) {
   const stacks: Map<CardName, number> = new Map();
   for (const card of deck) {
     const prev = stacks.get(card.info.name);
-    stacks.set(card.info.name, prev == undefined ? 1 : prev + 1);
+    stacks.set(card.info.name, prev === undefined ? 1 : prev + 1);
   }
 
+  // WARN: Key is not unique here, can maybe use clientid?
   return (
     <>
       {Array.from(stacks.entries()).map(([name, count]) => {
         return (
-          <div>
+          <div key={name}>
             {name} : {count}
           </div>
         );
@@ -63,5 +66,3 @@ function FinalDeckDisplay({ deck }: { deck: Card[] }) {
     </>
   );
 }
-
-function VpDisplay() {}

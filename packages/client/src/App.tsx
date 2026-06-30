@@ -1,11 +1,4 @@
-import {
-  createContext,
-  type RefObject,
-  useContext,
-  useEffect,
-  useRef,
-  useState,
-} from "react";
+import { createContext, useContext, useEffect, useRef, useState } from "react";
 import "./App.css";
 import type { JSX } from "react";
 import { Button } from "./components/ui/button.tsx";

@@ -1,19 +1,15 @@
 import {
   type Dispatch,
-  type JSX,
   type ReactNode,
   type Ref,
-  type RefObject,
   type SetStateAction,
   useEffect,
   useRef,
   useState,
 } from "react";
 import "./App.css";
-import type { GameState, Player } from "shared";
 import { type Card, type CardInfo, CardTypes } from "shared/cards";
 import {
-  type Message,
   MessageKinds,
   type PickCardsRequest,
   type PickCardsResponse,
@@ -25,16 +21,9 @@ import {
   request_message_kinds,
 } from "shared/messages";
 import type { Supply, supplyStack } from "shared/supply";
-import { create } from "zustand";
 import { Button } from "./components/ui/button.tsx";
-import {
-  Dialog,
-  DialogClose,
-  DialogContent,
-  DialogDescription,
-  DialogTrigger,
-} from "./components/ui/dialog.tsx";
-import { game_socket, useLobbyStore } from "./Lobby";
+import { Dialog, DialogClose, DialogContent } from "./components/ui/dialog.tsx";
+import { game_socket, PlayerNameDisplay, useLobbyStore } from "./Lobby";
 
 export function Game() {
   // let choices = useLobbyStore((state) => state.choice_list);
@@ -61,7 +50,6 @@ export function Game() {
 
   return (
     <>
-      <h1>Game</h1>
       <div className="flex flex-row flex-nowrap justify-center items-start place-content-between">
         <div className="flex-col w-1/5 border h-screen">
           <PlayerList />
@@ -102,11 +90,14 @@ function PlayerList() {
   return (
     <>
       <h2>Players</h2>
-      <ol>
-        {players.map((name) => (
-          <li>{name}</li>
-        ))}
-      </ol>
+      {/* <ol> */}
+      {/*   {players.map((name) => ( */}
+      {/*     <li>{name}</li> */}
+      {/*   ))} */}
+      {/* </ol> */}
+      {players.map((name) => (
+        <PlayerNameDisplay key={name} name={name} />
+      ))}
     </>
   );
 }
@@ -136,16 +127,19 @@ function PlayedCards({ played_cards }: { played_cards: Card[] }) {
   const scroll_ref: Ref<HTMLDivElement> = useRef(null);
   useEffect(() => {
     if (scroll_ref.current !== null) {
-      scroll_ref.current.scrollTop = scroll_ref.current.scrollHeight
+      scroll_ref.current.scrollTop = scroll_ref.current.scrollHeight;
     }
-  }, [played_cards])
+  });
 
   return (
     <>
       <h2>Played Cards</h2>
-      <div className="flex flex-row flex-wrap overflow-auto gap-4 justify-center items-center h-22" ref={scroll_ref}>
+      <div
+        className="flex flex-row flex-wrap overflow-auto gap-4 justify-center items-center h-22"
+        ref={scroll_ref}
+      >
         {played_cards.map((card) => (
-          <CardDisplay card={card} />
+          <CardDisplay key={card.id} card={card} />
         ))}
       </div>
     </>
@@ -220,13 +214,19 @@ function VisualSupply({ supply }: { supply: Supply }) {
           ) {
             return (
               <SupplyStackButton
+                key={supply_stack.card.name}
                 supply_stack={supply_stack}
                 selected_stacks={selected_stacks}
                 setSelectedStacks={setSelectedStacks}
               />
             );
           }
-          return <VisualSupplyStack supply_stack={supply_stack} />;
+          return (
+            <VisualSupplyStack
+              key={supply_stack.card.name}
+              supply_stack={supply_stack}
+            />
+          );
         })}
       </div>
       <div className="flex flex-row flex-wrap p-4 gap-4 justify-center items-center">
@@ -247,7 +247,12 @@ function VisualSupply({ supply }: { supply: Supply }) {
               />
             );
           }
-          return <VisualSupplyStack supply_stack={supply_stack} />;
+          return (
+            <VisualSupplyStack
+              key={supply_stack.card.name}
+              supply_stack={supply_stack}
+            />
+          );
         })}
       </div>
       {confirm_choices_button()}
@@ -351,12 +356,13 @@ function Hand({ hand }: { hand: Card[] }) {
       <div className="flex flex-row flex-wrap gap-4 items-center justify-center">
         {hand.map((card) => {
           if (
-            pick_cards_req != undefined &&
+            pick_cards_req !== undefined &&
             pick_cards_req.choices.some((c) => c.id === card.id)
           ) {
             console.log("Rendering button");
             return (
               <CardButton
+                key={card.id}
                 card={card}
                 selected_cards={selected_cards}
                 setSelectedCards={setSelectedCards}
@@ -364,7 +370,7 @@ function Hand({ hand }: { hand: Card[] }) {
             );
           }
           console.log("Other");
-          return <CardDisplay card={card} />;
+          return <CardDisplay key={card.id} card={card} />;
         })}
       </div>
       {confirm_choices_button()}
@@ -460,12 +466,16 @@ function Log() {
       {log_messages.map((message) => {
         if (message.includes("Turn")) {
           return (
-            <h3 className="text-black border text-wrap">
+            <h3 key={message} className="text-black border text-wrap">
               <b>{message}</b>
             </h3>
           );
         }
-        return <p className="text-black border text-wrap">{message}</p>;
+        return (
+          <p key={message} className="text-black border text-wrap">
+            {message}
+          </p>
+        );
       })}
     </div>
   );
@@ -494,6 +504,7 @@ function ChooseCardsList({ extra_cards }: { extra_cards: Card[] }) {
           <div className="flex flex-row flex-nowrap justify-between overflow-auto">
             {extra_cards.map((card) => (
               <CardButton
+                key={card.id}
                 card={card}
                 selected_cards={choices}
                 setSelectedCards={setChoices}
@@ -545,7 +556,7 @@ function ChooseYesNo() {
         <DialogContent>
           <div className="flex justify-center">
             <h2>{message.description}</h2>
-            <CardDisplay card={message.card} />
+            <CardDisplay key={message.card.id} card={message.card} />
             <DialogClose>
               <p>
                 <Button

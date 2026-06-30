@@ -4,9 +4,6 @@ import "./index.css";
 import {
   QueryClient,
   QueryClientProvider,
-  useMutation,
-  useQuery,
-  useQueryClient,
 } from "@tanstack/react-query";
 import App from "./App.tsx";
 

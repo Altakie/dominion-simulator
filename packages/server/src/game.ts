@@ -13,6 +13,7 @@ import {
 } from "shared/cards";
 import { Copper } from "shared/cards/treasures";
 import { Estate, Province } from "shared/cards/victories";
+import { Deque } from "shared/deque";
 import {
   type BinaryDescription,
   BinaryDescriptions,
@@ -34,11 +35,9 @@ import {
   serializeMessage,
 } from "shared/messages";
 import { shuffle } from "shared/shuffle";
-import { Deque } from "shared/deque";
 import { Supply, type supplyStack } from "shared/supply";
 import { effect_table } from "./effects";
 import type { Lobby, PlayerLobbyInfo } from "./lobby";
-import { env } from "bun";
 
 type WaitResponses =
   | typeof MessageKinds.PICK_CARDS_RESPONSE
@@ -84,7 +83,7 @@ class WaitQueue {
       console.log("Wrong Player sent response");
       return;
     }
-    if (response.kind != wait_info.response_type) {
+    if (response.kind !== wait_info.response_type) {
       console.log("Wrong response type");
       return;
     }
@@ -169,10 +168,13 @@ export class Game {
     this.wait_queue = new WaitQueue();
 
     // DEBUG MODE TOGGLE
-    if (process.env.DEBUG?.toLowerCase() === "1" || process.env.DEBUG?.toLowerCase() === "true") {
-      this.debug_mode = true
+    if (
+      process.env.DEBUG?.toLowerCase() === "1" ||
+      process.env.DEBUG?.toLowerCase() === "true"
+    ) {
+      this.debug_mode = true;
     } else {
-      this.debug_mode = false
+      this.debug_mode = false;
     }
 
     const player_infos = players.map((player): PlayerInfo => {
@@ -275,7 +277,7 @@ export class Game {
   }
 
   next_turn() {
-    if (this.game_state.current_player_index == this.player_infos.length - 1) {
+    if (this.game_state.current_player_index === this.player_infos.length - 1) {
       this.game_state.turn_number += 1;
     }
 
@@ -369,7 +371,7 @@ export class Game {
       const initial_choices = hand.filter((card) =>
         card.info.types.includes(CardTypes.ACTION),
       );
-      if (initial_choices.length == 0) {
+      if (initial_choices.length === 0) {
         end_phase();
         return;
       }
@@ -696,7 +698,6 @@ export class Game {
       }
       const card = player.deck.pop()!;
       player.hand.push(card);
-
     }
 
     const log_message = `${player.name} drew ${num_cards} cards`;
@@ -853,7 +854,7 @@ export class Game {
     for (const player_info of this.player_infos) {
       player_info.socket.send(ser_msg);
     }
-    this.send_update()
+    this.send_update();
   }
 }
 

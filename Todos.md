@@ -7,11 +7,15 @@
 - Log maybe shouldn't show hand of other players
 - Card reveal mechanic
 - Card descriptions
+- Update README
+  - Include screenshot
 
 ## Minor Features
 
-- Maybe have played cards in a straight line but allow them to overflow?
-  - Should always scroll to end
+- Buttons when you have nothing selected should say skip
+  - Skip remaining actions
+  - Skip remaining buys
+  - For the rest it can just say skip
 - Display vp of all players, not just yours
 - Move turn information (actions, money, and buys) visually closer to where the player's eyes are spending the most time
   - Probably between the hand and the supply
@@ -21,7 +25,13 @@
   - Rework the update message to not send all player information
 - Manual testing to ensure that all card effects work as intended
 - Unit tests for cards to make sure they are working as intended
+- Better indication of current turn
+  - Think on this
+  - Highlighting of current player in player list?
+  - Different border to screen???
+  - Background slightly changes or flashes
 - Trash pile dialog pop-up button?
+  - Maybe show top of trash pile
 - Card visuals and descriptions
   - Can download official card art from dominion wiki?
   - Or can write descriptions for each card that can show up as a tooltip when you hover over a card
@@ -32,7 +42,6 @@
   - Multiple consecutive messages of the same time should be squashed together / combined into one big message
   - Color code incoming messages by what information they contain
     - Cards should be color coded by type and highlighted within the message
-- Better indication of current turn
 
 ## Bugs
 

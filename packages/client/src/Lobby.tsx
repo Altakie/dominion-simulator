@@ -1,24 +1,13 @@
-import {
-  createContext,
-  type JSX,
-  type RefObject,
-  useContext,
-  useEffect,
-  useRef,
-  useState,
-} from "react";
+import { type JSX, useContext, useEffect, useState } from "react";
 import {
   type ConnectMessage,
   type DisconnectMessage,
-  type GameEndMessage,
   type GameStateUpdateMessage,
   type LogMessage,
   type Message,
   MessageKinds,
   type PickCardsRequest,
   type PickCardsResponse,
-  type PickSupplyPileRequest,
-  type PickSupplyPileResponse,
   type PickYesNoRequest,
   type PickYesNoResponse,
   type PlayerNamesMessage,
@@ -31,7 +20,6 @@ import { Button } from "./components/ui/button.tsx";
 import "./App.css";
 import type { GameState, Player } from "shared";
 import type { Card } from "shared/cards.ts";
-import type { supplyStack } from "shared/supply.ts";
 import { create } from "zustand";
 import { useShallow } from "zustand/shallow";
 import { Game } from "./Game.tsx";
@@ -236,7 +224,7 @@ export function Lobby() {
       return;
     }
     game_socket.onmessage = resolve_message;
-  }, [game_socket]);
+  });
 
   switch (lobby_store.game_started) {
     case LobbyState.LOBBY:
@@ -317,20 +305,27 @@ function useGameSocket() {
     // }))
 
     return () => game_socket.close(1000);
-  }, []);
+  }, [set_connected]);
 }
 
 function PlayerList() {
   const players = useLobbyStore((state) => state.player_names);
+  // WARN: Player names are not unique and may not be useable as a key
   return (
     <>
       <h2>Players:</h2>
-      <ul>
-        {players.map((name) => (
-          <li>{name}</li>
-        ))}
-      </ul>
+      {players.map((name) => (
+        <PlayerNameDisplay key={name} name={name} />
+      ))}
     </>
+  );
+}
+
+export function PlayerNameDisplay({ name }: { name: string }) {
+  return (
+    <div className="border mx-auto w-[10vw] h-lh text-ellipsis text-nowrap overflow-auto">
+      {name}
+    </div>
   );
 }
 
@@ -371,12 +366,12 @@ function ChooseCardsList({ message }: { message: PickCardsRequest }) {
       <h3>{message.description}</h3>
       <h3>Currently Selected</h3>
       {choices.map((card) => (
-        <p>{card.info.name}</p>
+        <p key={card.id}>{card.info.name}</p>
       ))}
 
       <h3>Choices</h3>
       {message.choices.map((card) => (
-        <CardChoiceButton card={card} />
+        <CardChoiceButton key={card.id} card={card} />
       ))}
 
       <Button
@@ -386,7 +381,7 @@ function ChooseCardsList({ message }: { message: PickCardsRequest }) {
             choices: choices,
           };
           setChoices([]);
-          set_choice_list(null);
+          set_choice_list(undefined);
           game_socket.send(JSON.stringify(res));
         }}
         disabled={choices.length > message.max || choices.length < message.min}
@@ -466,7 +461,7 @@ function ChooseYesNo({ message }: { message: PickYesNoRequest }) {
       kind: MessageKinds.PICK_YES_NO_RESPONSE,
       choice: choice,
     };
-    set_choice_list(null);
+    set_choice_list(undefined);
     game_socket.send(JSON.stringify(res));
   }
 

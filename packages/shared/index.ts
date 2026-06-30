@@ -1,5 +1,5 @@
-import type { Card, CardInfo } from "./cards";
-import type { Supply, supplyStack } from "./supply";
+import type { Card } from "./cards";
+import type { Supply } from "./supply";
 
 // export const GamePhase = Object.freeze({
 //   Action: 0,

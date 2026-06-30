@@ -4,15 +4,7 @@ import { serveStatic, upgradeWebSocket, websocket } from "hono/bun";
 import { getCookie, setCookie } from "hono/cookie";
 import { cors } from "hono/cors";
 import type { WSContext } from "hono/ws";
-import {
-  type ConnectMessage,
-  type DisconnectMessage,
-  MessageKinds,
-  type PlayerNamesMessage,
-  parseMessage,
-  serializeMessage,
-} from "shared/messages";
-import type { Game, PlayerInfo } from "./game";
+import { parseMessage } from "shared/messages";
 import { Lobby } from "./lobby";
 
 const app = new Hono();

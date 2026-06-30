@@ -6,12 +6,11 @@ import { Copper, Gold, Silver } from "shared/cards/treasures";
 import {
   BinaryDescriptions,
   GainDescriptions,
-  type Message,
   PickCardsDescriptions,
 } from "shared/messages";
+import { shuffle } from "shared/shuffle";
 import type { supplyStack } from "shared/supply";
 import type { Game, NonBlockingCc } from "./game";
-import { shuffle } from "shared/shuffle";
 
 export const effect_table: Record<CardName, (game: Game) => void> = {
   Copper: (game: Game) => {
@@ -33,11 +32,11 @@ export const effect_table: Record<CardName, (game: Game) => void> = {
   Gold: (game: Game) => {
     game.game_state.money += 3;
   },
-  Estate: (game: Game) => {},
-  Duchy: (game: Game) => {},
-  Province: (game: Game) => {},
-  Gardens: (game: Game) => {},
-  Curse: (game: Game) => {},
+  Estate: () => {},
+  Duchy: () => {},
+  Province: () => {},
+  Gardens: () => {},
+  Curse: () => {},
   Cellar: (game: Game) => {
     const player = game.get_current_player();
     game.game_state.actions += 1;
@@ -128,7 +127,10 @@ export const effect_table: Record<CardName, (game: Game) => void> = {
     game.game_state.money += 2;
     game.discard_card(player, player.deck.length - 1, player.deck);
     const discarded = player.discard_pile.at(-1);
-    if (discarded !== undefined && discarded!.info.types.includes(CardTypes.ACTION)) {
+    if (
+      discarded !== undefined &&
+      discarded!.info.types.includes(CardTypes.ACTION)
+    ) {
       game.prompt_binary_choice(
         game.get_current_player_info(),
         BinaryDescriptions.BINARY_PLAY,
@@ -656,7 +658,6 @@ export const effect_table: Record<CardName, (game: Game) => void> = {
       return (choices: supplyStack[]) => {
         if (choices.length > 0) {
           game.gain_card(player, choices[0]!.card.name, player.hand);
-          game.send_update();
         }
         game.prompt_pick_card(
           game.get_current_player_info(),
