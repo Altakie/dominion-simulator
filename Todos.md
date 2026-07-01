@@ -9,6 +9,10 @@
 - Card descriptions
 - Update README
   - Include screenshot
+- Redo Lobby system on frontend
+  - Don't use websocket to register player names
+  - Combine lobby stores and router stores
+  - Make game_socket be created when the connect button is clicked
 
 ## Minor Features
 
@@ -47,3 +51,4 @@
 
 - All card effect bugs:
   - Library infinite recursion
+- Game automatically switched to lobby without confirming whether you've connected to the lobby or not

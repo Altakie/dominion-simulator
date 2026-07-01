@@ -107,7 +107,7 @@ export class Lobby {
     // TODO: Only send disconnect message to players in lobby unless the player who left was in the game
     const name = this.player_lobby_infos.get(clientid)?.name;
     if (name == null) {
-      return
+      return;
     }
 
     const msg: DisconnectMessage = {

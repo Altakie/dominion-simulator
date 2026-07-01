@@ -1,15 +1,32 @@
-import { createContext, useContext, useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import "./App.css";
-import type { JSX } from "react";
+import { create } from "zustand";
 import { Button } from "./components/ui/button.tsx";
 import { Lobby } from "./Lobby.tsx";
+
 // import { BrowserRouter, Routes, Route, Link } from 'react-router-dom';
 
-export const StateContext = createContext<{
-  state: string;
-  setState: (s: string) => void;
-}>(null);
+let ws: WebSocket = null;
+
+export const RouterStates = {
+  HOME: "Home",
+  LOBBY: "Lobby",
+};
+
+type RouterState = (typeof RouterStates)[keyof typeof RouterStates];
+
+type RouterStore = {
+  router_state: RouterState;
+  set_router_state: (state: RouterState) => void;
+};
+
+export const useRouterStore = create<RouterStore>((set) => ({
+  router_state: RouterStates.HOME,
+  set_router_state: (state) => set(() => ({ router_state: state })),
+}));
+
 function App() {
+  const state = useRouterStore((state) => state.router_state);
   // return (<>
   //   <BrowserRouter>
   //     <Routes>
@@ -19,38 +36,25 @@ function App() {
   //   </BrowserRouter>
   // </>)
 
-  const [state, setState] = useState("Home");
-
-  return (
-    <>
-      <StateContext value={{ state: state, setState: setState }}>
-        {stateTable[state]}
-      </StateContext>
-    </>
-  );
+  return <>{stateTable[state]}</>;
 }
 
-const stateTable: Record<string, JSX.Element> = {
+const stateTable: Record<RouterState, React.ReactNode> = {
   Home: <Home />,
   Game: <Lobby />,
-  Test: <Test />,
 };
-
-function Test() {
-  return <h1>Hi!</h1>;
-}
 
 function Home() {
   const [messages, setMessages] = useState<string[]>([]);
   const [name, setName] = useState("");
 
-  const ws = useMessageSocket();
+  useMessageSocket();
 
-  const { setState } = useContext(StateContext);
+  const setState = useRouterStore((state) => state.set_router_state);
 
   useEffect(() => {
-    if (ws.current) {
-      ws.current.onmessage = (ev) => {
+    if (ws) {
+      ws.onmessage = (ev) => {
         const json = JSON.parse(ev.data);
         if (json.msg) {
           setMessages([...messages, json.msg]);
@@ -61,45 +65,43 @@ function Home() {
         // })
       };
     }
-  }, [ws, messages]);
+  }, [messages]);
 
   // ws.send("Skeeby Deeby")
 
   return (
-    <>
-      <section id="center">
-        <p>
-          Your Name:
-          <input
-            className="border text-black"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-          ></input>
-        </p>
-        <Button
-          onClick={() => {
-            setState("Game");
-            ws.current.send(name);
-          }}
-        >
-          Join Game
-        </Button>
-      </section>
-    </>
+    <section id="center">
+      <p>
+        Your Name:
+        <input
+          className="border text-black"
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+        ></input>
+      </p>
+      <Button
+        onClick={() => {
+          setState("Game");
+          ws.send(name);
+        }}
+      >
+        Join Game
+      </Button>
+    </section>
   );
 }
 
+// WARN: Remove this function, replace with a query or mutation instead
 function useMessageSocket() {
-  const ws = useRef<WebSocket>(null);
   // new WebSocket('/socket')
   useEffect(() => {
     function connect(attempt: number) {
-      ws.current = new WebSocket("/socket");
-      ws.current.onopen = () => {
+      ws = new WebSocket("/socket");
+      ws.onopen = () => {
         console.log("Opened Connection!");
       };
 
-      ws.current.onclose = (ev) => {
+      ws.onclose = (ev) => {
         if (ev.code !== 1000) {
           setTimeout(
             () => connect(attempt + 1),
@@ -111,10 +113,10 @@ function useMessageSocket() {
 
     connect(0);
 
-    return () => ws.current.close(1000);
-  }, []);
+    return () => ws.close(1000);
+  });
 
-  return ws;
+  // return ws;
 }
 
 // export function Button({ children, ...props }) {

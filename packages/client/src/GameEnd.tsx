@@ -2,11 +2,11 @@ import type { PlayerEndInfo } from "shared";
 import type { Card, CardName } from "shared/cards";
 import type { GameEndMessage } from "shared/messages";
 import { Button } from "./components/ui/button.tsx";
-import { LobbyState, useLobbyStore } from "./Lobby";
+import { LobbyStates, useLobbyStore } from "./Lobby";
 
 export function GameEnd() {
   // const victory_message = game_end_message.player_end_infos_in_victory_order[0].name
-  const set_lobby_state = useLobbyStore((state) => state.set_game_started);
+  const set_lobby_state = useLobbyStore((state) => state.set_lobby_state);
   const message = useLobbyStore((state) => state.message);
   const game_end_message = message as GameEndMessage;
 
@@ -24,7 +24,7 @@ export function GameEnd() {
       )}
       <Button
         onClick={() => {
-          set_lobby_state(LobbyState.LOBBY);
+          set_lobby_state(LobbyStates.LOBBY);
         }}
       >
         Back to Lobby
