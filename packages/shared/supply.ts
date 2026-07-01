@@ -1,28 +1,5 @@
-import type { Card, CardInfo } from "./cards";
-import {
-  Artisan,
-  Bandit,
-  BaseCards,
-  Bureaucrat,
-  Cellar,
-  Chapel,
-  Gardens,
-  Harbinger,
-  Library,
-  Merchant,
-  Militia,
-  Mine,
-  Moat,
-  Moneylender,
-  Poacher,
-  Remodel,
-  Sentry,
-  ThroneRoom,
-  Vassal,
-  Village,
-  Witch,
-  Workshop,
-} from "./cards/base";
+import { type Card, type CardInfo, CardTypes } from "./cards";
+import { BaseCards, Chapel, Market, Sentry, Vassal } from "./cards/base";
 import { Curse } from "./cards/curses";
 import { Copper, Gold, Silver } from "./cards/treasures";
 import { Duchy, Estate, Province } from "./cards/victories";
@@ -51,9 +28,17 @@ export class Supply {
 
     this.stacks = [];
 
-    const kingdomCards = shuffle(Object.values(BaseCards)).slice(0, 10);
+    const kingdomCards: CardInfo[] = shuffle(Object.values(BaseCards))
+      .slice(0, 10)
+      .sort((a: CardInfo, b: CardInfo) => {
+        if (a.cost === b.cost) {
+          return a.name.localeCompare(b.name);
+        }
+        return a.cost - b.cost;
+      });
+
     for (const card of kingdomCards) {
-      if (card.name === "Gardens") {
+      if (card.types.includes(CardTypes.VICTORY)) {
         this.stacks.push({ card: card, count: victoryCount });
       } else {
         this.stacks.push({ card: card, count: 10 });
@@ -78,6 +63,8 @@ export class Supply {
     this.stacks = [
       { card: Chapel, count: 10 },
       { card: Sentry, count: 10 },
+      { card: Vassal, count: 10 },
+      { card: Market, count: 10 },
     ];
   }
 }

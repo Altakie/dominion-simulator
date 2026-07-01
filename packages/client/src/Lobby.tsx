@@ -1,24 +1,13 @@
-import {
-  createContext,
-  type JSX,
-  type RefObject,
-  useContext,
-  useEffect,
-  useRef,
-  useState,
-} from "react";
+import { type JSX, useEffect, useState } from "react";
 import {
   type ConnectMessage,
   type DisconnectMessage,
-  type GameEndMessage,
   type GameStateUpdateMessage,
   type LogMessage,
   type Message,
   MessageKinds,
   type PickCardsRequest,
   type PickCardsResponse,
-  type PickSupplyPileRequest,
-  type PickSupplyPileResponse,
   type PickYesNoRequest,
   type PickYesNoResponse,
   type PlayerNamesMessage,
@@ -26,12 +15,11 @@ import {
   type StartedMessage,
   serializeMessage,
 } from "shared/messages";
-import { StateContext } from "./App";
+import { RouterStates, useRouterStore } from "./App";
 import { Button } from "./components/ui/button.tsx";
 import "./App.css";
 import type { GameState, Player } from "shared";
 import type { Card } from "shared/cards.ts";
-import type { supplyStack } from "shared/supply.ts";
 import { create } from "zustand";
 import { useShallow } from "zustand/shallow";
 import { Game } from "./Game.tsx";
@@ -47,7 +35,7 @@ import { GameEnd } from "./GameEnd.tsx";
 
 export let game_socket: WebSocket = null;
 
-export const LobbyState = {
+export const LobbyStates = {
   LOBBY: "Lobby",
   GAME_STARTED: "Game Started",
   GAME_END: "Game End",
@@ -60,9 +48,9 @@ type LobbyStore = {
   add_player_name: (name: string) => void;
   remove_player_name: (name: string) => void;
   set_player_names: (names: string[]) => void;
-  game_started: (typeof LobbyState)[keyof typeof LobbyState];
-  set_game_started: (
-    game_started: (typeof LobbyState)[keyof typeof LobbyState],
+  lobby_state: (typeof LobbyStates)[keyof typeof LobbyStates];
+  set_lobby_state: (
+    game_started: (typeof LobbyStates)[keyof typeof LobbyStates],
   ) => void;
   choice_list?: JSX.Element;
   set_choice_list: (choice_list?: JSX.Element) => void;
@@ -95,9 +83,9 @@ export const useLobbyStore = create<LobbyStore>((set) => ({
   set_player_names: (names) => {
     set(() => ({ player_names: names }));
   },
-  game_started: LobbyState.LOBBY,
-  set_game_started: (game_started) => {
-    set(() => ({ game_started: game_started }));
+  lobby_state: LobbyStates.LOBBY,
+  set_lobby_state: (game_started) => {
+    set(() => ({ lobby_state: game_started }));
   },
   set_choice_list: (choice_list) => {
     set(() => ({ choice_list: choice_list }));
@@ -126,7 +114,7 @@ export function Lobby() {
   // const gameSocket = useGameSocket(setConnected);
   useGameSocket();
   //
-  const { setState } = useContext(StateContext);
+  const set_router_state = useRouterStore((state) => state.set_router_state);
   //
   // const [player_names, setPlayerNames] = useState<string[]>([])
   // const [gameStarted, setGameStarted] = useState<typeof LobbyState[keyof typeof LobbyState]>(LobbyState.LOBBY)
@@ -139,8 +127,8 @@ export function Lobby() {
     useShallow((state) => ({
       connected: state.connected,
       set_connected: state.set_connected,
-      game_started: state.game_started,
-      set_game_started: state.set_game_started,
+      lobby_state: state.lobby_state,
+      set_lobby_state: state.set_lobby_state,
       player_names: state.player_names,
       add_player_name: state.add_player_name,
       remove_player_name: state.remove_player_name,
@@ -155,6 +143,7 @@ export function Lobby() {
     })),
   );
 
+  // TODO: Move this out of this function so its not recreated every render
   const resolve_message = (ev: MessageEvent) => {
     console.log(`Message: ${ev.data}`);
     const message = parseMessage(ev.data);
@@ -183,7 +172,7 @@ export function Lobby() {
         const started_msg = message as StartedMessage;
         lobby_store.set_player_names(started_msg.player_name_order);
         lobby_store.set_game_state(started_msg.state);
-        lobby_store.set_game_started(LobbyState.GAME_STARTED);
+        lobby_store.set_lobby_state(LobbyStates.GAME_STARTED);
         lobby_store.set_player(started_msg.player);
         break;
       }
@@ -215,7 +204,7 @@ export function Lobby() {
       }
       case MessageKinds.GAME_END:
         lobby_store.set_message(message);
-        lobby_store.set_game_started(LobbyState.GAME_END);
+        lobby_store.set_lobby_state(LobbyStates.GAME_END);
         lobby_store.clear_log();
         break;
       case MessageKinds.LOG: {
@@ -236,10 +225,14 @@ export function Lobby() {
       return;
     }
     game_socket.onmessage = resolve_message;
-  }, [game_socket]);
+  });
 
-  switch (lobby_store.game_started) {
-    case LobbyState.LOBBY:
+  if (!lobby_store.connected) {
+    return <Connecting />;
+  }
+
+  switch (lobby_store.lobby_state) {
+    case LobbyStates.LOBBY:
       return (
         <>
           <h1>Welcome to the game</h1>
@@ -261,51 +254,52 @@ export function Lobby() {
 
           <Button
             onClick={() => {
-              setState("Home");
               game_socket.close(1000);
+              // WARN: Set in two places, probably fine but check again later
+              set_router_state(RouterStates.HOME);
             }}
           >
             Leave Game
           </Button>
         </>
       );
-    case LobbyState.GAME_STARTED:
+    case LobbyStates.GAME_STARTED:
       return (
         // <GameContext value={gameSocket}>
         /* </GameContext> */
         <Game />
       );
-    case LobbyState.GAME_END:
+    case LobbyStates.GAME_END:
       return <GameEnd />;
-  }
-
-  if (!lobby_store.game_started) {
-  } else {
   }
 }
 
 function useGameSocket() {
   const set_connected = useLobbyStore((state) => state.set_connected);
+  const set_router_state = useRouterStore((state) => state.set_router_state);
+  const set_lobby_state = useLobbyStore((state) => state.set_lobby_state);
   // new WebSocket('/socket')
   useEffect(() => {
     function connect(attempt: number) {
       game_socket = new WebSocket("/game");
       game_socket.onopen = () => {
         console.log("Joined Game!");
+        set_lobby_state(LobbyStates.LOBBY);
         set_connected(true);
       };
 
       game_socket.onclose = (ev) => {
+        set_connected(false);
         console.log(ev.code);
         if (ev.code !== 1000) {
           setTimeout(
             () => connect(attempt + 1),
-            Math.min(2000 ** attempt, 30000),
+            Math.min(1000 * 2 ** attempt, 30000),
           );
           return;
         }
 
-        set_connected(false);
+        set_router_state(RouterStates.HOME);
         console.log(`Closed Socket on attempt ${attempt}`);
       };
     }
@@ -316,21 +310,44 @@ function useGameSocket() {
     //   kind: MessageKind.CONNECT,
     // }))
 
-    return () => game_socket.close(1000);
-  }, []);
+    return () => {
+      console.log("Cleanup");
+      game_socket.close(1000);
+    };
+  }, [set_connected, set_router_state, set_lobby_state]);
+}
+
+function Connecting() {
+  // const router_state = useRouterStore((state) => state.router_state);
+
+  return (
+    <div className="flex flex-col justify-center items-center">
+      <h1>Connecting to Lobby ...</h1>
+      {/* <Button onClick={() => set_router_state(RouterStates.HOME)}> */}
+      {/*   Cancel */}
+      {/* </Button> */}
+    </div>
+  );
 }
 
 function PlayerList() {
   const players = useLobbyStore((state) => state.player_names);
+  // WARN: Player names are not unique and may not be useable as a key
   return (
     <>
       <h2>Players:</h2>
-      <ul>
-        {players.map((name) => (
-          <li>{name}</li>
-        ))}
-      </ul>
+      {players.map((name) => (
+        <PlayerNameDisplay key={name} name={name} />
+      ))}
     </>
+  );
+}
+
+export function PlayerNameDisplay({ name }: { name: string }) {
+  return (
+    <div className="border mx-auto w-[10vw] h-lh text-ellipsis text-nowrap overflow-auto">
+      {name}
+    </div>
   );
 }
 
@@ -371,12 +388,12 @@ function ChooseCardsList({ message }: { message: PickCardsRequest }) {
       <h3>{message.description}</h3>
       <h3>Currently Selected</h3>
       {choices.map((card) => (
-        <p>{card.info.name}</p>
+        <p key={card.id}>{card.info.name}</p>
       ))}
 
       <h3>Choices</h3>
       {message.choices.map((card) => (
-        <CardChoiceButton card={card} />
+        <CardChoiceButton key={card.id} card={card} />
       ))}
 
       <Button
@@ -386,7 +403,7 @@ function ChooseCardsList({ message }: { message: PickCardsRequest }) {
             choices: choices,
           };
           setChoices([]);
-          set_choice_list(null);
+          set_choice_list(undefined);
           game_socket.send(JSON.stringify(res));
         }}
         disabled={choices.length > message.max || choices.length < message.min}
@@ -466,7 +483,7 @@ function ChooseYesNo({ message }: { message: PickYesNoRequest }) {
       kind: MessageKinds.PICK_YES_NO_RESPONSE,
       choice: choice,
     };
-    set_choice_list(null);
+    set_choice_list(undefined);
     game_socket.send(JSON.stringify(res));
   }
 

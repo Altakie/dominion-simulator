@@ -4,15 +4,7 @@ import { serveStatic, upgradeWebSocket, websocket } from "hono/bun";
 import { getCookie, setCookie } from "hono/cookie";
 import { cors } from "hono/cors";
 import type { WSContext } from "hono/ws";
-import {
-  type ConnectMessage,
-  type DisconnectMessage,
-  MessageKinds,
-  type PlayerNamesMessage,
-  parseMessage,
-  serializeMessage,
-} from "shared/messages";
-import type { Game, PlayerInfo } from "./game";
+import { parseMessage } from "shared/messages";
 import { Lobby } from "./lobby";
 
 const app = new Hono();
@@ -35,9 +27,12 @@ app.use(
   upgradeWebSocket((c) => {
     return {
       onOpen: async (_ev, ws) => {
-        const clientid = getCookie(c, "clientid");
+        let clientid = getCookie(c, "clientid");
         if (!clientid) {
-          return;
+          clientid = randomUUIDv7();
+          setCookie(c, "clientid", clientid, {
+            httpOnly: true,
+          });
         }
 
         webby.set(clientid, ws);
@@ -72,17 +67,20 @@ app.use(
     return {
       onOpen: async (_ev, ws) => {
         const clientid = getClientId(c);
+        // Reject improper connections
         if (!clientid) {
+          ws.close(1000);
           return;
         }
-
-        webby.set(clientid, ws);
 
         const name = names.get(clientid);
         if (!name) {
           console.log("No Name");
+          ws.close(1000);
           return;
         }
+
+        webby.set(clientid, ws);
 
         lobby.add_player(clientid, name, ws);
 
@@ -110,6 +108,7 @@ app.use(
         }
 
         lobby.remove_player(clientid);
+        webby.delete(clientid);
       },
     };
   }),

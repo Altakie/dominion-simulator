@@ -13,6 +13,7 @@ import {
 } from "shared/cards";
 import { Copper } from "shared/cards/treasures";
 import { Estate, Province } from "shared/cards/victories";
+import { Deque } from "shared/deque";
 import {
   type BinaryDescription,
   BinaryDescriptions,
@@ -34,7 +35,6 @@ import {
   serializeMessage,
 } from "shared/messages";
 import { shuffle } from "shared/shuffle";
-import { Deque } from "shared/deque";
 import { Supply, type supplyStack } from "shared/supply";
 import { effect_table } from "./effects";
 import type { Lobby, PlayerLobbyInfo } from "./lobby";
@@ -83,7 +83,7 @@ class WaitQueue {
       console.log("Wrong Player sent response");
       return;
     }
-    if (response.kind != wait_info.response_type) {
+    if (response.kind !== wait_info.response_type) {
       console.log("Wrong response type");
       return;
     }
@@ -168,7 +168,14 @@ export class Game {
     this.wait_queue = new WaitQueue();
 
     // DEBUG MODE TOGGLE
-    this.debug_mode = true;
+    if (
+      process.env.DEBUG?.toLowerCase() === "1" ||
+      process.env.DEBUG?.toLowerCase() === "true"
+    ) {
+      this.debug_mode = true;
+    } else {
+      this.debug_mode = false;
+    }
 
     const player_infos = players.map((player): PlayerInfo => {
       return {
@@ -270,7 +277,7 @@ export class Game {
   }
 
   next_turn() {
-    if (this.game_state.current_player_index == this.player_infos.length - 1) {
+    if (this.game_state.current_player_index === this.player_infos.length - 1) {
       this.game_state.turn_number += 1;
     }
 
@@ -286,7 +293,6 @@ export class Game {
     );
     // TODO: Send a message to all players that the next turn started
     // This should probably be a special new turn message instead of a general update message
-    this.send_update();
     this.action_phase();
   }
 
@@ -351,10 +357,11 @@ export class Game {
   // }
 
   action_phase() {
+    this.send_update();
     const end_phase = () => {
       this.game_state.phase = GamePhases.MONEY;
       console.log(`End of action phase ${this.game_state.turn_number}`);
-      this.send_update();
+      // this.send_update();
       this.money_phase();
     };
 
@@ -364,7 +371,7 @@ export class Game {
       const initial_choices = hand.filter((card) =>
         card.info.types.includes(CardTypes.ACTION),
       );
-      if (initial_choices.length == 0) {
+      if (initial_choices.length === 0) {
         end_phase();
         return;
       }
@@ -395,7 +402,7 @@ export class Game {
         this.play_card(card_index, hand);
         const cleanup = () => {
           // Send the new gamestate to all players
-          this.send_update();
+          // this.send_update();
           // Run the action phase again
           this.action_phase();
         };
@@ -448,9 +455,10 @@ export class Game {
   buy_phase() {
     // prompt the player to buy as many cards as they have buys from the supply
     //
+    this.send_update();
     const end_phase = () => {
       console.log(`End of buy phase ${this.game_state.turn_number}`);
-      this.send_update();
+      // this.send_update();
       if (this.game_over()) {
         this.send_game_over();
         return;
@@ -489,9 +497,8 @@ export class Game {
         this.game_state.money -= choice.card.cost;
         this.game_state.buys--;
 
-        // Resolve the action effect
         // Send the new gamestate to all players
-        this.send_update();
+        // this.send_update();
         // Run the action phase again
         this.buy_phase();
       };
@@ -691,21 +698,22 @@ export class Game {
       }
       const card = player.deck.pop()!;
       player.hand.push(card);
-
-      const log_message = `${player.name} drew ${card.info.name}`;
-      console.log(log_message);
-      this.send_log_message(log_message);
     }
+
+    const log_message = `${player.name} drew ${num_cards} cards`;
+    console.log(log_message);
+    this.send_log_message(log_message);
   }
 
   play_card(card_index: number, pile: Card[]) {
     const card = this.remove_card(card_index, pile);
-    effect_table[card.info.name](this);
     this.game_state.played_cards.push(card);
 
     const log_message = `${this.get_current_player().name} played ${card.info.name}`;
     console.log(log_message);
     this.send_log_message(log_message);
+
+    effect_table[card.info.name](this);
   }
 
   discard_card(player: Player, card_index: number, initial_pile: Card[]) {
@@ -843,10 +851,10 @@ export class Game {
       log_message: log_message,
     };
     const ser_msg = serializeMessage(msg);
-
     for (const player_info of this.player_infos) {
       player_info.socket.send(ser_msg);
     }
+    this.send_update();
   }
 }
 
