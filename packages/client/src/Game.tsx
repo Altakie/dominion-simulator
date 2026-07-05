@@ -21,8 +21,22 @@ import {
   request_message_kinds,
 } from "shared/messages";
 import type { Supply, supplyStack } from "shared/supply";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import { card_descriptions } from "./CardDescriptions.tsx";
 import { Button } from "./components/ui/button.tsx";
-import { Dialog, DialogClose, DialogContent } from "./components/ui/dialog.tsx";
+import {
+  Dialog,
+  DialogClose,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "./components/ui/dialog.tsx";
 import { game_socket, PlayerNameDisplay, useLobbyStore } from "./Lobby";
 
 export function Game() {
@@ -174,7 +188,7 @@ function VisualSupply({ supply }: { supply: Supply }) {
 
   const confirm_choices_button = () => {
     if (!pick_stacks_req) {
-      return <></>;
+      return;
     }
     return (
       <div>
@@ -193,7 +207,9 @@ function VisualSupply({ supply }: { supply: Supply }) {
             selected_stacks.length < pick_stacks_req.min
           }
         >
-          Confirm Choices
+          {selected_stacks.length > 0
+            ? "Confirm Choices"
+            : "Skip Remaining Gains"}
         </Button>
       </div>
     );
@@ -205,8 +221,7 @@ function VisualSupply({ supply }: { supply: Supply }) {
       <div className="flex flex-row flex-wrap p-4 gap-4 justify-center items-center">
         {supply.fixed_stacks.map((supply_stack) => {
           if (
-            pick_stacks_req &&
-            pick_stacks_req.choices.some(
+            pick_stacks_req?.choices.some(
               (stack) =>
                 stack.card.name === supply_stack.card.name &&
                 stack.count === supply_stack.count,
@@ -232,8 +247,7 @@ function VisualSupply({ supply }: { supply: Supply }) {
       <div className="flex flex-row flex-wrap p-4 gap-4 justify-center items-center">
         {supply.stacks.map((supply_stack) => {
           if (
-            pick_stacks_req &&
-            pick_stacks_req.choices.some(
+            pick_stacks_req?.choices.some(
               (stack) =>
                 stack.card.name === supply_stack.card.name &&
                 stack.count === supply_stack.count,
@@ -324,7 +338,7 @@ function Hand({ hand }: { hand: Card[] }) {
 
   const confirm_choices_button = () => {
     if (!pick_cards_req) {
-      return <></>;
+      return;
     }
     return (
       <div>
@@ -344,7 +358,7 @@ function Hand({ hand }: { hand: Card[] }) {
             selected_cards.length < pick_cards_req.min
           }
         >
-          Confirm Choices
+          {selected_cards.length > 0 ? "Confirm Choices" : "Skip"}
         </Button>
       </div>
     );
@@ -355,10 +369,7 @@ function Hand({ hand }: { hand: Card[] }) {
       <h2>Current Hand</h2>
       <div className="flex flex-row flex-wrap gap-4 items-center justify-center">
         {hand.map((card) => {
-          if (
-            pick_cards_req !== undefined &&
-            pick_cards_req.choices.some((c) => c.id === card.id)
-          ) {
+          if (pick_cards_req?.choices.some((c) => c.id === card.id)) {
             console.log("Rendering button");
             return (
               <CardButton
@@ -389,13 +400,20 @@ function CardShell({
   className?: string;
 } & React.HTMLAttributes<HTMLDivElement>) {
   return (
-    <div
-      className={`text-xs border-4 border-gray-400 rounded-lg w-22 h-20 p-px flex flex-col shrink-0 grow-0 justify-between text-center ${card_bg(card_info)} ${className}`}
-      {...props}
-    >
-      <p className="text-black">{card_info.name}</p>
-      {children}
-    </div>
+    <Tooltip disableHoverableContent={true}>
+      <TooltipTrigger>
+        <div
+          className={`text-xs border-4 border-gray-400 rounded-lg w-22 h-20 p-px flex flex-col shrink-0 grow-0 justify-between text-center ${card_bg(card_info)} ${className}`}
+          {...props}
+        >
+          <p className="text-black">{card_info.name}</p>
+          {children}
+        </div>
+      </TooltipTrigger>
+      <TooltipContent className="flex flex-col flex-wrap" side="top">
+        {card_descriptions[card_info.name]}
+      </TooltipContent>
+    </Tooltip>
   );
 }
 
@@ -481,11 +499,11 @@ function Log() {
   );
 }
 
-function GoldCoin({ cost }: { cost: number }) {
+export function GoldCoin({ cost }: { cost: number }) {
   return (
-    <div className="bg-yellow-300 text-black rounded-full w-6 h-6 flex items-center justify-center">
+    <span className="bg-yellow-300 text-black rounded-full w-6 h-6 inline-flex items-center justify-center">
       {cost}
-    </div>
+    </span>
   );
 }
 
@@ -496,22 +514,24 @@ function ChooseCardsList({ extra_cards }: { extra_cards: Card[] }) {
   const set_message = useLobbyStore((state) => state.set_message);
 
   return (
-    <>
-      <Dialog open={true}>
-        <DialogContent>
+    <Dialog open={true}>
+      <DialogContent showCloseButton={false}>
+        <DialogHeader>
           <h2>{message.description}</h2>
+        </DialogHeader>
 
-          <div className="flex flex-row flex-nowrap justify-between overflow-auto">
-            {extra_cards.map((card) => (
-              <CardButton
-                key={card.id}
-                card={card}
-                selected_cards={choices}
-                setSelectedCards={setChoices}
-              />
-            ))}
-          </div>
+        <div className="flex flex-row flex-wrap justify-center">
+          {extra_cards.map((card) => (
+            <CardButton
+              key={card.id}
+              card={card}
+              selected_cards={choices}
+              setSelectedCards={setChoices}
+            />
+          ))}
+        </div>
 
+        <DialogFooter className="text-center sm:justify-center justify-center">
           <DialogClose>
             <Button
               onClick={() => {
@@ -530,9 +550,9 @@ function ChooseCardsList({ extra_cards }: { extra_cards: Card[] }) {
               Confirm Choices
             </Button>
           </DialogClose>
-        </DialogContent>
-      </Dialog>
-    </>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }
 
@@ -551,35 +571,39 @@ function ChooseYesNo() {
   }
 
   return (
-    <>
-      <Dialog open={true}>
-        <DialogContent>
-          <div className="flex justify-center">
-            <h2>{message.description}</h2>
-            <CardDisplay key={message.card.id} card={message.card} />
-            <DialogClose>
-              <p>
-                <Button
-                  onClick={() => {
-                    send_choice(true);
-                  }}
-                >
-                  Yes
-                </Button>
+    <Dialog open={true}>
+      <DialogContent showCloseButton={false} className="text-center">
+        <DialogHeader>
+          <h2>{message.description}</h2>
+        </DialogHeader>
 
-                <Button
-                  onClick={() => {
-                    send_choice(false);
-                  }}
-                >
-                  No
-                </Button>
-              </p>
-            </DialogClose>
-          </div>
-        </DialogContent>
-      </Dialog>
-    </>
+        <div className="text-center">
+          <CardDisplay key={message.card.id} card={message.card} />
+        </div>
+
+        <DialogFooter className="text-center sm:justify-center justify-center">
+          <DialogClose>
+            <p>
+              <Button
+                onClick={() => {
+                  send_choice(true);
+                }}
+              >
+                Yes
+              </Button>
+
+              <Button
+                onClick={() => {
+                  send_choice(false);
+                }}
+              >
+                No
+              </Button>
+            </p>
+          </DialogClose>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }
 

@@ -1,5 +1,12 @@
 import { type Card, type CardInfo, CardTypes } from "./cards";
-import { BaseCards, Chapel, Market, Sentry, Vassal } from "./cards/base";
+import {
+  BaseCards,
+  Chapel,
+  Harbinger,
+  Market,
+  Sentry,
+  Vassal,
+} from "./cards/base";
 import { Curse } from "./cards/curses";
 import { Copper, Gold, Silver } from "./cards/treasures";
 import { Duchy, Estate, Province } from "./cards/victories";
@@ -65,6 +72,7 @@ export class Supply {
       { card: Sentry, count: 10 },
       { card: Vassal, count: 10 },
       { card: Market, count: 10 },
+      { card: Harbinger, count: 10 },
     ];
   }
 }
