@@ -699,6 +699,15 @@ export class Game {
       }
       const card = player.deck.pop()!;
       player.hand.push(card);
+
+      const log_message = `${player.name} drew ${card.info.name}`;
+      console.log(log_message);
+      this.send_log_message(
+        log_message,
+        this.get_player_info(
+          this.player_infos.findIndex((p) => p.player === player)!,
+        ),
+      );
     }
 
     const log_message = `${player.name} drew ${num_cards} cards`;
@@ -724,8 +733,9 @@ export class Game {
       initial_pile = player.deck;
     }
     if (initial_pile.length === 0) {
-      console.log("No cards to discard");
-      this.send_log_message(`${player.name} has no cards to discard`);
+      const log_message = `${player.name} has no cards to discard`;
+      console.log(log_message);
+      this.send_log_message(log_message);
       return;
     }
     const card = this.remove_card(card_index, initial_pile);
@@ -733,7 +743,12 @@ export class Game {
 
     const log_message = `${player.name} discarded ${card?.info.name}`;
     console.log(log_message);
-    this.send_log_message(log_message);
+    this.send_log_message(
+      log_message,
+      this.get_player_info(
+        this.player_infos.findIndex((p) => p.player === player)!,
+      ),
+    );
   }
 
   discard_hand(player: Player) {
@@ -845,15 +860,20 @@ export class Game {
     this.lobby.game = undefined;
   }
 
-  send_log_message(log_message: string) {
+  send_log_message(log_message: string, player_info?: PlayerInfo) {
     const msg: LogMessage = {
       kind: MessageKinds.LOG,
 
       log_message: log_message,
     };
     const ser_msg = serializeMessage(msg);
-    for (const player_info of this.player_infos) {
+
+    if (player_info) {
       player_info.socket.send(ser_msg);
+    } else {
+      for (const player_info of this.player_infos) {
+        player_info.socket.send(ser_msg);
+      }
     }
     this.send_update();
   }

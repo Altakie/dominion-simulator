@@ -8,7 +8,13 @@ import {
   useState,
 } from "react";
 import "./App.css";
-import { type Card, type CardInfo, CardTypes } from "shared/cards";
+import {
+  type Card,
+  type CardInfo,
+  type CardName,
+  CardTypes,
+} from "shared/cards";
+import { description_table } from "shared/descriptions";
 import {
   MessageKinds,
   type PickCardsRequest,
@@ -54,8 +60,14 @@ export function Game() {
         <div className="flex-col w-1/5 border h-screen">
           <PlayerList />
           <h2>
-            Current Vp: <span>{player.victory_points}</span>
+            Current VP: <span>{player.victory_points}</span>
           </h2>
+          <h3>
+            Deck Size: <span>{player.deck.length}</span>
+          </h3>
+          <h3>
+            Discard Size: <span>{player.discard_pile.length}</span>
+          </h3>
           <VisualGameState />
         </div>
         <div className="flex-col w-3/5 border h-screen">
@@ -388,13 +400,24 @@ function CardShell({
   children: ReactNode;
   className?: string;
 } & React.HTMLAttributes<HTMLDivElement>) {
+  const [visible, setVisible] = useState(false);
+  const handleRightClick = (event: React.MouseEvent<HTMLDivElement>) => {
+    event.preventDefault();
+    setVisible(true);
+  };
   return (
-    <div
-      className={`text-xs border-4 border-gray-400 rounded-lg w-22 h-20 p-px flex flex-col shrink-0 grow-0 justify-between text-center ${card_bg(card_info)} ${className}`}
-      {...props}
-    >
-      <p className="text-black">{card_info.name}</p>
-      {children}
+    <div>
+      <div
+        className={`text-xs border-4 border-gray-400 rounded-lg w-22 h-20 p-px flex flex-col shrink-0 grow-0 justify-between text-center ${card_bg(card_info)} ${className}`}
+        {...props}
+        onContextMenu={handleRightClick}
+      >
+        <p className="text-black">{card_info.name}</p>
+        {children}
+      </div>
+      {visible && (
+        <CardDescription card_name={card_info.name} set_visible={setVisible} />
+      )}
     </div>
   );
 }
@@ -575,6 +598,30 @@ function ChooseYesNo() {
                   No
                 </Button>
               </p>
+            </DialogClose>
+          </div>
+        </DialogContent>
+      </Dialog>
+    </>
+  );
+}
+
+function CardDescription({
+  card_name,
+  set_visible,
+}: {
+  card_name: CardName;
+  set_visible: (visible: boolean) => void;
+}) {
+  return (
+    <>
+      <Dialog open={true}>
+        <DialogContent>
+          <div className="flex flex-col justify-between gap-4">
+            <h2>{card_name}</h2>
+            <h3>{description_table[card_name]}</h3>
+            <DialogClose>
+              <Button onClick={() => set_visible(false)}>Close</Button>
             </DialogClose>
           </div>
         </DialogContent>

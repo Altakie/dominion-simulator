@@ -4,8 +4,8 @@
 
 - Maybe a reorder decision type?
 - Better trash pile
-- Log maybe shouldn't show hand of other players
 - Card reveal mechanic
+<<<<<<< HEAD
 - Card descriptions
 - Update README
   - Include screenshot
@@ -13,6 +13,8 @@
   - Don't use websocket to register player names
   - Combine lobby stores and router stores
   - Make game_socket be created when the connect button is clicked
+=======
+>>>>>>> 6f26c6a (right click on any card to open a dialog with its description)
 
 ## Minor Features
 

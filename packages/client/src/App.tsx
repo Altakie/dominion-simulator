@@ -6,7 +6,7 @@ import { Lobby } from "./Lobby.tsx";
 
 // import { BrowserRouter, Routes, Route, Link } from 'react-router-dom';
 
-let ws: WebSocket = null;
+let ws: WebSocket | null = null;
 
 export const RouterStates = {
   HOME: "Home",
@@ -82,7 +82,7 @@ function Home() {
       <Button
         onClick={() => {
           setState("Game");
-          ws.send(name);
+          ws?.send(name);
         }}
       >
         Join Game
@@ -113,7 +113,7 @@ function useMessageSocket() {
 
     connect(0);
 
-    return () => ws.close(1000);
+    return () => ws?.close(1000);
   });
 
   // return ws;
