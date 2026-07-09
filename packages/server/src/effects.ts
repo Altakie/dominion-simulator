@@ -19,15 +19,19 @@ export const effect_table: Record<CardName, (game: Game) => void> = {
   Silver: (game: Game) => {
     game.game_state.money += 2;
     // Handle Silver's interaction with Merchant card
-    if (
-      !game.game_state.played_cards.some((card) => card.info.name === "Silver")
-    ) {
-      const played = game.game_state.played_cards;
-      const num_merchants = played.filter(
-        (card) => card.info.name === "Merchant",
-      ).length;
-      game.game_state.money += num_merchants;
+
+    for (let i = 0; i < game.game_state.played_cards.length - 1; i++) {
+      const card = game.game_state.played_cards[i];
+      if (card?.info.name === "Silver") {
+        return;
+      }
     }
+
+    const played = game.game_state.played_cards;
+    const num_merchants = played.filter(
+      (card) => card.info.name === "Merchant",
+    ).length;
+    game.game_state.money += num_merchants;
   },
   Gold: (game: Game) => {
     game.game_state.money += 3;
