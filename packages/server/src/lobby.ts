@@ -8,10 +8,11 @@ import {
   serializeMessage,
 } from "shared/messages";
 import { Game } from "./game";
+import { AISocket, type MessageSink } from "./socket";
 
 export type PlayerLobbyInfo = {
   clientid: string;
-  socket: WSContext;
+  socket: MessageSink;
   name: string;
 };
 
@@ -21,9 +22,14 @@ export class Lobby {
 
   constructor() {
     this.player_lobby_infos = new Map();
+    // WARN: AI Player will temporarily be in all games
+    // const ai_player = new AISocket((clientid, message) =>
+    //   this.resolve_message(clientid, message),
+    // );
+    // this.add_player(ai_player.client_id, "Gemini", ai_player);
   }
 
-  add_player(clientid: string, name: string, ws: WSContext) {
+  add_player(clientid: string, name: string, ws: MessageSink) {
     this.player_lobby_infos.set(clientid, {
       name: name,
       clientid: clientid,
@@ -70,6 +76,7 @@ export class Lobby {
   }
 
   resolve_message(clientid: string, message: Message) {
+    console.log(`Message received: ${JSON.stringify(message)}`);
     switch (message.kind) {
       case MessageKinds.START:
         console.log("Start Message Received");
@@ -89,12 +96,14 @@ export class Lobby {
       case MessageKinds.PICK_CARDS_RESPONSE:
       case MessageKinds.PICK_SUPPLY_PILE_RESPONSE:
       case MessageKinds.PICK_YES_NO_RESPONSE:
-        if (!this.game) {
+        if (this.game === undefined) {
+          console.log("No Game");
           break;
         }
         if (this.game.wait_queue.isEmpty()) {
           console.log("Received player response but game is not waiting");
         }
+        console.log("Going to resolve player choice");
         this.game.resolve_player_choice(clientid, message);
         break;
       default:
@@ -103,7 +112,6 @@ export class Lobby {
   }
 
   remove_player(clientid: string) {
-    // FIX: Only one message is stored in players so sending disconnect can break everything
     // TODO: Only send disconnect message to players in lobby unless the player who left was in the game
     const name = this.player_lobby_infos.get(clientid)?.name;
     if (name == null) {

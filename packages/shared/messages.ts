@@ -1,4 +1,4 @@
-import type { GameState, Player, PlayerEndInfo } from ".";
+import type { GameState, Player, PlayerEndInfo, SharablePlayer } from ".";
 import type { Card } from "./cards";
 import type { supplyStack } from "./supply";
 
@@ -76,7 +76,7 @@ export interface StartedMessage extends Message {
   // TODO: Does it make sense to just have a started message include an update message?
   state: GameState;
 
-  player: Player;
+  player: SharablePlayer;
 }
 
 export const request_message_kinds = new Set<MessageKind>();
@@ -141,7 +141,7 @@ export interface GameStateUpdateMessage extends Message {
 
   game_state: GameState;
   // TODO: Maybe the player should not have access to all of their information, such as their deck and discard pile unless specifically prompted
-  player: Player;
+  player: SharablePlayer;
 }
 
 export interface GameEndMessage extends Message {
