@@ -1,4 +1,5 @@
 import { randomUUIDv7 } from "bun";
+import { config } from "dotenv";
 import { type Context, Hono } from "hono";
 import { serveStatic, upgradeWebSocket, websocket } from "hono/bun";
 import { getCookie, setCookie } from "hono/cookie";
@@ -7,6 +8,7 @@ import type { WSContext } from "hono/ws";
 import { parseMessage } from "shared/messages";
 import { Lobby } from "./lobby";
 
+config();
 const app = new Hono();
 
 app.use(cors());

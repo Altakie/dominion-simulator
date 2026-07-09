@@ -4,6 +4,7 @@ import {
   Chapel,
   Harbinger,
   Market,
+  Merchant,
   Sentry,
   Vassal,
 } from "./cards/base";
@@ -73,6 +74,7 @@ export class Supply {
       { card: Vassal, count: 10 },
       { card: Market, count: 10 },
       { card: Harbinger, count: 10 },
+      { card: Merchant, count: 10 },
     ];
   }
 }
