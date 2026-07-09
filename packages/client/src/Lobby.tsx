@@ -18,7 +18,7 @@ import {
 import { RouterStates, useRouterStore } from "./App";
 import { Button } from "./components/ui/button.tsx";
 import "./App.css";
-import type { GameState, Player } from "shared";
+import type { GameState, Player, SharablePlayer } from "shared";
 import type { Card } from "shared/cards.ts";
 import { create } from "zustand";
 import { useShallow } from "zustand/shallow";
@@ -59,8 +59,8 @@ type LobbyStore = {
   set_game_state: (game_state: GameState) => void;
   message?: Message;
   set_message: (message?: Message) => void;
-  player?: Player;
-  set_player: (player?: Player) => void;
+  player?: SharablePlayer;
+  set_player: (player?: SharablePlayer) => void;
   log_messages: string[];
   add_log_message: (message: string) => void;
   clear_log: () => void;

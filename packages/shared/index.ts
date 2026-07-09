@@ -28,6 +28,15 @@ export type Player = {
   victory_points: number;
 };
 
+export type SharablePlayer = {
+  name: string;
+  hand: Card[];
+  deck_size: number;
+  top_of_discard_pile?: Card;
+  discard_pile_size: number;
+  victory_points: number;
+};
+
 export type PlayerEndInfo = {
   name: string;
   victory_points: number;

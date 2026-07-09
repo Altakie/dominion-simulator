@@ -4,6 +4,7 @@
   "type": "module",
   "private": true,
   "dependencies": {
+    "@google/genai": "^2.10.0",
     "hono": "^4.12.15",
     "shared": "workspace:*"
   },

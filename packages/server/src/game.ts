@@ -4,6 +4,7 @@ import {
   type GameState,
   type Player,
   type PlayerEndInfo,
+  type SharablePlayer,
 } from "shared";
 import {
   type Card,
@@ -38,6 +39,7 @@ import { shuffle } from "shared/shuffle";
 import { Supply, type supplyStack } from "shared/supply";
 import { effect_table } from "./effects";
 import type { Lobby, PlayerLobbyInfo } from "./lobby";
+import { AISocket, type MessageSink } from "./socket";
 
 type WaitResponses =
   | typeof MessageKinds.PICK_CARDS_RESPONSE
@@ -68,6 +70,7 @@ class WaitQueue {
   }
 
   resolve(response: Message, clientid: string) {
+    console.log("Resolving response");
     const front = this.wait_queue.peek_front();
     if (front === undefined) {
       return;
@@ -148,7 +151,7 @@ function new_game_state(
 export type PlayerInfo = {
   player: Player;
   clientid: string;
-  socket: WSContext;
+  socket: MessageSink;
 };
 
 // TODO: Should game be under a read write lock to avoid wait conditions?
@@ -169,8 +172,8 @@ export class Game {
 
     // DEBUG MODE TOGGLE
     if (
-      process.env.DEBUG?.toLowerCase() === "1" ||
-      process.env.DEBUG?.toLowerCase() === "true"
+      process.env.DEBUG?.toLowerCase().trim() === "1" ||
+      process.env.DEBUG?.toLowerCase().trim() === "true"
     ) {
       this.debug_mode = true;
     } else {
@@ -302,7 +305,7 @@ export class Game {
         kind: MessageKinds.GAME_STATE_UPDATE,
 
         game_state: this.game_state,
-        player: player_info.player,
+        player: toSharablePlayer(player_info.player),
       };
 
       const serialized_message = serializeMessage(update_message);
@@ -323,7 +326,7 @@ export class Game {
         player_name_order: this.get_player_names(),
         state: this.game_state,
 
-        player: player_info.player,
+        player: toSharablePlayer(player_info.player),
       };
 
       const started_msg_str = serializeMessage(started_msg);
@@ -338,6 +341,7 @@ export class Game {
       console.log("No wait info");
       return;
     }
+    console.log("Going to resolve");
     this.wait_queue.resolve(response, clientid);
 
     // WARN: Assuming that there are no errors
@@ -866,4 +870,15 @@ function isSubset(subset: any[], set: any[]): boolean {
   }
 
   return true;
+}
+
+function toSharablePlayer(player: Player): SharablePlayer {
+  return {
+    name: player.name,
+    hand: player.hand,
+    victory_points: player.victory_points,
+    deck_size: player.deck.length,
+    discard_pile_size: player.discard_pile.length,
+    top_of_discard_pile: player.discard_pile[player.discard_pile.length - 1],
+  };
 }
