@@ -22,21 +22,22 @@ import {
 } from "shared/messages";
 import type { Supply, supplyStack } from "shared/supply";
 import {
+  Sheet,
+  SheetClose,
+  SheetContent,
+  SheetDescription,
+  SheetFooter,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+} from "@/components/ui/sheet";
+import {
   Tooltip,
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { card_descriptions } from "./CardDescriptions.tsx";
 import { Button } from "./components/ui/button.tsx";
-import {
-  Dialog,
-  DialogClose,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "./components/ui/dialog.tsx";
 import { game_socket, PlayerNameDisplay, useLobbyStore } from "./Lobby";
 
 export function Game() {
@@ -63,29 +64,27 @@ export function Game() {
   }
 
   return (
-    <>
-      <div className="flex flex-row flex-nowrap justify-center items-start place-content-between">
-        <div className="flex-col w-1/5 border h-screen">
-          <PlayerList />
-          <h2>
-            Current Vp: <span>{player.victory_points}</span>
-          </h2>
-          <VisualGameState />
-        </div>
-        <div className="flex-col w-3/5 border h-screen">
-          <VisualSupply supply={game_state.supply} />
-          <PlayedCards played_cards={game_state.played_cards} />
-          <Hand hand={player.hand} />
-          <Description />
-          {/* {choices} */}
-          {pop_up}
-        </div>
-        <div className="flex-col w-1/5 border h-screen">
-          <TurnInfo />
-          <Log />
-        </div>
+    <div className="flex flex-row flex-nowrap justify-center items-start place-content-between">
+      <div className="flex-col w-1/5 border h-screen">
+        <PlayerList />
+        <h2>
+          Current Vp: <span>{player.victory_points}</span>
+        </h2>
+        <VisualGameState />
       </div>
-    </>
+      <div className="flex-col w-3/5 border h-screen">
+        <VisualSupply supply={game_state.supply} />
+        <PlayedCards played_cards={game_state.played_cards} />
+        <Hand hand={player.hand} />
+        <Description />
+        {/* {choices} */}
+        {pop_up}
+      </div>
+      <div className="flex-col w-1/5 border h-screen">
+        <TurnInfo />
+        <Log />
+      </div>
+    </div>
   );
 }
 
@@ -121,19 +120,17 @@ function VisualGameState() {
   const game_state = useLobbyStore((state) => state.game_state)!;
 
   return (
-    <>
-      <div>
-        <h2>GameState Info</h2>
-        <p>Current Player: {players[game_state.current_player_index]}</p>
-        <p>Phase : {game_state.phase}</p>
-        <div className="text-wrap w-full">
-          <p>
-            Trash Pile:{" "}
-            {game_state.trash_pile.map((card) => card.info.name).join(", ")}
-          </p>
-        </div>
+    <div>
+      <h2>GameState Info</h2>
+      <p>Current Player: {players[game_state.current_player_index]}</p>
+      <p>Phase : {game_state.phase}</p>
+      <div className="text-wrap w-full">
+        <p>
+          Trash Pile:{" "}
+          {game_state.trash_pile.map((card) => card.info.name).join(", ")}
+        </p>
       </div>
-    </>
+    </div>
   );
 }
 
@@ -514,12 +511,9 @@ function ChooseCardsList({ extra_cards }: { extra_cards: Card[] }) {
   const set_message = useLobbyStore((state) => state.set_message);
 
   return (
-    <Dialog open={true}>
-      <DialogContent showCloseButton={false}>
-        <DialogHeader>
-          <h2>{message.description}</h2>
-        </DialogHeader>
-
+    <CardSelectionPopup
+      description={message.description}
+      content={
         <div className="flex flex-row flex-wrap justify-center">
           {extra_cards.map((card) => (
             <CardButton
@@ -530,30 +524,69 @@ function ChooseCardsList({ extra_cards }: { extra_cards: Card[] }) {
             />
           ))}
         </div>
-
-        <DialogFooter className="text-center sm:justify-center justify-center">
-          <DialogClose>
-            <Button
-              onClick={() => {
-                const res: PickCardsResponse = {
-                  kind: MessageKinds.PICK_CARDS_RESPONSE,
-                  choices: choices,
-                };
-                set_message(undefined);
-                setChoices([]);
-                game_socket?.send(JSON.stringify(res));
-              }}
-              disabled={
-                choices.length > message.max || choices.length < message.min
-              }
-            >
-              Confirm Choices
-            </Button>
-          </DialogClose>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+      }
+      footer={
+        <Button
+          onClick={() => {
+            const res: PickCardsResponse = {
+              kind: MessageKinds.PICK_CARDS_RESPONSE,
+              choices: choices,
+            };
+            set_message(undefined);
+            setChoices([]);
+            game_socket?.send(JSON.stringify(res));
+          }}
+          disabled={
+            choices.length > message.max || choices.length < message.min
+          }
+        >
+          Confirm Choices
+        </Button>
+      }
+    />
   );
+
+  // return (
+  //   <Sheet defaultOpen={true}>
+  //     <SheetContent showCloseButton={false}>
+  //       <SheetHeader>
+  //         <h2>{message.description}</h2>
+  //       </SheetHeader>
+  //
+  //       <div className="flex flex-row flex-wrap justify-center">
+  //         {extra_cards.map((card) => (
+  //           <CardButton
+  //             key={card.id}
+  //             card={card}
+  //             selected_cards={choices}
+  //             setSelectedCards={setChoices}
+  //           />
+  //         ))}
+  //       </div>
+  //
+  //       <SheetFooter className="text-center sm:justify-center justify-center">
+  //         <SheetClose>
+  //           <Button
+  //             onClick={() => {
+  //               const res: PickCardsResponse = {
+  //                 kind: MessageKinds.PICK_CARDS_RESPONSE,
+  //                 choices: choices,
+  //               };
+  //               set_message(undefined);
+  //               setChoices([]);
+  //               game_socket?.send(JSON.stringify(res));
+  //             }}
+  //             disabled={
+  //               choices.length > message.max || choices.length < message.min
+  //             }
+  //           >
+  //             Confirm Choices
+  //           </Button>
+  //         </SheetClose>
+  //       </SheetFooter>
+  //     </SheetContent>
+  //   </Sheet>
+  // );
 }
 
 function ChooseYesNo() {
@@ -571,39 +604,100 @@ function ChooseYesNo() {
   }
 
   return (
-    <Dialog open={true}>
-      <DialogContent showCloseButton={false} className="text-center">
-        <DialogHeader>
-          <h2>{message.description}</h2>
-        </DialogHeader>
+    <CardSelectionPopup
+      description={message.description}
+      content={<CardDisplay key={message.card.id} card={message.card} />}
+      footer={
+        <p>
+          <Button
+            onClick={() => {
+              send_choice(true);
+            }}
+          >
+            Yes
+          </Button>
 
-        <div className="text-center">
-          <CardDisplay key={message.card.id} card={message.card} />
+          <Button
+            onClick={() => {
+              send_choice(false);
+            }}
+          >
+            No
+          </Button>
+        </p>
+      }
+    />
+  );
+
+  // return (
+  //   <Sheet defaultOpen={true}>
+  //     <SheetContent showCloseButton={false} className="text-center">
+  //       <SheetHeader>
+  //         <h2>{message.description}</h2>
+  //       </SheetHeader>
+  //
+  //       <div className="text-center">
+  //         <CardDisplay key={message.card.id} card={message.card} />
+  //       </div>
+  //
+  //       <SheetFooter className="text-center sm:justify-center justify-center">
+  //         <SheetClose>
+  //           <p>
+  //             <Button
+  //               onClick={() => {
+  //                 send_choice(true);
+  //               }}
+  //             >
+  //               Yes
+  //             </Button>
+  //
+  //             <Button
+  //               onClick={() => {
+  //                 send_choice(false);
+  //               }}
+  //             >
+  //               No
+  //             </Button>
+  //           </p>
+  //         </SheetClose>
+  //       </SheetFooter>
+  //     </SheetContent>
+  //   </Sheet>
+  // );
+}
+
+function CardSelectionPopup({
+  description,
+  content,
+  footer,
+}: {
+  description: string;
+  content?: ReactNode;
+  footer?: ReactNode;
+}) {
+  return (
+    <Sheet defaultOpen={true}>
+      <SheetTrigger>
+        <div className="w-screen fixed bottom-0 left-0">
+          <div className="flex justify-center">
+            <Button className="w-1/3 h-auto text-center rounded-t-lg rounded-b-none">
+              &#9650;
+            </Button>
+          </div>
         </div>
+      </SheetTrigger>
+      <SheetContent className="text-center" side="bottom">
+        <SheetHeader>
+          <h2>{description}</h2>
+        </SheetHeader>
 
-        <DialogFooter className="text-center sm:justify-center justify-center">
-          <DialogClose>
-            <p>
-              <Button
-                onClick={() => {
-                  send_choice(true);
-                }}
-              >
-                Yes
-              </Button>
+        <div className="text-center">{content}</div>
 
-              <Button
-                onClick={() => {
-                  send_choice(false);
-                }}
-              >
-                No
-              </Button>
-            </p>
-          </DialogClose>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+        <SheetFooter className="text-center sm:justify-center justify-center">
+          <SheetClose>{footer}</SheetClose>
+        </SheetFooter>
+      </SheetContent>
+    </Sheet>
   );
 }
 
