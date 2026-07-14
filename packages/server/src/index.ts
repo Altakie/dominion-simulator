@@ -21,47 +21,30 @@ function getClientId(c: Context): string | undefined {
   return getCookie(c, "clientid");
 }
 
-const webby: Map<string, WSContext> = new Map();
 const names: Map<string, string> = new Map();
 
-app.use(
-  "/socket",
-  upgradeWebSocket((c) => {
-    return {
-      onOpen: async (_ev, ws) => {
-        let clientid = getCookie(c, "clientid");
-        if (!clientid) {
-          clientid = randomUUIDv7();
-          setCookie(c, "clientid", clientid, {
-            httpOnly: true,
-          });
-        }
-
-        webby.set(clientid, ws);
-      },
-      onMessage: async (event, _ws) => {
-        const clientid = getClientId(c);
-        if (!clientid) {
-          return;
-        }
-        const name = event.data.toString();
-        // serverMessage = msg
-        console.log(`Name received: ${name}`);
-        names.set(clientid, name);
-        // for (let value of webby.values()) {
-        //   value.send(JSON.stringify({
-        //     msg: msg,
-        //   }))
-        // }
-      },
-      onClose: () => {
-        console.log("Closed :(");
-      },
-    };
-  }),
-);
-
 const lobby = new Lobby();
+
+app.put("/names", async (c) => {
+  const name = await c.req.text();
+  if (lobby.player_lobby_infos.values().some((pli) => pli.name === name)) {
+    c.status(406);
+    return c.body("Name is already taken");
+  }
+
+  let clientid = getCookie(c, "clientid");
+  if (!clientid) {
+    clientid = randomUUIDv7();
+    setCookie(c, "clientid", clientid, {
+      httpOnly: true,
+    });
+  }
+
+  console.log(`Name received: ${name}`);
+  names.set(clientid, name);
+  c.status(200);
+  return c.res;
+});
 
 app.use(
   "/game",
@@ -81,8 +64,6 @@ app.use(
           ws.close(1000);
           return;
         }
-
-        webby.set(clientid, ws);
 
         lobby.add_player(clientid, name, ws);
 
@@ -110,7 +91,6 @@ app.use(
         }
 
         lobby.remove_player(clientid);
-        webby.delete(clientid);
       },
     };
   }),
