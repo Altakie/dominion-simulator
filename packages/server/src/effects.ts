@@ -10,6 +10,7 @@ import {
 } from "shared/messages";
 import { shuffle } from "shared/shuffle";
 import type { supplyStack } from "shared/supply";
+import { handle_attack } from "./attacks";
 import type { Game, NonBlockingCc } from "./game";
 
 export const effect_table: Record<CardName, (game: Game) => void> = {
@@ -201,7 +202,7 @@ export const effect_table: Record<CardName, (game: Game) => void> = {
         );
       }
     };
-    game.handle_attack(Bureaucrat.name, benefit, next);
+    handle_attack(game, Bureaucrat.name, benefit, next);
 
     function get_hinder_next(player: Player): (choices: Card[]) => void {
       return (choices: Card[]) => {
@@ -232,7 +233,7 @@ export const effect_table: Record<CardName, (game: Game) => void> = {
         );
       }
     };
-    game.handle_attack(Militia.name, benefit, next);
+    handle_attack(game, Militia.name, benefit, next);
 
     function get_hinder_next(player: Player): (choices: Card[]) => void {
       return (choices: Card[]) => {
@@ -420,7 +421,7 @@ export const effect_table: Record<CardName, (game: Game) => void> = {
         );
       }
     };
-    game.handle_attack(Bandit.name, benefit, next);
+    handle_attack(game, Bandit.name, benefit, next);
 
     function get_hinder_next(player: Player): (choices: Card[]) => void {
       return (choices: Card[]) => {
@@ -643,7 +644,7 @@ export const effect_table: Record<CardName, (game: Game) => void> = {
       game.gain_card(player, Curse.name, player.discard_pile);
     };
 
-    game.handle_attack(Witch.name, benefit, next);
+    handle_attack(game, Witch.name, benefit, next);
   },
   Artisan: (game: Game) => {
     const player = game.get_current_player();
