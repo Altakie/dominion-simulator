@@ -25,18 +25,32 @@
   - Make game_socket be created when the connect button is clicked
 - Screen to setup game in beginning
 - Actually allow player to make decisions during money phase
+- Show who waiting for during attacks
+  - Send the attack index over to the client and display it somewhere
+  -
+- Implement way for players to properly reconnect
+  - Might require some refactoring
+    - Resend messages if a player disconnects and then reconnects (because their websocket will be different I think)
+  - On the client side, if a player is already in the game, should switch to the game screen
+    - Maybe send the individual player a game_started message to catch them back up to speed
+    - Also maybe send them the log?
+      - TODO
 
 ## Minor Features
 
 - AI Player
+  - Need to add button to toggle AI player in lobby
+  - Lobby hosts, only the lobby host should be able to start the game, add AI players, etc..
+  - This is to avoid race conditions
+  - Lets make the first player who joined lobby host
 - Server should sign client ids in case someone tries to modify them client side
-- Show cards being drawn before dialog pops up
-  - Or unblur them after dialog
+  - If the client id is not server signed, reassign the client's clientid to a server assigned clientid
 - Display vp of all players, not just yours
   - Enforce unique names in game
     - Just check name in hashmap or something and reject a connection if it has a duplicate name
 - Move turn information (actions, money, and buys) visually closer to where the player's eyes are spending the most time
   - Probably between the hand and the supply
+- Color code end screen
 - Indicate empty supply piles
   - Gray them out or put an x over them
   - Just do a check on whether the count is 0 and replace the supply pile visual when it is 0
@@ -51,7 +65,10 @@
   - Tie breakers when vp is the same, later player should be the winner
   - Can just send who won in the message
   - Players should know their own names client side, even though they shouldn't know their ids
+  - Names should be unique
 - Manual testing to ensure that all card effects work as intended
+  - Unit testing here is better
+    - Either use dependency injection or have a special debug method for creating testing games
 - Better indication of current turn
   - Think on this
   - Highlighting of current player in player list?
