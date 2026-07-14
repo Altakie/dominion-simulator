@@ -681,12 +681,21 @@ function CardSelectionPopup({
         <div className="w-screen fixed bottom-0 left-0">
           <div className="flex justify-center">
             <Button className="w-1/3 h-auto text-center rounded-t-lg rounded-b-none">
-              &#9650;
+              <UpChevron />
             </Button>
           </div>
         </div>
       </SheetTrigger>
-      <SheetContent className="text-center" side="bottom">
+      <SheetContent
+        className="text-center"
+        side="bottom"
+        showCloseButton={false}
+      >
+        <SheetClose>
+          <Button className="rounded-t-none rounded-b-lg w-1/3">
+            <DownChevron />
+          </Button>
+        </SheetClose>
         <SheetHeader>
           <h2>{description}</h2>
         </SheetHeader>
@@ -699,6 +708,14 @@ function CardSelectionPopup({
       </SheetContent>
     </Sheet>
   );
+}
+
+function UpChevron() {
+  return <span>&#9650;</span>;
+}
+
+function DownChevron() {
+  return <span>&#9660;</span>;
 }
 
 // function PopUp({children}) {
