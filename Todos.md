@@ -2,34 +2,21 @@
 
 ## Major Features
 
-- Attack cards don't work with more than two players
-  - Bureacrat
 - Maybe a reorder decision type?
 - Better trash pile
 - Card reveal mechanic
-- Redo Lobby system on frontend
-  - Don't use websocket to register player names
-    - Server Side
-      - Can just use a put request
-        - Update a player's name on put request
-        - Return whether it was successful or not
-          - Should fail if the name is not unique in the lobby the player is trying to join
-    - Client Side
-      - Send out request and wait for server response before trying to load into lobby
-        - Suspend while waiting for server response
-        - Only switch to lobby view and try to connect to game socket on successful server response
-    - Then can have lobby's with ids
-      - Can share lobby code with other players to allow joining
-      - Password locked lobbies
+- Lobby's with ids
+  - Can share lobby code with other players to allow joining
+  - Password locked lobbies
   - Combine lobby stores and router stores
   - Make game_socket be created when the connect button is clicked
 - Screen to setup game in beginning
 - Actually allow player to make decisions during money phase
-- Show who waiting for during attacks
-  - Send the attack index over to the client and display it somewhere
 
 ## Minor Features
 
+- Show who waiting for during attacks
+  - Send the attack index over to the client and display it somewhere
 - Move turn information (actions, money, and buys) visually closer to where the player's eyes are spending the most time
   - Probably between the hand and the supply
 - Show top card of discard pile and how many cards are in discard pile and deck
