@@ -36,7 +36,11 @@ export class Lobby {
       socket: ws,
     });
 
+    // Check if there is a game going on and if the player is in it, send them a game started message
     // TODO: Only send connect message to players in lobby
+    if (this.game?.player_infos.some((pi) => pi.clientid === clientid)) {
+      this.game.reconnect_player(clientid, ws);
+    }
     let players_in_lobby: PlayerLobbyInfo[];
     if (this.game === undefined) {
       players_in_lobby = this.player_lobby_infos.values().toArray();

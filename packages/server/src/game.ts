@@ -32,6 +32,7 @@ import {
   type PickSupplyPileResponse,
   type PickYesNoRequest,
   type PickYesNoResponse,
+  type PlayerNamesMessage,
   type StartedMessage,
   serializeMessage,
 } from "shared/messages";
@@ -54,6 +55,7 @@ interface WaitInfo extends Cc {
   wait: true;
   player_info: PlayerInfo;
   response_type: WaitResponses;
+  request: Message;
   cc: (response: Message) => void;
 }
 
@@ -116,6 +118,15 @@ class WaitQueue {
     return this.wait_queue.peek_front();
   }
 
+  peek_front_waiting(): WaitInfo | undefined {
+    const front = this.peek_front();
+    if (!this.peek_front()?.wait) {
+      return undefined;
+    }
+
+    return front as WaitInfo;
+  }
+
   push_back(cc: Cc) {
     this.wait_queue.push_back(cc);
   }
@@ -161,24 +172,15 @@ export class Game {
   player_infos: PlayerInfo[];
   game_state: GameState;
   wait_queue: WaitQueue;
+  event_log: string[];
   card_count: number;
-  debug_mode: boolean;
 
   constructor(players: PlayerLobbyInfo[], lobby: Lobby) {
     this.lobby = lobby;
 
     this.card_count = 0;
     this.wait_queue = new WaitQueue();
-
-    // DEBUG MODE TOGGLE
-    if (
-      process.env.DEBUG?.toLowerCase().trim() === "1" ||
-      process.env.DEBUG?.toLowerCase().trim() === "true"
-    ) {
-      this.debug_mode = true;
-    } else {
-      this.debug_mode = false;
-    }
+    this.event_log = [];
 
     const player_infos = players.map((player): PlayerInfo => {
       return {
@@ -191,7 +193,11 @@ export class Game {
 
     this.game_state = new_game_state(0, new Supply(players.length));
 
-    if (this.debug_mode) {
+    // DEBUG MODE TOGGLE
+    if (
+      process.env.DEBUG?.toLowerCase().trim() === "1" ||
+      process.env.DEBUG?.toLowerCase().trim() === "true"
+    ) {
       this.game_state.supply.toggleDebugMode();
     }
   }
@@ -334,6 +340,50 @@ export class Game {
     }
 
     this.action_phase();
+  }
+
+  reconnect_player(clientid: string, socket: MessageSink) {
+    for (const player_info of this.player_infos) {
+      if (player_info.clientid === clientid) {
+        player_info.socket = socket;
+        const started_msg: StartedMessage = {
+          kind: MessageKinds.STARTED,
+          player_name_order: this.get_player_names(),
+          state: this.game_state,
+
+          player: toSharablePlayer(player_info.player),
+        };
+
+        socket.send(serializeMessage(started_msg));
+
+        if (
+          this.wait_queue.peek_front_waiting()?.player_info.clientid ===
+          clientid
+        ) {
+          // Resend message if the player the game is waiting on reconnected
+          socket.send(
+            serializeMessage(this.wait_queue.peek_front_waiting()!.request),
+          );
+        }
+
+        const log_message: LogMessage = {
+          kind: MessageKinds.LOG,
+          log_messages: this.event_log,
+        };
+
+        socket.send(serializeMessage(log_message));
+        // break;
+      }
+      const started_msg: StartedMessage = {
+        kind: MessageKinds.STARTED,
+        player_name_order: this.get_player_names(),
+        state: this.game_state,
+
+        player: toSharablePlayer(player_info.player),
+      };
+
+      socket.send(serializeMessage(started_msg));
+    }
   }
 
   resolve_player_choice(clientid: string, response: Message) {
@@ -526,7 +576,7 @@ export class Game {
       benefit();
       this.game_state.attack_index =
         (this.game_state.current_player_index + 1) % this.player_infos.length;
-      effect_table[card_name](this);
+      (() => effect_table[card_name](this))();
     } else if (
       this.game_state.attack_index === this.game_state.current_player_index
     ) {
@@ -550,7 +600,7 @@ export class Game {
         next();
         this.game_state.attack_index =
           (this.game_state.attack_index! + 1) % this.player_infos.length;
-        effect_table[card_name](this);
+        (() => effect_table[card_name](this))();
       }
     }
   }
@@ -565,7 +615,7 @@ export class Game {
       }
       this.game_state.attack_index =
         (this.game_state.attack_index! + 1) % this.player_infos.length;
-      effect_table[card_name](this);
+      (() => effect_table[card_name](this))();
     };
   }
 
@@ -608,6 +658,7 @@ export class Game {
     const req_str = serializeMessage(req);
     const waiting: WaitInfo = {
       wait: true,
+      request: req,
       player_info: player,
       response_type: MessageKinds.PICK_CARDS_RESPONSE,
       cc: wrapped_next,
@@ -638,6 +689,7 @@ export class Game {
     const req_str = serializeMessage(req);
     const waiting: WaitInfo = {
       wait: true,
+      request: req,
       player_info: player,
       response_type: MessageKinds.PICK_YES_NO_RESPONSE,
       cc: wrapped_next,
@@ -683,6 +735,7 @@ export class Game {
     const req_str = serializeMessage(req);
     const waiting: WaitInfo = {
       wait: true,
+      request: req,
       player_info: player,
       response_type: MessageKinds.PICK_SUPPLY_PILE_RESPONSE,
       cc: wrapped_next,
@@ -845,15 +898,28 @@ export class Game {
       player_info.socket.send(serialized_game_end_message);
     }
 
+    const players_in_lobby_message: PlayerNamesMessage = {
+      kind: MessageKinds.PLAYER_NAMES,
+
+      player_names: this.lobby.get_player_names(),
+    };
+    const serialized_names = serializeMessage(players_in_lobby_message);
+
+    for (const player_info of this.player_infos) {
+      player_info.socket.send(serialized_names);
+    }
     this.lobby.game = undefined;
   }
 
-  send_log_message(log_message: string) {
+  send_log_message(...log_messages: string[]) {
     const msg: LogMessage = {
       kind: MessageKinds.LOG,
 
-      log_message: log_message,
+      log_messages: log_messages,
     };
+
+    this.event_log.push(...log_messages);
+
     const ser_msg = serializeMessage(msg);
     for (const player_info of this.player_infos) {
       player_info.socket.send(ser_msg);

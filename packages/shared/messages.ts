@@ -140,7 +140,6 @@ export interface GameStateUpdateMessage extends Message {
   kind: typeof MessageKinds.GAME_STATE_UPDATE;
 
   game_state: GameState;
-  // TODO: Maybe the player should not have access to all of their information, such as their deck and discard pile unless specifically prompted
   player: SharablePlayer;
 }
 
@@ -153,7 +152,7 @@ export interface GameEndMessage extends Message {
 export interface LogMessage extends Message {
   kind: typeof MessageKinds.LOG;
 
-  log_message: string;
+  log_messages: string[];
 }
 
 export function serializeMessage(msg: Message): string {

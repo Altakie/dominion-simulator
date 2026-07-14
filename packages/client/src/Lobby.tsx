@@ -35,11 +35,11 @@ import { GameEnd } from "./GameEnd.tsx";
 
 export let game_socket: WebSocket = null;
 
-export const LobbyStates = {
+export const LobbyStates = Object.freeze({
   LOBBY: "Lobby",
   GAME_STARTED: "Game Started",
   GAME_END: "Game End",
-};
+});
 
 type LobbyStore = {
   connected: boolean;
@@ -52,8 +52,6 @@ type LobbyStore = {
   set_lobby_state: (
     game_started: (typeof LobbyStates)[keyof typeof LobbyStates],
   ) => void;
-  choice_list?: JSX.Element;
-  set_choice_list: (choice_list?: JSX.Element) => void;
 
   game_state?: GameState;
   set_game_state: (game_state: GameState) => void;
@@ -62,7 +60,7 @@ type LobbyStore = {
   player?: SharablePlayer;
   set_player: (player?: SharablePlayer) => void;
   log_messages: string[];
-  add_log_message: (message: string) => void;
+  add_log_messages: (...messages: string[]) => void;
   clear_log: () => void;
 };
 
@@ -87,9 +85,9 @@ export const useLobbyStore = create<LobbyStore>((set) => ({
   set_lobby_state: (game_started) => {
     set(() => ({ lobby_state: game_started }));
   },
-  set_choice_list: (choice_list) => {
-    set(() => ({ choice_list: choice_list }));
-  },
+  // set_choice_list: (choice_list) => {
+  //   set(() => ({ choice_list: choice_list }));
+  // },
 
   set_game_state: (game_state) => {
     set(() => ({ game_state: game_state }));
@@ -101,8 +99,8 @@ export const useLobbyStore = create<LobbyStore>((set) => ({
     set(() => ({ player: player }));
   },
   log_messages: [],
-  add_log_message: (message: string) => {
-    set((state) => ({ log_messages: [...state.log_messages, message] }));
+  add_log_messages: (...messages: string[]) => {
+    set((state) => ({ log_messages: [...state.log_messages, ...messages] }));
   },
   clear_log: () => {
     set(() => ({ log_messages: [] }));
@@ -133,12 +131,12 @@ export function Lobby() {
       add_player_name: state.add_player_name,
       remove_player_name: state.remove_player_name,
       set_player_names: state.set_player_names,
-      set_choice_list: state.set_choice_list,
+      // set_choice_list: state.set_choice_list,
 
       set_game_state: state.set_game_state,
       set_message: state.set_message,
       set_player: state.set_player,
-      add_log_message: state.add_log_message,
+      add_log_messages: state.add_log_messages,
       clear_log: state.clear_log,
     })),
   );
@@ -159,11 +157,18 @@ export function Lobby() {
         break;
       }
       case MessageKinds.CONNECT: {
+        // TODO: If the player is in game, it should say that a player is disconnected, vs connected, but not remove their name from the list
+        if (lobby_store.lobby_state === LobbyStates.GAME_STARTED) {
+          break;
+        }
         const conn_msg = message as ConnectMessage;
         lobby_store.add_player_name(conn_msg.player_name);
         break;
       }
       case MessageKinds.DISCONNECT: {
+        if (lobby_store.lobby_state === LobbyStates.GAME_STARTED) {
+          break;
+        }
         const disconn_msg = message as DisconnectMessage;
         lobby_store.remove_player_name(disconn_msg.player_name);
         break;
@@ -178,9 +183,9 @@ export function Lobby() {
       }
       case MessageKinds.PICK_CARDS_REQUEST:
         // NOTE: Handled elsewhere
-        lobby_store.set_choice_list(
-          <ChooseCardsList message={message as PickCardsRequest} />,
-        );
+        // lobby_store.set_choice_list(
+        //   <ChooseCardsList message={message as PickCardsRequest} />,
+        // );
         lobby_store.set_message(message);
         break;
       case MessageKinds.PICK_SUPPLY_PILE_REQUEST:
@@ -190,9 +195,9 @@ export function Lobby() {
         lobby_store.set_message(message);
         break;
       case MessageKinds.PICK_YES_NO_REQUEST:
-        lobby_store.set_choice_list(
-          <ChooseYesNo message={message as PickYesNoRequest} />,
-        );
+        // lobby_store.set_choice_list(
+        //   <ChooseYesNo message={message as PickYesNoRequest} />,
+        // );
         lobby_store.set_message(message);
         break;
       case MessageKinds.GAME_STATE_UPDATE: {
@@ -209,7 +214,7 @@ export function Lobby() {
         break;
       case MessageKinds.LOG: {
         const log_message = message as LogMessage;
-        lobby_store.add_log_message(log_message.log_message);
+        lobby_store.add_log_messages(...log_message.log_messages);
         break;
       }
       default:
@@ -348,166 +353,5 @@ export function PlayerNameDisplay({ name }: { name: string }) {
     <div className="border mx-auto w-[10vw] h-lh text-ellipsis text-nowrap overflow-auto">
       {name}
     </div>
-  );
-}
-
-function ChooseCardsList({ message }: { message: PickCardsRequest }) {
-  const set_choice_list = useLobbyStore((state) => state.set_choice_list);
-  const [choices, setChoices] = useState<Card[]>([]);
-
-  function CardChoiceButton({ card }: { card: Card }) {
-    const selected = choices.includes(card);
-
-    return (
-      <Button
-        style={(() => {
-          if (selected) {
-            return {
-              color: "red",
-            };
-          } else {
-            return {};
-          }
-        })()}
-        onClick={() => {
-          if (!choices.includes(card)) {
-            setChoices([...choices, card]);
-            return;
-          }
-
-          setChoices(choices.filter((c) => c !== card));
-        }}
-      >
-        {card.info.name}
-      </Button>
-    );
-  }
-
-  return (
-    <>
-      <h3>{message.description}</h3>
-      <h3>Currently Selected</h3>
-      {choices.map((card) => (
-        <p key={card.id}>{card.info.name}</p>
-      ))}
-
-      <h3>Choices</h3>
-      {message.choices.map((card) => (
-        <CardChoiceButton key={card.id} card={card} />
-      ))}
-
-      <Button
-        onClick={() => {
-          const res: PickCardsResponse = {
-            kind: MessageKinds.PICK_CARDS_RESPONSE,
-            choices: choices,
-          };
-          setChoices([]);
-          set_choice_list(undefined);
-          game_socket.send(JSON.stringify(res));
-        }}
-        disabled={choices.length > message.max || choices.length < message.min}
-      >
-        Confirm Choices
-      </Button>
-    </>
-  );
-}
-
-// function ChooseSupplyPilesList({ message, game_socket, lobby_store.set_choice_list }: { message: PickSupplyPileRequest, game_socket: WebSocket, setChoiceList }) {
-//   const [choices, setChoices] = useState<supplyStack[]>([])
-//
-//   function SupplyPileButton({ supply_pile }: { supply_pile: supplyStack }) {
-//     const selected = choices.includes(supply_pile)
-//
-//     return (
-//       <Button style={selected ?
-//         { color: "red" } : {}
-//       }
-//         onClick={() => {
-//           if (!choices.includes(supply_pile)) {
-//             setChoices([...choices, supply_pile])
-//             return
-//           }
-//
-//           setChoices(choices.filter((ss) => (ss !== supply_pile)))
-//         }}
-//
-//       >{supply_pile.card.name} : ${supply_pile.card.cost}</Button>
-//     )
-//   }
-//
-//
-//   return (
-//     <>
-//       <h3>{message.description}</h3>
-//       <h3>Currently Selected</h3>
-//       {choices.map((supply_pile) =>
-//         <p>{supply_pile.card.name}</p>
-//       )}
-//
-//       <div>
-//         <h3>Choices</h3>
-//         {
-//           message.choices.map((supply_pile) => (<SupplyPileButton supply_pile={supply_pile} />))
-//         }
-//       </div>
-//
-//       <div>
-//         <Button
-//           onClick={
-//             () => {
-//               let res: PickSupplyPileResponse = {
-//                 kind: MessageKinds.PICK_SUPPLY_PILE_RESPONSE,
-//                 choices: choices
-//               }
-//               setChoices([])
-//               lobby_store.set_choice_list(null)
-//               game_socket.send(JSON.stringify(res))
-//             }
-//           }
-//
-//           disabled={
-//             choices.length > message.max || choices.length < message.min
-//           }>Confirm Choices</Button >
-//       </div>
-//     </>
-//   )
-// }
-
-function ChooseYesNo({ message }: { message: PickYesNoRequest }) {
-  const set_choice_list = useLobbyStore((state) => state.set_choice_list);
-
-  function send_choice(choice: boolean) {
-    const res: PickYesNoResponse = {
-      kind: MessageKinds.PICK_YES_NO_RESPONSE,
-      choice: choice,
-    };
-    set_choice_list(undefined);
-    game_socket.send(JSON.stringify(res));
-  }
-
-  return (
-    <>
-      <h3>Card: {message.card.info.name}</h3>
-      <h3>Choices</h3>
-      <p>
-        <Button
-          onClick={() => {
-            send_choice(true);
-          }}
-        >
-          Yes
-        </Button>
-
-        <Button
-          onClick={() => {
-            send_choice(false);
-          }}
-        >
-          No
-        </Button>
-      </p>
-    </>
   );
 }
