@@ -3,12 +3,16 @@ import type { Card } from "./cards";
 import type { supplyStack } from "./supply";
 
 export const MessageKinds = Object.freeze({
+  // Lobby Messages
   CONNECT: "Connect",
   DISCONNECT: "Disconnect",
   PLAYER_NAMES: "Player Names",
   START: "Start",
   STARTED: "Started",
+  KICK_PLAYER: "Kick Player",
+  ADD_AI_PLAYER: "Add AI Player",
 
+  // Game Messages
   GAME_STATE_UPDATE: "Game State Update",
 
   PICK_CARDS_REQUEST: "Pick Cards Request",
@@ -58,6 +62,15 @@ export interface Message {
 export interface ConnectMessage extends Message {
   kind: typeof MessageKinds.CONNECT;
   player_name: string;
+}
+
+export interface KickPlayerMessage extends Message {
+  kind: typeof MessageKinds.KICK_PLAYER;
+  player_name: string;
+}
+
+export interface AddAIPlayerMessage extends Message {
+  kind: typeof MessageKinds.ADD_AI_PLAYER;
 }
 
 export interface DisconnectMessage extends Message {

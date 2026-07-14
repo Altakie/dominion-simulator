@@ -1,5 +1,6 @@
 import { type JSX, useEffect, useState } from "react";
 import {
+  type AddAIPlayerMessage,
   type ConnectMessage,
   type DisconnectMessage,
   type GameStateUpdateMessage,
@@ -256,6 +257,21 @@ export function Lobby() {
           </Button>
 
           <PlayerList />
+
+          <Button
+            onClick={() => {
+              const ai_player_msg: AddAIPlayerMessage = {
+                kind: MessageKinds.ADD_AI_PLAYER,
+              };
+              game_socket.send(serializeMessage(ai_player_msg));
+            }}
+            disabled={
+              !lobby_store.connected ||
+              lobby_store.player_names.some((name) => name === "Gemini")
+            }
+          >
+            Add AI Player
+          </Button>
 
           <Button
             onClick={() => {
