@@ -72,8 +72,7 @@ function SheetContent({
               className="absolute top-3 right-3"
               size="icon-sm"
             >
-              {/* <XIcon /> */}
-              <DownChevron />
+              <XIcon />
               <span className="sr-only">Close</span>
             </Button>
           </SheetPrimitive.Close>
@@ -81,10 +80,6 @@ function SheetContent({
       </SheetPrimitive.Content>
     </SheetPortal>
   );
-}
-
-function DownChevron() {
-  return <span>&#9660;</span>;
 }
 
 function SheetHeader({ className, ...props }: React.ComponentProps<"div">) {

@@ -1,3 +1,4 @@
+import { randomUUIDv7 } from "bun";
 import type { WSContext } from "hono/ws";
 import {
   type ConnectMessage,
@@ -18,6 +19,7 @@ export type PlayerLobbyInfo = {
 
 export class Lobby {
   player_lobby_infos: Map<string, PlayerLobbyInfo>;
+  host?: PlayerLobbyInfo;
   game?: Game;
 
   constructor() {
@@ -30,17 +32,22 @@ export class Lobby {
   }
 
   add_player(clientid: string, name: string, ws: MessageSink) {
-    this.player_lobby_infos.set(clientid, {
+    const player_lobby_info = {
       name: name,
       clientid: clientid,
       socket: ws,
-    });
+    };
+    this.player_lobby_infos.set(clientid, player_lobby_info);
+    if (this.player_lobby_infos.size === 1) {
+      this.host = player_lobby_info;
+    }
 
     // Check if there is a game going on and if the player is in it, send them a game started message
     // TODO: Only send connect message to players in lobby
     if (this.game?.player_infos.some((pi) => pi.clientid === clientid)) {
       this.game.reconnect_player(clientid, ws);
     }
+
     let players_in_lobby: PlayerLobbyInfo[];
     if (this.game === undefined) {
       players_in_lobby = this.player_lobby_infos.values().toArray();
@@ -79,6 +86,16 @@ export class Lobby {
     }
   }
 
+  add_ai_player() {
+    if (this.player_lobby_infos.values().some((pli) => pli.name === "Gemini")) {
+      return;
+    }
+    const ai_player = new AISocket((clientid, message) =>
+      this.resolve_message(clientid, message),
+    );
+    this.add_player(ai_player.client_id, "Gemini", ai_player);
+  }
+
   resolve_message(clientid: string, message: Message) {
     console.log(`Message received: ${JSON.stringify(message)}`);
     switch (message.kind) {
@@ -96,6 +113,16 @@ export class Lobby {
           `Game Started with players: ${JSON.stringify(this.get_player_names())}`,
         );
         // }
+        break;
+      case MessageKinds.ADD_AI_PLAYER:
+        this.add_ai_player();
+        break;
+      case MessageKinds.KICK_PLAYER:
+        if (this.host === undefined || clientid !== this.host?.clientid) {
+          break;
+        }
+        // TODO: Tell the player they've been kicked
+        this.remove_player(clientid);
         break;
       case MessageKinds.PICK_CARDS_RESPONSE:
       case MessageKinds.PICK_SUPPLY_PILE_RESPONSE:
@@ -120,6 +147,15 @@ export class Lobby {
     const name = this.player_lobby_infos.get(clientid)?.name;
     if (name == null) {
       return;
+    }
+
+    if (clientid === this.host?.clientid) {
+      const next_player = this.player_lobby_infos.values().next().value;
+      if (next_player?.name !== "Gemini") {
+        this.host = next_player;
+      } else {
+        this.host = undefined;
+      }
     }
 
     const msg: DisconnectMessage = {
