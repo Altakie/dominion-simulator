@@ -1,12 +1,15 @@
 import { useEffect, useState } from "react";
 import "./App.css";
+import { AlertCircleIcon } from "lucide-react";
+import { Popover } from "radix-ui";
 import { create } from "zustand";
+import { Alert, AlertDescription, AlertTitle } from "./components/ui/alert.tsx";
 import { Button } from "./components/ui/button.tsx";
 import { Lobby } from "./Lobby.tsx";
 
 // import { BrowserRouter, Routes, Route, Link } from 'react-router-dom';
 
-let ws: WebSocket = null;
+// let ws: WebSocket = null;
 
 export const RouterStates = {
   HOME: "Home",
@@ -45,79 +48,70 @@ const stateTable: Record<RouterState, React.ReactNode> = {
 };
 
 function Home() {
-  const [messages, setMessages] = useState<string[]>([]);
   const [name, setName] = useState("");
-
-  useMessageSocket();
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
 
   const setState = useRouterStore((state) => state.set_router_state);
-
-  useEffect(() => {
-    if (ws) {
-      ws.onmessage = (ev) => {
-        const json = JSON.parse(ev.data);
-        if (json.msg) {
-          setMessages([...messages, json.msg]);
-        }
-
-        // queryClient.invalidateQueries({
-        //   queryKey: ['count']
-        // })
-      };
-    }
-  }, [messages]);
 
   // ws.send("Skeeby Deeby")
 
   return (
-    <section id="center">
-      <p>
-        Your Name:
-        <input
-          className="border text-black"
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-        ></input>
-      </p>
-      <Button
-        onClick={() => {
-          setState("Game");
-          ws.send(name);
-        }}
-      >
-        Join Game
-      </Button>
-    </section>
+    <>
+      <section id="center">
+        <p>
+          Your Name:
+          <input
+            className="border text-black"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+          ></input>
+        </p>
+        <Button
+          onClick={async () => {
+            try {
+              const res = await fetch("/names", {
+                body: name,
+                method: "PUT",
+                headers: {
+                  "Content-Type": "text",
+                },
+              });
+              if (res.ok) {
+                setState("Game");
+              } else if (res.status === 406) {
+                setError(await res.text());
+              } else {
+                setError(res.statusText);
+              }
+            } catch (e) {
+              console.log(e);
+              setError(`${e}`);
+            } finally {
+              setLoading(false);
+            }
+          }}
+        >
+          {loading ? "Joining..." : "Join Game"}
+        </Button>
+      </section>
+      {error && (
+        <Alert
+          variant="destructive"
+          className="fixed top-2 left-2 w-fit animate-slide-in-right bg-red-50"
+        >
+          <AlertCircleIcon />
+          <AlertTitle>Failed to connect to lobby</AlertTitle>
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>
+      )}
+    </>
   );
 }
 
 // WARN: Remove this function, replace with a query or mutation instead
-function useMessageSocket() {
-  // new WebSocket('/socket')
-  useEffect(() => {
-    function connect(attempt: number) {
-      ws = new WebSocket("/socket");
-      ws.onopen = () => {
-        console.log("Opened Connection!");
-      };
 
-      ws.onclose = (ev) => {
-        if (ev.code !== 1000) {
-          setTimeout(
-            () => connect(attempt + 1),
-            Math.min(2000 ** attempt, 30000),
-          );
-        }
-      };
-    }
-
-    connect(0);
-
-    return () => ws.close(1000);
-  });
-
-  // return ws;
-}
+// return ws;
 
 // export function Button({ children, ...props }) {
 //   return (
