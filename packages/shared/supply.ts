@@ -1,12 +1,16 @@
 import { type Card, type CardInfo, CardTypes } from "./cards";
 import {
   BaseCards,
+  Bureaucrat,
   Chapel,
   Harbinger,
   Market,
   Merchant,
+  Militia,
+  Moat,
   Sentry,
   Vassal,
+  Witch,
 } from "./cards/base";
 import { Curse } from "./cards/curses";
 import { Copper, Gold, Silver } from "./cards/treasures";
@@ -75,6 +79,10 @@ export class Supply {
       { card: Market, count: 10 },
       { card: Harbinger, count: 10 },
       { card: Merchant, count: 10 },
+      { card: Witch, count: 10 },
+      { card: Moat, count: 10 },
+      { card: Bureaucrat, count: 10 },
+      { card: Militia, count: 10 },
     ];
   }
 }
