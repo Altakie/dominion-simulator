@@ -106,7 +106,7 @@ export interface RequestMessage extends Message {
 export interface PickCardsRequest extends RequestMessage {
   kind: typeof MessageKinds.PICK_CARDS_REQUEST;
 
-  description: PickCardsDescription;
+  description: string;
 
   choices: Card[];
   min: number;
@@ -116,7 +116,7 @@ export interface PickCardsRequest extends RequestMessage {
 export interface PickSupplyPileRequest extends RequestMessage {
   kind: typeof MessageKinds.PICK_SUPPLY_PILE_REQUEST;
 
-  description: GainDescription;
+  description: string;
 
   choices: supplyStack[];
   min: number;
@@ -126,7 +126,7 @@ export interface PickSupplyPileRequest extends RequestMessage {
 export interface PickYesNoRequest extends RequestMessage {
   kind: typeof MessageKinds.PICK_YES_NO_REQUEST;
 
-  description: BinaryDescription;
+  description: string;
 
   card: Card;
 }
