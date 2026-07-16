@@ -1,59 +1,46 @@
-import { type CardName, CardTypes } from "shared/cards";
-import { BinaryDescriptions } from "shared/messages";
-import { effect_table } from "./effects";
+import { CardTypes } from "shared/cards";
 import type { Game } from "./game";
 
-export function handle_attack(
-  game: Game,
-  card_name: CardName,
-  benefit: () => void,
-  next: () => void,
-) {
+export type AttackCC = (game: Game, next: () => void) => void;
+
+export function next_attack(game: Game, attack: AttackCC) {
   if (game.game_state.attack_index === null) {
-    benefit();
     game.game_state.attack_index =
       (game.game_state.current_player_index + 1) % game.player_infos.length;
-    effect_table[card_name](game);
-    return;
-  } else if (
-    game.game_state.attack_index === game.game_state.current_player_index
-  ) {
+  } else {
+    game.game_state.attack_index += 1;
+    game.game_state.attack_index %= game.player_infos.length;
+  }
+  if (game.game_state.attack_index === game.game_state.current_player_index) {
     game.game_state.attack_index = null;
     return;
   }
 
-  const player = game.get_player(game.game_state.attack_index);
-  if (
-    player.hand.some((card) => card.info.types.includes(CardTypes.REACTION))
-  ) {
-    // TODO: Should let you pick from any reaction in your hand
-    game.prompt_binary_choice(
-      game.get_player_info(
-        game.player_infos.findIndex((p) => p.player === player)!,
-      ),
-      BinaryDescriptions.BINARY_REACT,
-      player.hand.find((card) => card.info.types.includes(CardTypes.REACTION))!,
-      get_wrapped_attack_next(game, card_name, next),
+  const attacked_player_info =
+    game.player_infos[game.game_state.attack_index!]!;
+  const reactions = attacked_player_info.player.hand.filter((c) =>
+    c.info.types.some((t) => t === CardTypes.REACTION),
+  );
+
+  if (reactions?.length > 0) {
+    game.prompt_pick_card(
+      attacked_player_info,
+      "You may choose a reaction",
+      reactions,
+      0,
+      1,
+      (choices) => {
+        if (choices.length === 0) {
+          attack(game, () => next_attack(game, attack));
+        } else {
+          game.send_log_message(
+            `${attacked_player_info.player.name} revealed ${choices[0]?.info.name} in response to attack`,
+          );
+          next_attack(game, attack);
+        }
+      },
     );
   } else {
-    next();
-    game.game_state.attack_index =
-      (game.game_state.attack_index! + 1) % game.player_infos.length;
-    effect_table[card_name](game);
+    attack(game, () => next_attack(game, attack));
   }
-}
-
-function get_wrapped_attack_next(
-  game: Game,
-  card_name: CardName,
-  next: () => void,
-): (blocked: boolean) => void {
-  return (blocked: boolean) => {
-    if (!blocked) {
-      next();
-    }
-    game.game_state.attack_index =
-      (game.game_state.attack_index! + 1) % game.player_infos.length;
-    (() => effect_table[card_name](game))();
-  };
 }

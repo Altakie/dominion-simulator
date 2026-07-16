@@ -573,7 +573,7 @@ export class Game {
 
   prompt_pick_card(
     player: PlayerInfo,
-    description: PickCardsDescription,
+    description: string,
     choices: Card[],
     min: number,
     max: number,
@@ -621,7 +621,7 @@ export class Game {
 
   prompt_binary_choice(
     player: PlayerInfo,
-    description: BinaryDescription,
+    description: string,
     card: Card,
     next: (choice: boolean) => void,
   ) {
@@ -652,7 +652,7 @@ export class Game {
 
   prompt_gain_card(
     player: PlayerInfo,
-    description: GainDescription,
+    description: string,
     choices: supplyStack[],
     min: number,
     max: number,
@@ -730,6 +730,7 @@ export class Game {
       player.deck = shuffle(player.discard_pile);
       player.discard_pile = [];
       initial_pile = player.deck;
+      card_index = player.deck.length - 1;
     }
     if (initial_pile.length === 0) {
       console.log("No cards to discard");
