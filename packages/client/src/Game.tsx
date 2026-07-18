@@ -68,8 +68,19 @@ export function Game() {
       <div className="flex-col w-1/5 border h-screen">
         <PlayerList />
         <h2>
-          Current Vp: <span>{player.victory_points}</span>
+          Current VP: <span>{player.victory_points}</span>
         </h2>
+        <div className="flex-col">
+          <div>
+            Deck size: <span>{player.deck_size}</span>
+          </div>
+          <div>
+            Discard size: <span>{player.discard_pile_size}</span>
+          </div>
+          <div>
+            Top of discard: <span>{player.top_of_discard_pile?.info.name ?? "None"}</span>
+          </div>
+        </div>
         <VisualGameState />
       </div>
       <div className="flex-col w-3/5 border h-screen">

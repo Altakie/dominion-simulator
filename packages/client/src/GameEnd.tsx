@@ -38,7 +38,7 @@ function PlayerStats({ player_end_info }: { player_end_info: PlayerEndInfo }) {
     <>
       <div className="border">
         <h2>
-          {player_end_info.name} : {player_end_info.victory_points}vp
+          {player_end_info.name} : {player_end_info.victory_points}
         </h2>
         <FinalDeckDisplay deck={player_end_info.final_deck} />
       </div>
