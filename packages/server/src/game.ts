@@ -17,15 +17,16 @@ import { Estate, Province } from "shared/cards/victories";
 import { Deque } from "shared/deque";
 import {
   type BinaryDescription,
-  BinaryDescriptions,
   type GainDescription,
+  type PickCardsDescription,
+  PickCardsDescriptions,
+} from "shared/effect_descriptions";
+import {
   type GameEndMessage,
   type GameStateUpdateMessage,
   type LogMessage,
   type Message,
   MessageKinds,
-  type PickCardsDescription,
-  PickCardsDescriptions,
   type PickCardsRequest,
   type PickCardsResponse,
   type PickSupplyPileRequest,
@@ -573,7 +574,7 @@ export class Game {
 
   prompt_pick_card(
     player: PlayerInfo,
-    description: string,
+    description: PickCardsDescription,
     choices: Card[],
     min: number,
     max: number,
@@ -621,7 +622,7 @@ export class Game {
 
   prompt_binary_choice(
     player: PlayerInfo,
-    description: string,
+    description: BinaryDescription,
     card: Card,
     next: (choice: boolean) => void,
   ) {
@@ -652,7 +653,7 @@ export class Game {
 
   prompt_gain_card(
     player: PlayerInfo,
-    description: string,
+    description: GainDescription,
     choices: supplyStack[],
     min: number,
     max: number,

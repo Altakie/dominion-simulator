@@ -7,7 +7,7 @@ import {
   BinaryDescriptions,
   GainDescriptions,
   PickCardsDescriptions,
-} from "shared/messages";
+} from "shared/effect_descriptions.ts";
 import { shuffle } from "shared/shuffle";
 import type { supplyStack } from "shared/supply";
 import { type AttackCC, next_attack } from "./attacks";

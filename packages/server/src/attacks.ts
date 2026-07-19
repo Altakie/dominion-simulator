@@ -1,4 +1,5 @@
 import { CardTypes } from "shared/cards";
+import { PickCardsDescriptions } from "shared/effect_descriptions";
 import type { Game } from "./game";
 
 export type AttackCC = (game: Game, next: () => void) => void;
@@ -25,7 +26,7 @@ export function next_attack(game: Game, attack: AttackCC) {
   if (reactions?.length > 0) {
     game.prompt_pick_card(
       attacked_player_info,
-      "You may choose a reaction",
+      PickCardsDescriptions.REACT,
       reactions,
       0,
       1,
