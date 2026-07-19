@@ -1,5 +1,6 @@
 import { type Card, type CardInfo, CardTypes } from "./cards";
 import {
+  Bandit,
   BaseCards,
   Bureaucrat,
   Chapel,
@@ -73,14 +74,10 @@ export class Supply {
 
   toggleDebugMode() {
     this.stacks = [
-      { card: Chapel, count: 10 },
-      { card: Sentry, count: 10 },
-      { card: Vassal, count: 10 },
-      { card: Market, count: 10 },
-      { card: Harbinger, count: 10 },
       { card: Merchant, count: 10 },
       { card: Witch, count: 10 },
       { card: Moat, count: 10 },
+      { card: Bandit, count: 10 },
       { card: Bureaucrat, count: 10 },
       { card: Militia, count: 10 },
     ];

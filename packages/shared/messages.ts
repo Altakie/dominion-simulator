@@ -1,5 +1,10 @@
 import type { GameState, Player, PlayerEndInfo, SharablePlayer } from ".";
 import type { Card } from "./cards";
+import type {
+  BinaryDescription,
+  GainDescription,
+  PickCardsDescription,
+} from "./effect_descriptions";
 import type { supplyStack } from "./supply";
 
 export const MessageKinds = Object.freeze({
@@ -29,31 +34,6 @@ export const MessageKinds = Object.freeze({
 });
 
 type MessageKind = (typeof MessageKinds)[keyof typeof MessageKinds];
-
-export const PickCardsDescriptions = Object.freeze({
-  DISCARD_ANY: "Choose card(s) to discard",
-  TRASH_ANY: "Choose card(s) to trash",
-
-  PLAY: "Choose a card to play",
-  PUT_ON_DECK: "Choose a card to put on top of your deck",
-});
-
-export const BinaryDescriptions = Object.freeze({
-  BINARY_PLAY: "Play this card?",
-  BINARY_PUT_IN_HAND: "Put this card in your hand?",
-  BINARY_REACT: "Reveal this card to block attack?",
-});
-
-export const GainDescriptions = Object.freeze({
-  GAIN: "Choose a card to gain from the supply",
-});
-
-export type PickCardsDescription =
-  (typeof PickCardsDescriptions)[keyof typeof PickCardsDescriptions];
-export type BinaryDescription =
-  (typeof BinaryDescriptions)[keyof typeof BinaryDescriptions];
-export type GainDescription =
-  (typeof GainDescriptions)[keyof typeof GainDescriptions];
 
 export interface Message {
   kind: MessageKind;

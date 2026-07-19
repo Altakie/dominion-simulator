@@ -7,10 +7,10 @@ import {
   BinaryDescriptions,
   GainDescriptions,
   PickCardsDescriptions,
-} from "shared/messages";
+} from "shared/effect_descriptions.ts";
 import { shuffle } from "shared/shuffle";
 import type { supplyStack } from "shared/supply";
-import { handle_attack } from "./attacks";
+import { type AttackCC, next_attack } from "./attacks";
 import type { Game, NonBlockingCc } from "./game";
 
 export const effect_table: Record<CardName, (game: Game) => void> = {
@@ -181,11 +181,10 @@ export const effect_table: Record<CardName, (game: Game) => void> = {
     }
   },
   Bureaucrat: (game: Game) => {
-    const benefit = () => {
-      const player = game.get_current_player();
-      game.gain_card(player, Silver.name, player.deck);
-    };
-    const next = () => {
+    const player = game.get_current_player();
+    game.gain_card(player, Silver.name, player.deck);
+
+    const attack: AttackCC = (game, next) => {
       const player = game.get_player(game.game_state.attack_index!);
       if (
         player.hand.some((card) => card.info.types.includes(CardTypes.VICTORY))
@@ -198,29 +197,31 @@ export const effect_table: Record<CardName, (game: Game) => void> = {
           ),
           1,
           1,
-          get_hinder_next(player),
+          (choices) => {
+            top_deck_victory(player, choices);
+            next();
+          },
         );
+      } else {
+        next();
       }
     };
-    handle_attack(game, Bureaucrat.name, benefit, next);
+    next_attack(game, attack);
 
-    function get_hinder_next(player: Player): (choices: Card[]) => void {
-      return (choices: Card[]) => {
-        for (const card of choices) {
-          game.remove_card(
-            player.hand.findIndex((c) => c.id === card.id),
-            player.hand,
-          );
-          player.deck.push(card);
-        }
-      };
+    function top_deck_victory(player: Player, choices: Card[]) {
+      for (const card of choices) {
+        game.remove_card(
+          player.hand.findIndex((c) => c.id === card.id),
+          player.hand,
+        );
+        player.deck.push(card);
+      }
     }
   },
   Militia: (game: Game) => {
-    const benefit = () => {
-      game.game_state.money += 2;
-    };
-    const next = () => {
+    game.game_state.money += 2;
+
+    const attack: AttackCC = (game, next) => {
       const player = game.get_player(game.game_state.attack_index!);
       if (player.hand.length > 3) {
         game.prompt_pick_card(
@@ -229,22 +230,26 @@ export const effect_table: Record<CardName, (game: Game) => void> = {
           player.hand,
           player.hand.length - 3,
           player.hand.length - 3,
-          get_hinder_next(player),
+          (choices) => {
+            militia_discard(player, choices);
+            next();
+          },
         );
+      } else {
+        next();
       }
     };
-    handle_attack(game, Militia.name, benefit, next);
 
-    function get_hinder_next(player: Player): (choices: Card[]) => void {
-      return (choices: Card[]) => {
-        for (const card of choices) {
-          game.discard_card(
-            player,
-            player.hand.findIndex((c) => c.id === card.id),
-            player.hand,
-          );
-        }
-      };
+    next_attack(game, attack);
+
+    function militia_discard(player: Player, choices: Card[]) {
+      for (const card of choices) {
+        game.discard_card(
+          player,
+          player.hand.findIndex((c) => c.id === card.id),
+          player.hand,
+        );
+      }
     }
   },
   Moneylender: (game: Game) => {
@@ -391,11 +396,10 @@ export const effect_table: Record<CardName, (game: Game) => void> = {
     }
   },
   Bandit: (game: Game) => {
-    const benefit = () => {
-      const player = game.get_current_player();
-      game.gain_card(player, Gold.name, player.discard_pile);
-    };
-    const next = () => {
+    const player = game.get_current_player();
+    game.gain_card(player, Gold.name, player.discard_pile);
+
+    const attack: AttackCC = (game, next) => {
       const player = game.get_player(game.game_state.attack_index!);
       game.discard_card(player, player.deck.length - 1, player.deck);
       game.discard_card(player, player.deck.length - 1, player.deck);
@@ -417,22 +421,26 @@ export const effect_table: Record<CardName, (game: Game) => void> = {
           ),
           1,
           1,
-          get_hinder_next(player),
+          (choices) => {
+            bandit_trash(player, choices);
+            next();
+          },
         );
+      } else {
+        next();
       }
     };
-    handle_attack(game, Bandit.name, benefit, next);
 
-    function get_hinder_next(player: Player): (choices: Card[]) => void {
-      return (choices: Card[]) => {
-        for (const card of choices) {
-          game.trash_card(
-            player,
-            player.discard_pile.findIndex((c) => c.id === card.id),
-            player.discard_pile,
-          );
-        }
-      };
+    next_attack(game, attack);
+
+    function bandit_trash(player: Player, choices: Card[]) {
+      for (const card of choices) {
+        game.trash_card(
+          player,
+          player.discard_pile.findIndex((c) => c.id === card.id),
+          player.discard_pile,
+        );
+      }
     }
   },
   "Council Room": (game: Game) => {
@@ -654,17 +662,16 @@ export const effect_table: Record<CardName, (game: Game) => void> = {
     }
   },
   Witch: (game: Game) => {
-    const benefit = () => {
-      const player = game.get_current_player();
-      game.draw_cards(player, 2);
-    };
+    const player = game.get_current_player();
+    game.draw_cards(player, 2);
 
-    const next = () => {
+    const attack: AttackCC = (game, next) => {
       const player = game.get_player(game.game_state.attack_index!);
       game.gain_card(player, Curse.name, player.discard_pile);
+      next();
     };
 
-    handle_attack(game, Witch.name, benefit, next);
+    next_attack(game, attack);
   },
   Artisan: (game: Game) => {
     const player = game.get_current_player();

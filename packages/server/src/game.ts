@@ -17,15 +17,16 @@ import { Estate, Province } from "shared/cards/victories";
 import { Deque } from "shared/deque";
 import {
   type BinaryDescription,
-  BinaryDescriptions,
   type GainDescription,
+  type PickCardsDescription,
+  PickCardsDescriptions,
+} from "shared/effect_descriptions";
+import {
   type GameEndMessage,
   type GameStateUpdateMessage,
   type LogMessage,
   type Message,
   MessageKinds,
-  type PickCardsDescription,
-  PickCardsDescriptions,
   type PickCardsRequest,
   type PickCardsResponse,
   type PickSupplyPileRequest,
@@ -731,6 +732,7 @@ export class Game {
       player.deck = shuffle(player.discard_pile);
       player.discard_pile = [];
       initial_pile = player.deck;
+      card_index = player.deck.length - 1;
     }
     if (initial_pile.length === 0) {
       console.log("No cards to discard");

@@ -1,5 +1,5 @@
 import { GoogleGenAI, ServiceTier } from "@google/genai";
-import { randomUUIDv7 } from "bun";
+import { randomUUIDv7, sleep } from "bun";
 import type { GameState, SharablePlayer } from "shared";
 import {
   type GameStateUpdateMessage,
@@ -33,6 +33,7 @@ const system_instruction =
   "You may only pick each choice once." +
   "You should also attach your reason for making a decision to the response, but be succinct when describing your reasoning.";
 
+const MAX_REQUESTS = 2;
 export class AISocket implements MessageSink {
   client_id: string;
   on_response: (clientid: string, message: Message) => void;
@@ -121,21 +122,48 @@ export class AISocket implements MessageSink {
     // Build interactions object based on request type
     // If its a boolean request, then we ask for a boolean response with some reasoning
     // If its a different kind of request, we ask it to pick a choice
-    const interaction = await this.ai.interactions.create({
-      model: "gemini-3.1-flash-lite",
-      input: message_string,
-      system_instruction: system_instruction,
-      previous_interaction_id: this.previous_interaction_id,
-      response_format: response_format,
-    });
+    let interaction: any;
 
-    this.previous_interaction_id = interaction.previous_interaction_id;
-    const res = JSON.parse(interaction.output_text!);
+    let req_number = 0;
+
+    while (req_number < MAX_REQUESTS) {
+      req_number += 1;
+      try {
+        interaction = await this.ai.interactions.create({
+          model: "gemini-3.1-flash-lite",
+          input: message_string,
+          system_instruction: system_instruction,
+          previous_interaction_id: this.previous_interaction_id,
+          response_format: response_format,
+        });
+
+        if (interaction.status === "completed") {
+          break;
+        }
+      } catch (e) {
+        console.log(e);
+        // Sleep until the next min
+        const next_min = new Date();
+        next_min.setMinutes(next_min.getMinutes() + 1);
+        next_min.setSeconds(1);
+        next_min.setMilliseconds(0);
+        await sleep(next_min);
+      }
+    }
+
+    if (req_number > MAX_REQUESTS) {
+      console.log(JSON.stringify(interaction));
+      this.on_response(this.client_id, this.pick_random_choice(message)!);
+      return;
+    }
+
     console.log(
       `AI Response (${interaction.usage?.total_tokens} tokens used): ${interaction.output_text}`,
     );
 
-    // TODO: Use the choice indicies to figure out which choices were picked
+    this.previous_interaction_id = interaction.id;
+    const res = JSON.parse(interaction.output_text!);
+
     switch (message.kind) {
       case MessageKinds.PICK_YES_NO_REQUEST: {
         const bool_response: PickYesNoResponse = {
@@ -180,16 +208,36 @@ export class AISocket implements MessageSink {
       }
     }
   }
-  // Deserialize the response into an actual message type
-  // Send it to the AI
-  // Wait for the response
-  // Call the game again if the message type requires a reponse
-  // TODO: What should the AI do
-  // If the message is a request, the ai should send the choices it is making (either a yes or a no or a list of choices)
-  // It should adhere to the max and min, if it sends more than the max or less than the min, we should reprompt it or maybe trim the response
-  // It should also be a choice from the array, we can enforce this by making it return the indicies of the choices it wants
-  // If the message is a game_state update or a log message we need to think
-  // Do we even want to send this information to the AI, might cost extra tokens
-  // If its a game_state update we should defintely save the game state so we can send it to the ai when prompting it
-  // Don't need to send log messages
+
+  pick_random_choice(message: Message): Message | undefined {
+    switch (message.kind) {
+      case MessageKinds.PICK_CARDS_REQUEST: {
+        const req = message as PickCardsRequest;
+        const res: PickCardsResponse = {
+          kind: MessageKinds.PICK_CARDS_RESPONSE,
+          choices: req.choices.slice(0, req.min),
+        };
+
+        return res;
+      }
+      case MessageKinds.PICK_SUPPLY_PILE_REQUEST: {
+        const req = message as PickSupplyPileRequest;
+        const res: PickSupplyPileResponse = {
+          kind: MessageKinds.PICK_SUPPLY_PILE_RESPONSE,
+          choices: req.choices.slice(0, req.min),
+        };
+
+        return res;
+      }
+      case MessageKinds.PICK_YES_NO_REQUEST: {
+        const res: PickYesNoResponse = {
+          kind: MessageKinds.PICK_YES_NO_RESPONSE,
+          choice: false,
+        };
+        return res;
+      }
+    }
+
+    return undefined;
+  }
 }
