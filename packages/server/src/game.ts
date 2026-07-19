@@ -151,6 +151,7 @@ function new_game_state(
 
     supply: supply,
     played_cards: [],
+    set_aside_cards: [],
 
     trash_pile: [],
 
