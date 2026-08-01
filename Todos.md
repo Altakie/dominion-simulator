@@ -15,8 +15,10 @@
 
 ## Minor Features
 
+- 5 5 for supply layout
 - Show who waiting for during attacks
   - Send the attack index over to the client and display it somewhere
+  - Already sent in game state
 - Move turn information (actions, money, and buys) visually closer to where the player's eyes are spending the most time
   - Probably between the hand and the supply
 - Show top card of discard pile and how many cards are in discard pile and deck
@@ -31,13 +33,6 @@
   - Can just send who won in the message
   - Players should know their own names client side, even though they shouldn't know their ids
   - Names should be unique
-- AI Player
-  - Lobby hosts, only the lobby host should be able to start the game, add AI players, etc..
-  - This is to avoid race conditions
-  - Lets make the first player who joined lobby host
-  - Support for kicking players from the lobby
-  - Support for multiple AI players
-    - Make them get created with some sort of random name
 - Server should sign client ids in case someone tries to modify them client side
   - If the client id is not server signed, reassign the client's clientid to a server assigned clientid
 - Display vp of all players, not just yours
@@ -62,6 +57,13 @@
   - Maybe show top of trash pile
 - Unit tests for cards to make sure they are working as intended
 - Card Art
+- AI Player
+  - Lobby hosts, only the lobby host should be able to start the game, add AI players, etc..
+  - This is to avoid race conditions
+  - Lets make the first player who joined lobby host
+  - Support for kicking players from the lobby
+  - Support for multiple AI players
+    - Make them get created with some sort of random name
 - Make the log better?
   - Make more recent turns at the top?
   - Organize the incoming messages by turn

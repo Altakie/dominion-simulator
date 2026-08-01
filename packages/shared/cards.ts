@@ -16,6 +16,7 @@ export type CardInfo = {
 
 export const CardTypes = Object.freeze({
   ACTION: "Action",
+  ATTACK: "Attack",
   REACTION: "Reaction",
   TREASURE: "Treasure",
   VICTORY: "Victory",
