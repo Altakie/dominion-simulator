@@ -38,6 +38,7 @@ import {
 } from "@/components/ui/tooltip";
 import { card_descriptions } from "./CardDescriptions.tsx";
 import { Button } from "./components/ui/button.tsx";
+import { Separator } from "./components/ui/separator.tsx";
 import { game_socket, PlayerNameDisplay, useLobbyStore } from "./Lobby";
 
 export function Game() {
@@ -78,7 +79,8 @@ export function Game() {
             Discard size: <span>{player.discard_pile_size}</span>
           </div>
           <div>
-            Top of discard: <span>{player.top_of_discard_pile?.info.name ?? "None"}</span>
+            Top of discard:{" "}
+            <span>{player.top_of_discard_pile?.info.name ?? "None"}</span>
           </div>
         </div>
         <VisualGameState />
@@ -418,8 +420,12 @@ function CardShell({
           {children}
         </div>
       </TooltipTrigger>
-      <TooltipContent className="flex flex-col flex-wrap" side="top">
-        {card_descriptions[card_info.name]}
+      <TooltipContent side="top">
+        <div className="flex flex-col flex-wrap text-center z-51">
+          <b>{card_info.types.join(" & ")}</b>
+          <Separator />
+          {card_descriptions[card_info.name]}
+        </div>
       </TooltipContent>
     </Tooltip>
   );
@@ -447,6 +453,9 @@ function card_bg(card_info: CardInfo): string {
   }
   if (card_info.types.includes(CardTypes.CURSE)) {
     return "bg-purple-400";
+  }
+  if (card_info.types.includes(CardTypes.ATTACK)) {
+    return "bg-red-300";
   }
   return "bg-white";
 }

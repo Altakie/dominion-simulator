@@ -78,7 +78,7 @@ export const Workshop: CardInfo = {
 
 export const Bureaucrat: CardInfo = {
   name: "Bureaucrat",
-  types: [CardTypes.ACTION],
+  types: [CardTypes.ACTION, CardTypes.ATTACK],
   cost: 4,
 };
 
@@ -90,7 +90,7 @@ export const Gardens: CardInfo = {
 
 export const Militia: CardInfo = {
   name: "Militia",
-  types: [CardTypes.ACTION],
+  types: [CardTypes.ACTION, CardTypes.ATTACK],
   cost: 4,
 };
 
@@ -126,7 +126,7 @@ export const ThroneRoom: CardInfo = {
 
 export const Bandit: CardInfo = {
   name: "Bandit",
-  types: [CardTypes.ACTION],
+  types: [CardTypes.ACTION, CardTypes.ATTACK],
   cost: 5,
 };
 
@@ -174,7 +174,7 @@ export const Sentry: CardInfo = {
 
 export const Witch: CardInfo = {
   name: "Witch",
-  types: [CardTypes.ACTION],
+  types: [CardTypes.ACTION, CardTypes.ATTACK],
   cost: 5,
 };
 

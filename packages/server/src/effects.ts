@@ -478,10 +478,10 @@ export const effect_table: Record<CardName, (game: Game) => void> = {
     ) {
       effect_table[Library.name](game);
     } else {
-      for (const card of game.game_state.set_aside_cards) {
+      while (game.game_state.set_aside_cards.length > 0) {
         game.discard_card(
           player,
-          game.game_state.set_aside_cards.findIndex((c) => c.id === card.id),
+          game.game_state.set_aside_cards.length - 1,
           game.game_state.set_aside_cards,
         );
       }

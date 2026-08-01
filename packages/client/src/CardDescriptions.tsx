@@ -22,22 +22,22 @@ export const card_descriptions: Record<CardName, React.ReactNode> = {
   // Victory Cards
   Estate: (
     <p>
-      <b>1 Victory Point</b>
+      <b>1 VP</b>
     </p>
   ),
   Duchy: (
     <p>
-      <b>2 Victory Point</b>
+      <b>3 VP</b>
     </p>
   ),
   Province: (
     <p>
-      <b>3 Victory Point</b>
+      <b>6 VP</b>
     </p>
   ),
   Curse: (
     <p>
-      <b>-1 Victory Point</b>
+      <b>-1 VP</b>
     </p>
   ),
 
@@ -111,7 +111,7 @@ export const card_descriptions: Record<CardName, React.ReactNode> = {
   Gardens: (
     <>
       <p>
-        Worth <b>1 Victory point</b> per 10 cards you have (round down)
+        Worth <b>1 VP</b> per 10 cards you have (round down)
       </p>
     </>
   ),
