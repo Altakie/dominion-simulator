@@ -8,6 +8,10 @@ export type Card = {
   info: CardInfo;
 };
 
+export function same_card(a: Card, b: Card): boolean {
+  return a.id === b.id;
+}
+
 export type CardInfo = {
   name: CardName;
   types: CardType[];

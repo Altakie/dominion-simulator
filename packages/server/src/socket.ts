@@ -162,50 +162,56 @@ export class AISocket implements MessageSink {
     );
 
     this.previous_interaction_id = interaction.id;
-    const res = JSON.parse(interaction.output_text!);
 
-    switch (message.kind) {
-      case MessageKinds.PICK_YES_NO_REQUEST: {
-        const bool_response: PickYesNoResponse = {
-          kind: MessageKinds.PICK_YES_NO_RESPONSE,
-          choice: res.choice,
-        };
-        this.on_response(this.client_id, bool_response);
-        break;
-      }
-      case MessageKinds.PICK_SUPPLY_PILE_REQUEST: {
-        const pick_supply_req = message as PickSupplyPileRequest;
-        const choices = res.choice_indicies.map(
-          (choice_index: number) =>
-            pick_supply_req.choices[
-              choice_index % pick_supply_req.choices.length
-            ]!,
-        );
-        const pick_supply_res: PickSupplyPileResponse = {
-          kind: MessageKinds.PICK_SUPPLY_PILE_RESPONSE,
-          choices: choices,
-        };
-        console.log(`Ai will send ${serializeMessage(pick_supply_res)}`);
-        this.on_response(this.client_id, pick_supply_res);
-        break;
-      }
-      case MessageKinds.PICK_CARDS_REQUEST: {
-        const pick_cards_req = message as PickCardsRequest;
+    try {
+      const res = JSON.parse(interaction.output_text!);
 
-        const choices = res.choice_indicies.map(
-          (choice_index: number) =>
-            pick_cards_req.choices[
-              choice_index % pick_cards_req.choices.length
-            ]!,
-        );
+      switch (message.kind) {
+        case MessageKinds.PICK_YES_NO_REQUEST: {
+          const bool_response: PickYesNoResponse = {
+            kind: MessageKinds.PICK_YES_NO_RESPONSE,
+            choice: res.choice,
+          };
+          this.on_response(this.client_id, bool_response);
+          break;
+        }
+        case MessageKinds.PICK_SUPPLY_PILE_REQUEST: {
+          const pick_supply_req = message as PickSupplyPileRequest;
+          const choices = res.choice_indicies.map(
+            (choice_index: number) =>
+              pick_supply_req.choices[
+                choice_index % pick_supply_req.choices.length
+              ]!,
+          );
+          const pick_supply_res: PickSupplyPileResponse = {
+            kind: MessageKinds.PICK_SUPPLY_PILE_RESPONSE,
+            choices: choices,
+          };
+          console.log(`Ai will send ${serializeMessage(pick_supply_res)}`);
+          this.on_response(this.client_id, pick_supply_res);
+          break;
+        }
+        case MessageKinds.PICK_CARDS_REQUEST: {
+          const pick_cards_req = message as PickCardsRequest;
 
-        const pick_cards_res: PickCardsResponse = {
-          kind: MessageKinds.PICK_CARDS_RESPONSE,
-          choices: choices,
-        };
-        this.on_response(this.client_id, pick_cards_res);
-        break;
+          const choices = res.choice_indicies.map(
+            (choice_index: number) =>
+              pick_cards_req.choices[
+                choice_index % pick_cards_req.choices.length
+              ]!,
+          );
+
+          const pick_cards_res: PickCardsResponse = {
+            kind: MessageKinds.PICK_CARDS_RESPONSE,
+            choices: choices,
+          };
+          this.on_response(this.client_id, pick_cards_res);
+          break;
+        }
       }
+    } catch {
+      this.on_response(this.client_id, this.pick_random_choice(message)!);
+      return;
     }
   }
 

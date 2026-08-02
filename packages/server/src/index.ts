@@ -25,6 +25,19 @@ const names: Map<string, string> = new Map();
 
 const lobby = new Lobby();
 
+app.get("/session", (c) => {
+  const clientid = getCookie(c, "clientid");
+  const player_info = clientid
+    ? lobby.game?.player_infos.find((pi) => pi.clientid === clientid)
+    : undefined;
+
+  if (!player_info) {
+    return c.json({ in_game: false });
+  }
+
+  return c.json({ in_game: true, name: player_info.player.name });
+});
+
 app.put("/names", async (c) => {
   const name = await c.req.text();
   if (lobby.player_lobby_infos.values().some((pli) => pli.name === name)) {
