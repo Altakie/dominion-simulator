@@ -48,7 +48,7 @@ function App() {
   //   </BrowserRouter>
   // </>)
 
-  return <>{stateTable[state]}</>;
+  return <div className="h-screen overflow-auto">{stateTable[state]}</div>;
 }
 
 const stateTable: Record<RouterState, React.ReactNode> = {
@@ -80,54 +80,53 @@ function Home() {
   // ws.send("Skeeby Deeby")
 
   return (
-    <>
-      <section id="center">
-        {reconnect_name && (
-          <p>
-            You have a game in progress as {reconnect_name}.
-            <Button onClick={() => setState(RouterStates.LOBBY)}>
-              Reconnect
-            </Button>
-          </p>
-        )}
-        <Card className="border">
-          <CardContent className="w-[30vw] text-left">
-            <p>Your Name:</p>
-            <input
-              className="border rounded-md text-black w-full text-lg bg-white"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-            ></input>
-          </CardContent>
-        </Card>
-        <Button
-          onClick={async () => {
-            try {
-              const res = await fetch("/names", {
-                body: name,
-                method: "PUT",
-                headers: {
-                  "Content-Type": "text",
-                },
-              });
-              if (res.ok) {
-                setState(RouterStates.LOBBY);
-              } else if (res.status === 406) {
-                setError(await res.text());
-              } else {
-                setError(res.statusText);
-              }
-            } catch (e) {
-              console.log(e);
-              setError(`${e}`);
-            } finally {
-              setLoading(false);
+    <div className="flex flex-col justify-center items-center h-full w-full gap-2">
+      {reconnect_name && (
+        <p>
+          You have a game in progress as {reconnect_name}.
+          <Button onClick={() => setState(RouterStates.LOBBY)}>
+            Reconnect
+          </Button>
+        </p>
+      )}
+      <Card className="border">
+        <CardContent className="w-[30vw] text-left">
+          <p>Your Name:</p>
+          <input
+            className="border rounded-md text-black w-full text-base bg-white p-1"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+          ></input>
+        </CardContent>
+      </Card>
+      <Button
+        onClick={async () => {
+          try {
+            const res = await fetch("/names", {
+              body: name,
+              method: "PUT",
+              headers: {
+                "Content-Type": "text",
+              },
+            });
+            if (res.ok) {
+              setState(RouterStates.LOBBY);
+            } else if (res.status === 406) {
+              setError(await res.text());
+            } else {
+              setError(res.statusText);
             }
-          }}
-        >
-          {loading ? "Joining..." : "Join Game"}
-        </Button>
-      </section>
+          } catch (e) {
+            console.log(e);
+            setError(`${e}`);
+          } finally {
+            setLoading(false);
+          }
+        }}
+      >
+        {loading ? "Joining..." : "Join Game"}
+      </Button>
+
       {error && (
         <Alert
           variant="destructive"
@@ -138,7 +137,7 @@ function Home() {
           <AlertDescription>{error}</AlertDescription>
         </Alert>
       )}
-    </>
+    </div>
   );
 }
 

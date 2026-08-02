@@ -11,6 +11,7 @@ import type {
   GainDescription,
   PickCardsDescription,
 } from "./effect_descriptions";
+import type { LogEntry, Turn } from "./log";
 import type { supplyStack } from "./supply";
 
 export const MessageKinds = Object.freeze({
@@ -36,7 +37,9 @@ export const MessageKinds = Object.freeze({
 
   GAME_END: "Game has been terminated",
 
-  LOG: "Log",
+  LOG_EVENT: "Log Event",
+  NEW_TURN: "New Log Turn",
+  SYNC_LOG: "Sync Log",
 });
 
 type MessageKind = (typeof MessageKinds)[keyof typeof MessageKinds];
@@ -148,10 +151,22 @@ export interface GameEndMessage extends Message {
   players_end_infos_in_victory_order: PlayerEndInfo[];
 }
 
-export interface LogMessage extends Message {
-  kind: typeof MessageKinds.LOG;
+export interface LogEventMessage extends Message {
+  kind: typeof MessageKinds.LOG_EVENT;
 
-  log_messages: string[];
+  log_messages: LogEntry[];
+}
+
+export interface NewLogTurnMessage extends Message {
+  kind: typeof MessageKinds.NEW_TURN;
+
+  turn: Turn;
+}
+
+export interface SyncLogMessage extends Message {
+  kind: typeof MessageKinds.SYNC_LOG;
+
+  log: Turn[];
 }
 
 export function serializeMessage(msg: Message): string {

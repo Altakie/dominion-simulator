@@ -60,7 +60,7 @@ export function Game() {
 
   return (
     <div className="flex flex-row flex-nowrap justify-center items-start place-content-between">
-      <div className="flex-col w-4/5 border h-screen">
+      <div className="flex-col w-4/5 border h-screen overflow-auto">
         <VisualSupply supply={game_state.supply} />
         <GameStateBar />
         <PlayedCards played_cards={game_state.played_cards} />
@@ -80,9 +80,11 @@ export function Game() {
         {/* {choices} */}
         {pop_up}
       </div>
-      <div className="flex-col w-1/5 border h-screen">
+      <div className="flex flex-col w-1/5 border h-screen gap-2 p-2 overflow-hidden">
         <PlayerList />
-        <Log />
+        <div className="min-h-0">
+          <Log />
+        </div>
       </div>
     </div>
   );
@@ -117,8 +119,8 @@ function Description() {
 function PlayerList() {
   const players = useLobbyStore((state) => state.player_game_infos);
   return (
-    <>
-      <h2>Players</h2>
+    <div className="h-fit">
+      <GameAreaTitle title="PLAYERS" />
       {/* <ol> */}
       {/*   {players.map((name) => ( */}
       {/*     <li>{name}</li> */}
@@ -133,7 +135,7 @@ function PlayerList() {
           right={`${player.victory_points}`}
         />
       ))}
-    </>
+    </div>
   );
 }
 
@@ -587,21 +589,32 @@ function Log() {
   const log_messages = useLobbyStore((state) => state.log_messages);
 
   return (
-    <div className="bg-gray-300 overflow-auto max-h-1/2">
-      {log_messages.map((message) => {
-        if (message.includes("Turn")) {
+    <div className="flex flex-col h-full min-h-0">
+      <GameAreaTitle title="LOG" />
+      <div className="flex-1 min-h-0 overflow-auto">
+        {log_messages.map((turn) => {
           return (
-            <h3 key={message} className="text-black border text-wrap">
-              <b>{message}</b>
-            </h3>
+            <div
+              key={turn.turn_number.toString() + turn.active_player_name}
+              className="flex flex-col items-center justify-center p-1"
+            >
+              <div className="bg-card rounded-md flex flex-row justify-between items-center text-sm p-2 w-full sticky top-0">
+                <div>
+                  <b>Turn {turn.turn_number}</b> : {turn.active_player_name}
+                </div>
+                <div className="text-fg">{turn.events.length} events</div>
+              </div>
+              <div className="flex flex-col flex-nowrap gap-1 text-sm w-7/10">
+                {turn.events.map((event) => (
+                  <p key={event.message} className="border-l border-gray-400">
+                    {event.message}
+                  </p>
+                ))}
+              </div>
+            </div>
           );
-        }
-        return (
-          <p key={message} className="text-black border text-wrap">
-            {message}
-          </p>
-        );
-      })}
+        })}
+      </div>
     </div>
   );
 }

@@ -23,12 +23,14 @@ import {
   type PickCardsDescription,
   PickCardsDescriptions,
 } from "shared/effect_descriptions";
+import { Log, type LogEntry } from "shared/log";
 import {
   type GameEndMessage,
   type GameStateUpdateMessage,
-  type LogMessage,
+  type LogEventMessage,
   type Message,
   MessageKinds,
+  type NewLogTurnMessage,
   type PickCardsRequest,
   type PickCardsResponse,
   type PickSupplyPileRequest,
@@ -37,6 +39,7 @@ import {
   type PickYesNoResponse,
   type PlayerNamesMessage,
   type StartedMessage,
+  type SyncLogMessage,
   serializeMessage,
 } from "shared/messages";
 import { shuffle } from "shared/shuffle";
@@ -176,7 +179,7 @@ export class Game {
   player_infos: PlayerInfo[];
   game_state: GameState;
   wait_queue: WaitQueue;
-  event_log: string[];
+  event_log: Log;
   card_count: number;
 
   constructor(players: PlayerLobbyInfo[], lobby: Lobby) {
@@ -184,7 +187,7 @@ export class Game {
 
     this.card_count = 0;
     this.wait_queue = new WaitQueue();
-    this.event_log = [];
+    this.event_log = new Log();
 
     const player_infos = players.map((player): PlayerInfo => {
       return {
@@ -296,9 +299,23 @@ export class Game {
     this.game_state.money = 0;
     this.game_state.buys = 1;
 
-    this.send_log_message(
-      `Turn ${this.game_state.turn_number} - ${this.get_current_player().name}`,
+    // this.send_log_message(
+    //   `Turn ${this.game_state.turn_number} - ${this.get_current_player().name}`,
+    // );
+    this.event_log.new_turn(
+      this.game_state.turn_number,
+      this.get_current_player().name,
     );
+    const message: NewLogTurnMessage = {
+      kind: MessageKinds.NEW_TURN,
+
+      turn: this.event_log.get_curr_turn(),
+    };
+
+    const serialized_message = serializeMessage(message);
+    for (const player_info of this.player_infos) {
+      player_info.socket.send(serialized_message);
+    }
   }
 
   next_turn() {
@@ -375,9 +392,9 @@ export class Game {
           );
         }
 
-        const log_message: LogMessage = {
-          kind: MessageKinds.LOG,
-          log_messages: this.event_log,
+        const log_message: SyncLogMessage = {
+          kind: MessageKinds.SYNC_LOG,
+          log: this.event_log.log_messages,
         };
 
         socket.send(serializeMessage(log_message));
@@ -847,13 +864,15 @@ export class Game {
   }
 
   send_log_message(...log_messages: string[]) {
-    const msg: LogMessage = {
-      kind: MessageKinds.LOG,
+    const msg: LogEventMessage = {
+      kind: MessageKinds.LOG_EVENT,
 
-      log_messages: log_messages,
+      log_messages: log_messages.map((msg): LogEntry => ({ message: msg })),
     };
 
-    this.event_log.push(...log_messages);
+    this.event_log.log_events(
+      ...log_messages.map((msg): LogEntry => ({ message: msg })),
+    );
 
     const ser_msg = serializeMessage(msg);
     for (const player_info of this.player_infos) {
