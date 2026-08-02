@@ -3,6 +3,7 @@ import {
   GamePhases,
   type GameState,
   type Player,
+  type PlayerDisplayInfo,
   type PlayerEndInfo,
   type SharablePlayer,
 } from "shared";
@@ -271,6 +272,18 @@ export class Game {
     return this.player_infos.map((player_info) => player_info.player.name);
   }
 
+  get_player_display_infos(): PlayerDisplayInfo[] {
+    return this.player_infos.map((pi, i) => ({
+      name: pi.player.name,
+      current: i === this.game_state.current_player_index,
+      victory_points: pi.player.victory_points,
+      total_cards:
+        pi.player.deck.length +
+        pi.player.discard_pile.length +
+        pi.player.hand.length,
+    }));
+  }
+
   new_turn(next_player_index: number) {
     this.game_state.phase = GamePhases.ACTION;
     this.game_state.current_player_index = next_player_index;
@@ -315,6 +328,7 @@ export class Game {
 
         game_state: this.game_state,
         player: toSharablePlayer(player_info.player),
+        players: this.get_player_display_infos(),
       };
 
       const serialized_message = serializeMessage(update_message);
@@ -332,8 +346,9 @@ export class Game {
     for (const player_info of this.player_infos.values()) {
       const started_msg: StartedMessage = {
         kind: MessageKinds.STARTED,
-        player_name_order: this.get_player_names(),
         state: this.game_state,
+
+        players: this.get_player_display_infos(),
 
         player: toSharablePlayer(player_info.player),
       };
@@ -369,7 +384,7 @@ export class Game {
       }
       const started_msg: StartedMessage = {
         kind: MessageKinds.STARTED,
-        player_name_order: this.get_player_names(),
+        players: this.get_player_display_infos(),
         state: this.game_state,
 
         player: toSharablePlayer(player_info.player),

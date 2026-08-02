@@ -19,12 +19,19 @@ import {
 import { RouterStates, useRouterStore } from "./App";
 import { Button } from "./components/ui/button.tsx";
 import "./App.css";
-import type { GameState, Player, SharablePlayer } from "shared";
+import type {
+  GameState,
+  Player,
+  PlayerDisplayInfo,
+  SharablePlayer,
+} from "shared";
 import type { Card } from "shared/cards.ts";
 import { create } from "zustand";
 import { useShallow } from "zustand/shallow";
+import { Separator } from "./components/ui/separator.tsx";
 import { Game } from "./Game.tsx";
 import { GameEnd } from "./GameEnd.tsx";
+import { cn } from "./lib/utils.ts";
 
 // export const GameContext = createContext<{
 //   gameSocket: RefObject<WebSocket>,
@@ -49,6 +56,10 @@ type LobbyStore = {
   add_player_name: (name: string) => void;
   remove_player_name: (name: string) => void;
   set_player_names: (names: string[]) => void;
+
+  player_game_infos: PlayerDisplayInfo[];
+  set_player_game_infos: (infos: PlayerDisplayInfo[]) => void;
+
   lobby_state: (typeof LobbyStates)[keyof typeof LobbyStates];
   set_lobby_state: (
     game_started: (typeof LobbyStates)[keyof typeof LobbyStates],
@@ -81,6 +92,10 @@ export const useLobbyStore = create<LobbyStore>((set) => ({
   },
   set_player_names: (names) => {
     set(() => ({ player_names: names }));
+  },
+  player_game_infos: [],
+  set_player_game_infos: (infos) => {
+    set(() => ({ player_game_infos: infos }));
   },
   lobby_state: LobbyStates.LOBBY,
   set_lobby_state: (game_started) => {
@@ -133,6 +148,7 @@ export function Lobby() {
       remove_player_name: state.remove_player_name,
       set_player_names: state.set_player_names,
       // set_choice_list: state.set_choice_list,
+      set_player_game_infos: state.set_player_game_infos,
 
       set_game_state: state.set_game_state,
       set_message: state.set_message,
@@ -176,10 +192,11 @@ export function Lobby() {
       }
       case MessageKinds.STARTED: {
         const started_msg = message as StartedMessage;
-        lobby_store.set_player_names(started_msg.player_name_order);
+        lobby_store.set_player_game_infos(started_msg.players);
         lobby_store.set_game_state(started_msg.state);
-        lobby_store.set_lobby_state(LobbyStates.GAME_STARTED);
         lobby_store.set_player(started_msg.player);
+
+        lobby_store.set_lobby_state(LobbyStates.GAME_STARTED);
         break;
       }
       case MessageKinds.PICK_CARDS_REQUEST:
@@ -206,6 +223,7 @@ export function Lobby() {
           message as GameStateUpdateMessage;
         lobby_store.set_game_state(update_message.game_state);
         lobby_store.set_player(update_message.player);
+        lobby_store.set_player_game_infos(update_message.players);
         break;
       }
       case MessageKinds.GAME_END:
@@ -239,51 +257,7 @@ export function Lobby() {
 
   switch (lobby_store.lobby_state) {
     case LobbyStates.LOBBY:
-      return (
-        <>
-          <h1>Welcome to the game</h1>
-          <Button
-            onClick={() => {
-              console.log("Attempting to start game");
-              game_socket?.send(
-                serializeMessage({
-                  kind: MessageKinds.START,
-                }),
-              );
-            }}
-            disabled={!lobby_store.connected}
-          >
-            Start Game
-          </Button>
-
-          <PlayerList />
-
-          <Button
-            onClick={() => {
-              const ai_player_msg: AddAIPlayerMessage = {
-                kind: MessageKinds.ADD_AI_PLAYER,
-              };
-              game_socket?.send(serializeMessage(ai_player_msg));
-            }}
-            disabled={
-              !lobby_store.connected ||
-              lobby_store.player_names.some((name) => name === "Gemini")
-            }
-          >
-            Add AI Player
-          </Button>
-
-          <Button
-            onClick={() => {
-              game_socket?.close(1000);
-              // WARN: Set in two places, probably fine but check again later
-              set_router_state(RouterStates.HOME);
-            }}
-          >
-            Leave Game
-          </Button>
-        </>
-      );
+      return <LobbyView />;
     case LobbyStates.GAME_STARTED:
       return (
         // <GameContext value={gameSocket}>
@@ -338,6 +312,68 @@ function useGameSocket() {
   }, [set_connected, set_router_state, set_lobby_state]);
 }
 
+function LobbyView() {
+  const connected = useLobbyStore((state) => state.connected);
+  const player_names = useLobbyStore((state) => state.player_names);
+  const set_router_state = useRouterStore((state) => state.set_router_state);
+  const set_lobby_state = useLobbyStore((state) => state.set_lobby_state);
+  return (
+    <>
+      <div className="inline-flex justify-between p-2">
+        <span className="text-black text-lg">
+          <b>Welcome to the game</b>
+        </span>
+        <div>
+          <Button
+            onClick={() => {
+              console.log("Attempting to start game");
+              game_socket?.send(
+                serializeMessage({
+                  kind: MessageKinds.START,
+                }),
+              );
+            }}
+            disabled={!connected}
+          >
+            Start Game
+          </Button>
+
+          <Button
+            onClick={() => {
+              game_socket?.close(1000);
+              // WARN: Set in two places, probably fine but check again later
+              set_router_state(RouterStates.HOME);
+            }}
+          >
+            Leave Game
+          </Button>
+        </div>
+      </div>
+      <Separator />
+      <div className="flex flex-row h-full">
+        <div className="w-3/4 p-2">Placeholder</div>
+        <Separator orientation="vertical" />
+        <div className="w-1/4 p-2">
+          <PlayerList />
+          <Button
+            onClick={() => {
+              const ai_player_msg: AddAIPlayerMessage = {
+                kind: MessageKinds.ADD_AI_PLAYER,
+              };
+              game_socket?.send(serializeMessage(ai_player_msg));
+            }}
+            disabled={
+              !connected || player_names.some((name) => name === "Gemini")
+            }
+          >
+            Add AI Player
+          </Button>
+        </div>
+      </div>
+    </>
+  );
+}
+
 function Connecting() {
   // const router_state = useRouterStore((state) => state.router_state);
 
@@ -353,21 +389,59 @@ function Connecting() {
 
 function PlayerList() {
   const players = useLobbyStore((state) => state.player_names);
-  // WARN: Player names are not unique and may not be useable as a key
   return (
-    <>
-      <h2>Players:</h2>
+    <div className="text-left">
+      <p className="text-md text-black">
+        <b>Players</b>
+      </p>
       {players.map((name) => (
-        <PlayerNameDisplay key={name} name={name} />
+        <PlayerDisplay key={name} name={name} />
       ))}
-    </>
+    </div>
   );
 }
 
-export function PlayerNameDisplay({ name }: { name: string }) {
+export function PlayerDisplay({
+  name,
+  under,
+  right,
+  highlighted = false,
+}: {
+  name: string;
+  under?: string;
+  right?: string;
+  highlighted?: boolean;
+}) {
   return (
-    <div className="border mx-auto w-[10vw] h-lh text-ellipsis text-nowrap overflow-auto">
-      {name}
+    <div
+      className="border border-foreground text-black text-sm mx-auto rounded-lg text-ellipsis text-nowrap overflow-auto
+      p-1 w-[15vw]
+      "
+    >
+      <div className="flex flex-row flex-nowrap justify-left p-px items-center h-full">
+        <div
+          className={cn(
+            "w-2 mr-2 h-10",
+            highlighted ? "bg-primary rounded-md" : "",
+          )}
+        />
+
+        <div className="mr-4 rounded-full bg-gray-400 border-black text-md min-w-8 min-h-8 max-h-8 max-w-8 flex items-center justify-center text-center">
+          <b>{name[0]}</b>
+        </div>
+        <div className="flex flex-col">
+          <div>
+            <b>{name}</b>
+          </div>
+          <div className="text-xs text-gray-600">{under}</div>
+        </div>
+        <div className="flex-1 text-right flex flex-row justify-end items-center">
+          <div className="text-black text-lg">
+            <b>{right}</b>
+          </div>
+          <div className="text-gray-600 text-sm">{right ? "VP" : ""}</div>
+        </div>
+      </div>
     </div>
   );
 }

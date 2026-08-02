@@ -3,6 +3,15 @@ import "./App.css";
 import { AlertCircleIcon } from "lucide-react";
 import { Popover } from "radix-ui";
 import { create } from "zustand";
+import {
+  Card,
+  CardAction,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Alert, AlertDescription, AlertTitle } from "./components/ui/alert.tsx";
 import { Button } from "./components/ui/button.tsx";
 import { Lobby } from "./Lobby.tsx";
@@ -81,14 +90,16 @@ function Home() {
             </Button>
           </p>
         )}
-        <p>
-          Your Name:
-          <input
-            className="border text-black"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-          ></input>
-        </p>
+        <Card className="border">
+          <CardContent className="w-[30vw] text-left">
+            <p>Your Name:</p>
+            <input
+              className="border rounded-md text-black w-full text-lg bg-white"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+            ></input>
+          </CardContent>
+        </Card>
         <Button
           onClick={async () => {
             try {
