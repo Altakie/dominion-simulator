@@ -1,4 +1,10 @@
-import type { GameState, Player, PlayerEndInfo, SharablePlayer } from ".";
+import type {
+  GameState,
+  Player,
+  PlayerDisplayInfo,
+  PlayerEndInfo,
+  SharablePlayer,
+} from ".";
 import type { Card } from "./cards";
 import type {
   BinaryDescription,
@@ -65,8 +71,7 @@ export interface PlayerNamesMessage extends Message {
 
 export interface StartedMessage extends Message {
   kind: typeof MessageKinds.STARTED;
-  player_name_order: string[];
-  // TODO: Does it make sense to just have a started message include an update message?
+  players: PlayerDisplayInfo[];
   state: GameState;
 
   player: SharablePlayer;
@@ -134,6 +139,7 @@ export interface GameStateUpdateMessage extends Message {
 
   game_state: GameState;
   player: SharablePlayer;
+  players: PlayerDisplayInfo[];
 }
 
 export interface GameEndMessage extends Message {

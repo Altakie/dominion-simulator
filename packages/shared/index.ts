@@ -37,6 +37,13 @@ export type SharablePlayer = {
   victory_points: number;
 };
 
+export type PlayerDisplayInfo = {
+  name: string;
+  current: boolean;
+  total_cards: number;
+  victory_points: number;
+};
+
 export type PlayerEndInfo = {
   name: string;
   victory_points: number;

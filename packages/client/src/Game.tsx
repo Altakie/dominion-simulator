@@ -31,7 +31,7 @@ import {
 import { card_descriptions } from "./CardDescriptions.tsx";
 import { Button } from "./components/ui/button.tsx";
 import { Separator } from "./components/ui/separator.tsx";
-import { game_socket, PlayerNameDisplay, useLobbyStore } from "./Lobby";
+import { game_socket, PlayerDisplay, useLobbyStore } from "./Lobby";
 
 function useSelection<T>(): [T[], (item: T) => void, () => void] {
   const [selected, setSelected] = useState<T[]>([]);
@@ -71,9 +71,6 @@ export function Game() {
     <div className="flex flex-row flex-nowrap justify-center items-start place-content-between">
       <div className="flex-col w-1/5 border h-screen">
         <PlayerList />
-        <h2>
-          Current VP: <span>{player.victory_points}</span>
-        </h2>
         <div className="flex-col">
           <div>
             Deck size: <span>{player.deck_size}</span>
@@ -111,11 +108,10 @@ function Description() {
 
     return <h2>{req.description}</h2>;
   }
-  return <></>;
 }
 
 function PlayerList() {
-  const players = useLobbyStore((state) => state.player_names);
+  const players = useLobbyStore((state) => state.player_game_infos);
   return (
     <>
       <h2>Players</h2>
@@ -124,8 +120,14 @@ function PlayerList() {
       {/*     <li>{name}</li> */}
       {/*   ))} */}
       {/* </ol> */}
-      {players.map((name) => (
-        <PlayerNameDisplay key={name} name={name} />
+      {players.map((player) => (
+        <PlayerDisplay
+          key={player.name}
+          name={player.name}
+          highlighted={player.current}
+          under={`${player.total_cards} cards`}
+          right={`${player.victory_points}`}
+        />
       ))}
     </>
   );
