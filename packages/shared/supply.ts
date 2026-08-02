@@ -23,6 +23,10 @@ export type supplyStack = {
   count: number;
 };
 
+export function same_stack(a: supplyStack, b: supplyStack): boolean {
+  return a.card.name === b.card.name && a.count === b.count;
+}
+
 export class Supply {
   fixed_stacks: supplyStack[];
   stacks: supplyStack[];

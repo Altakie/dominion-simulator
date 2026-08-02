@@ -153,10 +153,14 @@ export function serializeMessage(msg: Message): string {
 }
 
 export function parseMessage(msg: string): Message | undefined {
-  const parsed = JSON.parse(msg);
-  if (!parsed.kind) {
+  try {
+    const parsed = JSON.parse(msg);
+    if (!parsed.kind) {
+      return undefined;
+    }
+
+    return parsed;
+  } catch {
     return undefined;
   }
-
-  return parsed;
 }
