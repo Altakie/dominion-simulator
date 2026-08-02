@@ -13,4 +13,9 @@ jobs:
         run: bun test
       - name: Run lint
         run: bun run lint
+      - name: Autoformat Code
+        run: |
+          bun run format
+          git commit -A | true
+          git push | true
       
