@@ -192,7 +192,7 @@ function VisualSupply({ supply }: { supply: Supply }) {
 
   const [selected_stacks, toggle_stack, reset_stacks] =
     useSelection<supplyStack>();
-  let pick_stacks_req: PickSupplyPileRequest;
+  let pick_stacks_req: PickSupplyPileRequest | undefined;
   if (message && message.kind === MessageKinds.PICK_SUPPLY_PILE_REQUEST) {
     pick_stacks_req = message as PickSupplyPileRequest;
     console.log("Proper message");
@@ -256,7 +256,7 @@ function SupplyArea({
   stacks: supplyStack[];
   selected_stacks: supplyStack[];
   toggle_stack: (supply_stack: supplyStack) => void;
-  pick_stacks_req: PickSupplyPileRequest;
+  pick_stacks_req: PickSupplyPileRequest | undefined;
 }) {
   return (
     <div className="flex flex-row flex-wrap p-4 gap-4 justify-center items-center">
