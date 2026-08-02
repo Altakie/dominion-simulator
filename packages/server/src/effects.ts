@@ -161,12 +161,16 @@ export const effect_table: Record<CardName, (game: Game) => void> = {
   },
   Workshop: (game: Game) => {
     const player = game.get_current_player();
+    const eligible = game.game_state.supply
+      .getStacks()
+      .filter((stack) => stack.count > 0 && stack.card.cost <= 4);
+    if (eligible.length === 0) {
+      return;
+    }
     game.prompt_gain_card(
       game.get_current_player_info(),
       GainDescriptions.GAIN,
-      game.game_state.supply
-        .getStacks()
-        .filter((stack) => stack.count > 0 && stack.card.cost <= 4),
+      eligible,
       1,
       1,
       get_next(),
@@ -332,16 +336,19 @@ export const effect_table: Record<CardName, (game: Game) => void> = {
           );
         }
         if (value !== -1) {
-          game.prompt_gain_card(
-            game.get_current_player_info(),
-            GainDescriptions.GAIN,
-            game.game_state.supply
-              .getStacks()
-              .filter((stack) => stack.count > 0 && stack.card.cost <= value),
-            1,
-            1,
-            get_gain_next(),
-          );
+          const eligible = game.game_state.supply
+            .getStacks()
+            .filter((stack) => stack.count > 0 && stack.card.cost <= value);
+          if (eligible.length > 0) {
+            game.prompt_gain_card(
+              game.get_current_player_info(),
+              GainDescriptions.GAIN,
+              eligible,
+              1,
+              1,
+              get_gain_next(),
+            );
+          }
         }
       };
     }
@@ -560,21 +567,24 @@ export const effect_table: Record<CardName, (game: Game) => void> = {
             game.find_by_id(player.hand, choices[0]!.id),
             player.hand,
           );
-          game.prompt_gain_card(
-            game.get_current_player_info(),
-            GainDescriptions.GAIN,
-            game.game_state.supply
-              .getStacks()
-              .filter(
-                (stack) =>
-                  stack.count > 0 &&
-                  stack.card.types.includes(CardTypes.TREASURE) &&
-                  stack.card.cost <= trashed_cost + 3,
-              ),
-            1,
-            1,
-            get_gain_next(),
-          );
+          const eligible = game.game_state.supply
+            .getStacks()
+            .filter(
+              (stack) =>
+                stack.count > 0 &&
+                stack.card.types.includes(CardTypes.TREASURE) &&
+                stack.card.cost <= trashed_cost + 3,
+            );
+          if (eligible.length > 0) {
+            game.prompt_gain_card(
+              game.get_current_player_info(),
+              GainDescriptions.GAIN,
+              eligible,
+              1,
+              1,
+              get_gain_next(),
+            );
+          }
         }
       };
     }
@@ -690,16 +700,23 @@ export const effect_table: Record<CardName, (game: Game) => void> = {
   },
   Artisan: (game: Game) => {
     const player = game.get_current_player();
-    game.prompt_gain_card(
-      game.get_current_player_info(),
-      GainDescriptions.GAIN,
-      game.game_state.supply
-        .getStacks()
-        .filter((stack) => stack.count > 0 && stack.card.cost <= 5),
-      1,
-      1,
-      get_gain_next(),
-    );
+    const eligible = game.game_state.supply
+      .getStacks()
+      .filter((stack) => stack.count > 0 && stack.card.cost <= 5);
+    if (eligible.length > 0) {
+      game.prompt_gain_card(
+        game.get_current_player_info(),
+        GainDescriptions.GAIN,
+        eligible,
+        1,
+        1,
+        get_gain_next(),
+      );
+    } else {
+      // Nothing can be gained, but the mandatory "put a card from your
+      // hand onto your deck" step still happens.
+      get_gain_next()([]);
+    }
 
     function get_gain_next(): (choices: supplyStack[]) => void {
       return (choices: supplyStack[]) => {
