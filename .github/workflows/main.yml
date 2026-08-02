@@ -1,0 +1,11 @@
+name: Run tests and linting
+on: pull_request
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Run Tests
+        run: bun test
+      - name: Run lint
+        run: bun run lint
+      
