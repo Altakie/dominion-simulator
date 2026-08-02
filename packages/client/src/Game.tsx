@@ -118,6 +118,7 @@ function Description() {
 
 function PlayerList() {
   const players = useLobbyStore((state) => state.player_game_infos);
+  const game_state = useLobbyStore((state) => state.game_state)!;
   return (
     <div className="h-fit">
       <GameAreaTitle title="PLAYERS" />
@@ -126,15 +127,23 @@ function PlayerList() {
       {/*     <li>{name}</li> */}
       {/*   ))} */}
       {/* </ol> */}
-      {players.map((player) => (
-        <PlayerDisplay
-          key={player.name}
-          name={player.name}
-          highlighted={player.current}
-          under={`${player.total_cards} cards`}
-          right={`${player.victory_points}`}
-        />
-      ))}
+      {players.map((player, index) => {
+        let highlight: "current" | "attacked" | "none" = "none";
+        if (index === game_state.current_player_index) {
+          highlight = "current";
+        } else if (index === game_state.attack_index) {
+          highlight = "attacked";
+        }
+        return (
+          <PlayerDisplay
+            key={player.name}
+            name={player.name}
+            highlight={highlight}
+            under={`${player.total_cards} cards`}
+            right={`${player.victory_points}`}
+          />
+        );
+      })}
     </div>
   );
 }
@@ -482,7 +491,7 @@ function CardShape({
   return (
     <div
       className={cn(
-        `text-xs border-2 border-gray-400 rounded-lg ${CARD_SIZES[height]} p-px flex flex-col justify-between text-center`,
+        `text-xs border-2 border-gray-400 rounded-lg ${CARD_SIZES[height]} p-1 flex flex-col justify-between text-center`,
         className,
       )}
       {...props}
