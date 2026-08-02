@@ -4,9 +4,10 @@ import {
   type ConnectMessage,
   type DisconnectMessage,
   type GameStateUpdateMessage,
-  type LogMessage,
+  type LogEventMessage,
   type Message,
   MessageKinds,
+  type NewLogTurnMessage,
   type PickCardsRequest,
   type PickCardsResponse,
   type PickYesNoRequest,
@@ -14,6 +15,7 @@ import {
   type PlayerNamesMessage,
   parseMessage,
   type StartedMessage,
+  type SyncLogMessage,
   serializeMessage,
 } from "shared/messages";
 import { RouterStates, useRouterStore } from "./App";
@@ -26,6 +28,7 @@ import type {
   SharablePlayer,
 } from "shared";
 import type { Card } from "shared/cards.ts";
+import type { LogEntry, Turn } from "shared/log.ts";
 import type { supplyStack } from "shared/supply.ts";
 import { create } from "zustand";
 import { useShallow } from "zustand/shallow";
@@ -72,8 +75,11 @@ type LobbyStore = {
   set_message: (message?: Message) => void;
   player?: SharablePlayer;
   set_player: (player?: SharablePlayer) => void;
-  log_messages: string[];
-  add_log_messages: (...messages: string[]) => void;
+
+  log_messages: Turn[];
+  add_log_messages: (...messages: LogEntry[]) => void;
+  add_turn: (turn: Turn) => void;
+  set_log: (log: Turn[]) => void;
   clear_log: () => void;
 
   selected_stacks: supplyStack[];
@@ -124,9 +130,20 @@ export const useLobbyStore = create<LobbyStore>((set) => ({
     set(() => ({ player: player }));
   },
   log_messages: [],
-  add_log_messages: (...messages: string[]) => {
-    set((state) => ({ log_messages: [...state.log_messages, ...messages] }));
+  add_log_messages: (...messages: LogEntry[]) => {
+    set((state) => ({
+      log_messages: state.log_messages.map((turn, i) => {
+        if (i !== 0) {
+          return turn;
+        } else {
+          return { ...turn, events: [...turn.events, ...messages] };
+        }
+      }),
+    }));
   },
+  add_turn: (turn: Turn) =>
+    set((state) => ({ log_messages: [turn, ...state.log_messages] })),
+  set_log: (log) => set({ log_messages: log.toReversed() }),
   clear_log: () => {
     set({ log_messages: [] });
   },
@@ -170,25 +187,40 @@ export function Lobby() {
   // const [gameState, setGameState] = useState<GameState>(null)
   // const [message, setMessage] = useState<Message>(null);
   // const [player, setPlayer] = useState<Player>(null)
-  const lobby_store = useLobbyStore(
-    useShallow((state) => ({
-      connected: state.connected,
-      set_connected: state.set_connected,
-      lobby_state: state.lobby_state,
-      set_lobby_state: state.set_lobby_state,
-      player_names: state.player_names,
-      add_player_name: state.add_player_name,
-      remove_player_name: state.remove_player_name,
-      set_player_names: state.set_player_names,
-      // set_choice_list: state.set_choice_list,
-      set_player_game_infos: state.set_player_game_infos,
-
-      set_game_state: state.set_game_state,
-      set_message: state.set_message,
-      set_player: state.set_player,
-      add_log_messages: state.add_log_messages,
-      clear_log: state.clear_log,
-    })),
+  const [
+    connected,
+    lobby_state,
+    set_lobby_state,
+    player_names,
+    add_player_name,
+    remove_player_name,
+    set_player_names,
+    set_player_game_infos,
+    set_game_state,
+    set_message,
+    set_player,
+    add_log_messages,
+    clear_log,
+    add_turn,
+    set_log,
+  ] = useLobbyStore(
+    useShallow((state) => [
+      state.connected,
+      state.lobby_state,
+      state.set_lobby_state,
+      state.player_names,
+      state.add_player_name,
+      state.remove_player_name,
+      state.set_player_names,
+      state.set_player_game_infos,
+      state.set_game_state,
+      state.set_message,
+      state.set_player,
+      state.add_log_messages,
+      state.clear_log,
+      state.add_turn,
+      state.set_log,
+    ]),
   );
 
   // TODO: Move this out of this function so its not recreated every render
@@ -202,34 +234,34 @@ export function Lobby() {
     switch (message.kind) {
       case MessageKinds.PLAYER_NAMES: {
         const player_msg = message as PlayerNamesMessage;
-        lobby_store.set_player_names(player_msg.player_names);
-        console.log(JSON.stringify(lobby_store.player_names));
+        set_player_names(player_msg.player_names);
+        console.log(JSON.stringify(player_names));
         break;
       }
       case MessageKinds.CONNECT: {
         // TODO: If the player is in game, it should say that a player is disconnected, vs connected, but not remove their name from the list
-        if (lobby_store.lobby_state === LobbyStates.GAME_STARTED) {
+        if (lobby_state === LobbyStates.GAME_STARTED) {
           break;
         }
         const conn_msg = message as ConnectMessage;
-        lobby_store.add_player_name(conn_msg.player_name);
+        add_player_name(conn_msg.player_name);
         break;
       }
       case MessageKinds.DISCONNECT: {
-        if (lobby_store.lobby_state === LobbyStates.GAME_STARTED) {
+        if (lobby_state === LobbyStates.GAME_STARTED) {
           break;
         }
         const disconn_msg = message as DisconnectMessage;
-        lobby_store.remove_player_name(disconn_msg.player_name);
+        remove_player_name(disconn_msg.player_name);
         break;
       }
       case MessageKinds.STARTED: {
         const started_msg = message as StartedMessage;
-        lobby_store.set_player_game_infos(started_msg.players);
-        lobby_store.set_game_state(started_msg.state);
-        lobby_store.set_player(started_msg.player);
+        set_player_game_infos(started_msg.players);
+        set_game_state(started_msg.state);
+        set_player(started_msg.player);
 
-        lobby_store.set_lobby_state(LobbyStates.GAME_STARTED);
+        set_lobby_state(LobbyStates.GAME_STARTED);
         break;
       }
       case MessageKinds.PICK_CARDS_REQUEST:
@@ -237,36 +269,46 @@ export function Lobby() {
         // lobby_store.set_choice_list(
         //   <ChooseCardsList message={message as PickCardsRequest} />,
         // );
-        lobby_store.set_message(message);
+        set_message(message);
         break;
       case MessageKinds.PICK_SUPPLY_PILE_REQUEST:
         // lobby_store.set_choice_list(
         //   <ChooseSupplyPilesList message={message as PickSupplyPileRequest} game_socket={gameSocket.current} lobby_store.set_choice_list={setChoiceList} />
         // )
-        lobby_store.set_message(message);
+        set_message(message);
         break;
       case MessageKinds.PICK_YES_NO_REQUEST:
         // lobby_store.set_choice_list(
         //   <ChooseYesNo message={message as PickYesNoRequest} />,
         // );
-        lobby_store.set_message(message);
+        set_message(message);
         break;
       case MessageKinds.GAME_STATE_UPDATE: {
         const update_message: GameStateUpdateMessage =
           message as GameStateUpdateMessage;
-        lobby_store.set_game_state(update_message.game_state);
-        lobby_store.set_player(update_message.player);
-        lobby_store.set_player_game_infos(update_message.players);
+        set_game_state(update_message.game_state);
+        set_player(update_message.player);
+        set_player_game_infos(update_message.players);
         break;
       }
       case MessageKinds.GAME_END:
-        lobby_store.set_message(message);
-        lobby_store.set_lobby_state(LobbyStates.GAME_END);
-        lobby_store.clear_log();
+        set_message(message);
+        set_lobby_state(LobbyStates.GAME_END);
+        clear_log();
         break;
-      case MessageKinds.LOG: {
-        const log_message = message as LogMessage;
-        lobby_store.add_log_messages(...log_message.log_messages);
+      case MessageKinds.LOG_EVENT: {
+        const log_message = message as LogEventMessage;
+        add_log_messages(...log_message.log_messages);
+        break;
+      }
+      case MessageKinds.NEW_TURN: {
+        const new_turn_msg = message as NewLogTurnMessage;
+        add_turn(new_turn_msg.turn);
+        break;
+      }
+      case MessageKinds.SYNC_LOG: {
+        const sync_log_msg = message as SyncLogMessage;
+        set_log(sync_log_msg.log);
         break;
       }
       default:
@@ -284,11 +326,11 @@ export function Lobby() {
     game_socket.onmessage = resolve_message;
   });
 
-  if (!lobby_store.connected) {
+  if (!connected) {
     return <Connecting />;
   }
 
-  switch (lobby_store.lobby_state) {
+  switch (lobby_state) {
     case LobbyStates.LOBBY:
       return <LobbyView />;
     case LobbyStates.GAME_STARTED:
