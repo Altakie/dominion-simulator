@@ -11,6 +11,7 @@ import {
   type CardInfo,
   type CardName,
   CardTypes,
+  same_card,
 } from "shared/cards";
 import { Copper } from "shared/cards/treasures";
 import { Estate, Province } from "shared/cards/victories";
@@ -38,7 +39,7 @@ import {
   serializeMessage,
 } from "shared/messages";
 import { shuffle } from "shared/shuffle";
-import { Supply, type supplyStack } from "shared/supply";
+import { Supply, same_stack, type supplyStack } from "shared/supply";
 import { effect_table } from "./effects";
 import type { Lobby, PlayerLobbyInfo } from "./lobby";
 import { AISocket, type MessageSink } from "./socket";
@@ -48,11 +49,11 @@ type WaitResponses =
   | typeof MessageKinds.PICK_SUPPLY_PILE_RESPONSE
   | typeof MessageKinds.PICK_YES_NO_RESPONSE;
 
-interface Cc {
+interface QueueEntry {
   wait: boolean;
 }
 
-interface WaitInfo extends Cc {
+interface BlockingPrompt extends QueueEntry {
   wait: true;
   player_info: PlayerInfo;
   response_type: WaitResponses;
@@ -60,13 +61,13 @@ interface WaitInfo extends Cc {
   cc: (response: Message) => void;
 }
 
-export interface NonBlockingCc extends Cc {
+export interface Continuation extends QueueEntry {
   wait: false;
   cc: () => void;
 }
 
 class WaitQueue {
-  wait_queue: Deque<Cc>;
+  wait_queue: Deque<QueueEntry>;
 
   constructor() {
     this.wait_queue = new Deque();
@@ -83,7 +84,7 @@ class WaitQueue {
       return;
     }
 
-    const wait_info = front as WaitInfo;
+    const wait_info = front as BlockingPrompt;
 
     if (clientid !== wait_info.player_info.clientid) {
       console.log("Wrong Player sent response");
@@ -102,33 +103,33 @@ class WaitQueue {
       this.wait_queue.peek_front() !== undefined &&
       !this.wait_queue.peek_front()?.wait
     ) {
-      const non_blocking = this.wait_queue.pop_front() as NonBlockingCc;
+      const non_blocking = this.wait_queue.pop_front() as Continuation;
       non_blocking.cc();
     }
   }
 
-  push_front(cc: Cc) {
+  push_front(cc: QueueEntry) {
     this.wait_queue.push_front(cc);
   }
 
-  pop_front(): Cc | undefined {
+  pop_front(): QueueEntry | undefined {
     return this.wait_queue.pop_front();
   }
 
-  peek_front(): Cc | undefined {
+  peek_front(): QueueEntry | undefined {
     return this.wait_queue.peek_front();
   }
 
-  peek_front_waiting(): WaitInfo | undefined {
+  peek_front_waiting(): BlockingPrompt | undefined {
     const front = this.peek_front();
     if (!this.peek_front()?.wait) {
       return undefined;
     }
 
-    return front as WaitInfo;
+    return front as BlockingPrompt;
   }
 
-  push_back(cc: Cc) {
+  push_back(cc: QueueEntry) {
     this.wait_queue.push_back(cc);
   }
 
@@ -348,15 +349,6 @@ export class Game {
     for (const player_info of this.player_infos) {
       if (player_info.clientid === clientid) {
         player_info.socket = socket;
-        const started_msg: StartedMessage = {
-          kind: MessageKinds.STARTED,
-          player_name_order: this.get_player_names(),
-          state: this.game_state,
-
-          player: toSharablePlayer(player_info.player),
-        };
-
-        socket.send(serializeMessage(started_msg));
 
         if (
           this.wait_queue.peek_front_waiting()?.player_info.clientid ===
@@ -374,7 +366,6 @@ export class Game {
         };
 
         socket.send(serializeMessage(log_message));
-        // break;
       }
       const started_msg: StartedMessage = {
         kind: MessageKinds.STARTED,
@@ -384,7 +375,7 @@ export class Game {
         player: toSharablePlayer(player_info.player),
       };
 
-      socket.send(serializeMessage(started_msg));
+      player_info.socket.send(serializeMessage(started_msg));
     }
   }
 
@@ -399,18 +390,6 @@ export class Game {
     // WARN: Assuming that there are no errors
     // this.wait_info = undefined
   }
-
-  // eventually_cleanup(cleanup: () => void) {
-  //   if (this.wait_infos === undefined) {
-  //     cleanup();
-  //   } else {
-  //     const old_next = this.wait_infos.next;
-  //     this.wait_infos.next = (response: Message) => {
-  //       old_next(response);
-  //       this.eventually_cleanup(cleanup);
-  //     };
-  //   }
-  // }
 
   action_phase() {
     this.send_update();
@@ -433,22 +412,12 @@ export class Game {
       }
 
       const next = (choices: Card[]) => {
-        if (choices.length > 1) {
-          // TODO: Maybe allow players to play multiple cards at a time if it's valid?
-          console.log("Cannot play more than one card at a time");
-        }
-        // TODO: Reprompt if it goes wrong
-        if (!isSubset(choices, initial_choices)) {
-          console.log("Error: Improper Choice");
-          return;
-        }
-
         if (choices.length === 0) {
           end_phase();
           return;
         }
 
-        const card_index = hand.findIndex((card) => card.id === choices[0]!.id);
+        const card_index = this.find_by_id(hand, choices[0]!.id);
         console.log(
           `Player chose ${choices[0]!.info.name} which has an index of ${card_index}`,
         );
@@ -468,7 +437,7 @@ export class Game {
         // It will cleanup and go to the next phase after the first effect
         // Unless the effects are chained within the card, which should be the case
         if (!this.wait_queue.isEmpty()) {
-          const cleanup_cc: NonBlockingCc = { wait: false, cc: cleanup };
+          const cleanup_cc: Continuation = { wait: false, cc: cleanup };
           this.wait_queue.push_back(cleanup_cc);
           return;
         }
@@ -530,17 +499,6 @@ export class Game {
           (pile) => pile.card.cost <= this.game_state.money && pile.count > 0,
         );
       const next = (choices: supplyStack[]) => {
-        // TODO: Reprompt the buy if it goes wrong??
-        if (choices.length > 1) {
-          // TODO: Maybe allow players to buy multiple cards at a time if it's valid?
-          console.log("Cannot buy more than one card at a time");
-          return;
-        }
-        if (!isSubset(choices, supply_piles)) {
-          console.log("Error: Improper Supply Pile Choice");
-          return;
-        }
-
         if (choices.length === 0) {
           end_phase();
           return;
@@ -597,7 +555,7 @@ export class Game {
       if (
         res.choices.length > req.max ||
         res.choices.length < req.min ||
-        !isSubset(res.choices, req.choices)
+        !isSubset(res.choices, req.choices, same_card)
       ) {
         const req_str = serializeMessage(req);
         player.socket.send(req_str);
@@ -610,7 +568,7 @@ export class Game {
     };
 
     const req_str = serializeMessage(req);
-    const waiting: WaitInfo = {
+    const waiting: BlockingPrompt = {
       wait: true,
       request: req,
       player_info: player,
@@ -641,7 +599,7 @@ export class Game {
     };
 
     const req_str = serializeMessage(req);
-    const waiting: WaitInfo = {
+    const waiting: BlockingPrompt = {
       wait: true,
       request: req,
       player_info: player,
@@ -673,7 +631,7 @@ export class Game {
       if (
         res.choices.length > req.max ||
         res.choices.length < req.min ||
-        !isSubset(res.choices, req.choices)
+        !isSubset(res.choices, req.choices, same_stack)
       ) {
         const req_str = serializeMessage(req);
         player.socket.send(req_str);
@@ -687,7 +645,7 @@ export class Game {
     };
 
     const req_str = serializeMessage(req);
-    const waiting: WaitInfo = {
+    const waiting: BlockingPrompt = {
       wait: true,
       request: req,
       player_info: player,
@@ -698,14 +656,18 @@ export class Game {
     player.socket.send(req_str);
   }
 
+  reshuffle_if_empty(player: Player) {
+    if (player.deck.length === 0) {
+      player.deck = shuffle(player.discard_pile);
+      player.discard_pile = [];
+    }
+  }
+
   draw_cards(player: Player, num_cards: number) {
     for (let i = 0; i < num_cards; i++) {
+      this.reshuffle_if_empty(player);
       if (player.deck.length === 0) {
-        if (player.discard_pile.length === 0) {
-          return;
-        }
-        player.deck = shuffle(player.discard_pile);
-        player.discard_pile = [];
+        return;
       }
       const card = player.deck.pop()!;
       player.hand.push(card);
@@ -729,8 +691,7 @@ export class Game {
 
   discard_card(player: Player, card_index: number, initial_pile: Card[]) {
     if (initial_pile === player.deck && player.deck.length === 0) {
-      player.deck = shuffle(player.discard_pile);
-      player.discard_pile = [];
+      this.reshuffle_if_empty(player);
       initial_pile = player.deck;
       card_index = player.deck.length - 1;
     }
@@ -777,6 +738,10 @@ export class Game {
 
   remove_card(card_index: number, pile: Card[]): Card {
     return pile.splice(card_index, 1)[0]!;
+  }
+
+  find_by_id(pile: Card[], id: string): number {
+    return pile.findIndex((card) => card.id === id);
   }
 
   calculate_victory_points(player: Player): number {
@@ -883,9 +848,13 @@ export class Game {
   }
 }
 
-function isSubset(subset: any[], set: any[]): boolean {
+function isSubset<T>(
+  subset: T[],
+  set: T[],
+  equals: (a: T, b: T) => boolean,
+): boolean {
   for (const member of subset) {
-    if (set.includes(member!)) {
+    if (!set.some((element) => equals(member, element))) {
       return false;
     }
   }

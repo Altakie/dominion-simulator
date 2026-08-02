@@ -1,14 +1,6 @@
-import {
-  type Dispatch,
-  type ReactNode,
-  type Ref,
-  type SetStateAction,
-  useEffect,
-  useRef,
-  useState,
-} from "react";
+import { type ReactNode, type Ref, useEffect, useRef, useState } from "react";
 import "./App.css";
-import { type Card, type CardInfo, CardTypes } from "shared/cards";
+import { type Card, type CardInfo, CardTypes, same_card } from "shared/cards";
 import {
   MessageKinds,
   type PickCardsRequest,
@@ -20,15 +12,15 @@ import {
   type RequestMessage,
   request_message_kinds,
 } from "shared/messages";
-import type { Supply, supplyStack } from "shared/supply";
+import { type Supply, same_stack, type supplyStack } from "shared/supply";
 import {
   Sheet,
   SheetClose,
   SheetContent,
-  SheetDescription,
+  // SheetDescription,
   SheetFooter,
   SheetHeader,
-  SheetTitle,
+  // SheetTitle,
   SheetTrigger,
 } from "@/components/ui/sheet";
 import {
@@ -38,7 +30,19 @@ import {
 } from "@/components/ui/tooltip";
 import { card_descriptions } from "./CardDescriptions.tsx";
 import { Button } from "./components/ui/button.tsx";
+import { Separator } from "./components/ui/separator.tsx";
 import { game_socket, PlayerNameDisplay, useLobbyStore } from "./Lobby";
+
+function useSelection<T>(): [T[], (item: T) => void, () => void] {
+  const [selected, setSelected] = useState<T[]>([]);
+  const toggle = (item: T) => {
+    setSelected((prev) =>
+      prev.includes(item) ? prev.filter((i) => i !== item) : [...prev, item],
+    );
+  };
+  const reset = () => setSelected([]);
+  return [selected, toggle, reset];
+}
 
 export function Game() {
   // let choices = useLobbyStore((state) => state.choice_list);
@@ -78,7 +82,8 @@ export function Game() {
             Discard size: <span>{player.discard_pile_size}</span>
           </div>
           <div>
-            Top of discard: <span>{player.top_of_discard_pile?.info.name ?? "None"}</span>
+            Top of discard:{" "}
+            <span>{player.top_of_discard_pile?.info.name ?? "None"}</span>
           </div>
         </div>
         <VisualGameState />
@@ -171,15 +176,13 @@ function PlayedCards({ played_cards }: { played_cards: Card[] }) {
 function TurnInfo() {
   const game_state = useLobbyStore((state) => state.game_state)!;
   return (
-    <>
-      <div>
-        <h2>Turn Info</h2>
-        <p>Turn Number: {game_state.turn_number}</p>
-        <p>Actions: {game_state.actions}</p>
-        <p>Money: {game_state.money}</p>
-        <p>Buys: {game_state.buys}</p>
-      </div>
-    </>
+    <div>
+      <h2>Turn Info</h2>
+      <p>Turn Number: {game_state.turn_number}</p>
+      <p>Actions: {game_state.actions}</p>
+      <p>Money: {game_state.money}</p>
+      <p>Buys: {game_state.buys}</p>
+    </div>
   );
 }
 
@@ -187,8 +190,9 @@ function VisualSupply({ supply }: { supply: Supply }) {
   const message = useLobbyStore((state) => state.message);
   const setMessage = useLobbyStore((state) => state.set_message);
 
-  const [selected_stacks, setSelectedStacks] = useState<supplyStack[]>([]);
-  let pick_stacks_req: PickSupplyPileRequest;
+  const [selected_stacks, toggle_stack, reset_stacks] =
+    useSelection<supplyStack>();
+  let pick_stacks_req: PickSupplyPileRequest | undefined;
   if (message && message.kind === MessageKinds.PICK_SUPPLY_PILE_REQUEST) {
     pick_stacks_req = message as PickSupplyPileRequest;
     console.log("Proper message");
@@ -206,7 +210,7 @@ function VisualSupply({ supply }: { supply: Supply }) {
               kind: MessageKinds.PICK_SUPPLY_PILE_RESPONSE,
               choices: selected_stacks,
             };
-            setSelectedStacks([]);
+            reset_stacks();
             setMessage(undefined);
             game_socket?.send(JSON.stringify(res));
           }}
@@ -226,59 +230,59 @@ function VisualSupply({ supply }: { supply: Supply }) {
   return (
     <>
       <h2>Supply</h2>
-      <div className="flex flex-row flex-wrap p-4 gap-4 justify-center items-center">
-        {supply.fixed_stacks.map((supply_stack) => {
-          if (
-            pick_stacks_req?.choices.some(
-              (stack) =>
-                stack.card.name === supply_stack.card.name &&
-                stack.count === supply_stack.count,
-            )
-          ) {
-            return (
-              <SupplyStackButton
-                key={supply_stack.card.name}
-                supply_stack={supply_stack}
-                selected_stacks={selected_stacks}
-                setSelectedStacks={setSelectedStacks}
-              />
-            );
-          }
-          return (
-            <VisualSupplyStack
-              key={supply_stack.card.name}
-              supply_stack={supply_stack}
-            />
-          );
-        })}
-      </div>
-      <div className="flex flex-row flex-wrap p-4 gap-4 justify-center items-center">
-        {supply.stacks.map((supply_stack) => {
-          if (
-            pick_stacks_req?.choices.some(
-              (stack) =>
-                stack.card.name === supply_stack.card.name &&
-                stack.count === supply_stack.count,
-            )
-          ) {
-            return (
-              <SupplyStackButton
-                supply_stack={supply_stack}
-                selected_stacks={selected_stacks}
-                setSelectedStacks={setSelectedStacks}
-              />
-            );
-          }
-          return (
-            <VisualSupplyStack
-              key={supply_stack.card.name}
-              supply_stack={supply_stack}
-            />
-          );
-        })}
-      </div>
+      <SupplyArea
+        stacks={supply.fixed_stacks}
+        selected_stacks={selected_stacks}
+        toggle_stack={toggle_stack}
+        pick_stacks_req={pick_stacks_req}
+      />
+      <SupplyArea
+        stacks={supply.stacks}
+        selected_stacks={selected_stacks}
+        toggle_stack={toggle_stack}
+        pick_stacks_req={pick_stacks_req}
+      />
       {confirm_choices_button()}
     </>
+  );
+}
+
+function SupplyArea({
+  stacks,
+  selected_stacks,
+  toggle_stack,
+  pick_stacks_req,
+}: {
+  stacks: supplyStack[];
+  selected_stacks: supplyStack[];
+  toggle_stack: (supply_stack: supplyStack) => void;
+  pick_stacks_req: PickSupplyPileRequest | undefined;
+}) {
+  return (
+    <div className="flex flex-row flex-wrap p-4 gap-4 justify-center items-center">
+      {stacks.map((supply_stack) => {
+        if (
+          pick_stacks_req?.choices.some((stack) =>
+            same_stack(stack, supply_stack),
+          )
+        ) {
+          return (
+            <SupplyStackButton
+              key={supply_stack.card.name}
+              supply_stack={supply_stack}
+              selected={selected_stacks.includes(supply_stack)}
+              onToggle={() => toggle_stack(supply_stack)}
+            />
+          );
+        }
+        return (
+          <VisualSupplyStack
+            key={supply_stack.card.name}
+            supply_stack={supply_stack}
+          />
+        );
+      })}
+    </div>
   );
 }
 
@@ -297,26 +301,18 @@ function VisualSupplyStack({ supply_stack }: { supply_stack: supplyStack }) {
 
 function SupplyStackButton({
   supply_stack,
-  selected_stacks,
-  setSelectedStacks,
+  selected,
+  onToggle,
 }: {
   supply_stack: supplyStack;
-  selected_stacks: supplyStack[];
-  setSelectedStacks: Dispatch<SetStateAction<supplyStack[]>>;
+  selected: boolean;
+  onToggle: () => void;
 }) {
-  const selected = selected_stacks.includes(supply_stack);
-
   return (
     <CardShell
       card_info={supply_stack.card}
       className={`${selected ? "border-green-400 hover:border-green-600" : "border-red-600 hover:border-red-800"}`}
-      onClick={() => {
-        if (selected) {
-          setSelectedStacks((prev) => prev.filter((c) => c !== supply_stack));
-        } else {
-          setSelectedStacks((prev) => [...prev, supply_stack]);
-        }
-      }}
+      onClick={onToggle}
     >
       <div className="flex flex-row justify-between">
         <GoldCoin cost={supply_stack.card.cost} />
@@ -334,7 +330,7 @@ function Hand({ hand }: { hand: Card[] }) {
 
   // TODO: If only one selection needed, maybe just send right away without confirming?
   // TODO: Stop the user from selecting too many cards
-  const [selected_cards, setSelectedCards] = useState<Card[]>([]);
+  const [selected_cards, toggle_card, reset_cards] = useSelection<Card>();
   let pick_cards_req: PickCardsRequest;
   if (message && message.kind === MessageKinds.PICK_CARDS_REQUEST) {
     pick_cards_req = message as PickCardsRequest;
@@ -356,7 +352,7 @@ function Hand({ hand }: { hand: Card[] }) {
               kind: MessageKinds.PICK_CARDS_RESPONSE,
               choices: selected_cards,
             };
-            setSelectedCards([]);
+            reset_cards();
             setMessage(undefined);
             // Need to set message to null
             game_socket?.send(JSON.stringify(res));
@@ -377,14 +373,14 @@ function Hand({ hand }: { hand: Card[] }) {
       <h2>Current Hand</h2>
       <div className="flex flex-row flex-wrap gap-4 items-center justify-center">
         {hand.map((card) => {
-          if (pick_cards_req?.choices.some((c) => c.id === card.id)) {
+          if (pick_cards_req?.choices.some((c) => same_card(c, card))) {
             console.log("Rendering button");
             return (
               <CardButton
                 key={card.id}
                 card={card}
-                selected_cards={selected_cards}
-                setSelectedCards={setSelectedCards}
+                selected={selected_cards.includes(card)}
+                onToggle={() => toggle_card(card)}
               />
             );
           }
@@ -418,8 +414,12 @@ function CardShell({
           {children}
         </div>
       </TooltipTrigger>
-      <TooltipContent className="flex flex-col flex-wrap" side="top">
-        {card_descriptions[card_info.name]}
+      <TooltipContent side="top">
+        <div className="flex flex-col flex-wrap text-center z-51">
+          <b>{card_info.types.join(" & ")}</b>
+          <Separator />
+          {card_descriptions[card_info.name]}
+        </div>
       </TooltipContent>
     </Tooltip>
   );
@@ -448,19 +448,21 @@ function card_bg(card_info: CardInfo): string {
   if (card_info.types.includes(CardTypes.CURSE)) {
     return "bg-purple-400";
   }
+  if (card_info.types.includes(CardTypes.ATTACK)) {
+    return "bg-red-300";
+  }
   return "bg-white";
 }
 
 function CardButton({
   card,
-  selected_cards,
-  setSelectedCards,
+  selected,
+  onToggle,
 }: {
   card: Card;
-  selected_cards: Card[];
-  setSelectedCards: Dispatch<SetStateAction<Card[]>>;
+  selected: boolean;
+  onToggle: () => void;
 }) {
-  const selected = selected_cards.includes(card);
   return (
     <CardShell
       card_info={card.info}
@@ -469,13 +471,7 @@ function CardButton({
           ? "border-green-400 hover:border-green-600"
           : "border-red-600 hover:border-red-800"
       }
-      onClick={() => {
-        if (selected) {
-          setSelectedCards((prev) => prev.filter((c) => c !== card));
-        } else {
-          setSelectedCards((prev) => [...prev, card]);
-        }
-      }}
+      onClick={onToggle}
     >
       <div className="flex flex-row justify-start">
         <GoldCoin cost={card.info.cost} />
@@ -516,8 +512,7 @@ export function GoldCoin({ cost }: { cost: number }) {
 }
 
 function ChooseCardsList({ extra_cards }: { extra_cards: Card[] }) {
-  // const set_choice_list = useLobbyStore((state) => state.set_choice_list);
-  const [choices, setChoices] = useState<Card[]>([]);
+  const [choices, toggle_choice, reset_choices] = useSelection<Card>();
   const message = useLobbyStore((state) => state.message as PickCardsRequest);
   const set_message = useLobbyStore((state) => state.set_message);
 
@@ -530,8 +525,8 @@ function ChooseCardsList({ extra_cards }: { extra_cards: Card[] }) {
             <CardButton
               key={card.id}
               card={card}
-              selected_cards={choices}
-              setSelectedCards={setChoices}
+              selected={choices.includes(card)}
+              onToggle={() => toggle_choice(card)}
             />
           ))}
         </div>
@@ -544,7 +539,7 @@ function ChooseCardsList({ extra_cards }: { extra_cards: Card[] }) {
               choices: choices,
             };
             set_message(undefined);
-            setChoices([]);
+            reset_choices();
             game_socket?.send(JSON.stringify(res));
           }}
           disabled={
@@ -556,48 +551,6 @@ function ChooseCardsList({ extra_cards }: { extra_cards: Card[] }) {
       }
     />
   );
-
-  // return (
-  //   <Sheet defaultOpen={true}>
-  //     <SheetContent showCloseButton={false}>
-  //       <SheetHeader>
-  //         <h2>{message.description}</h2>
-  //       </SheetHeader>
-  //
-  //       <div className="flex flex-row flex-wrap justify-center">
-  //         {extra_cards.map((card) => (
-  //           <CardButton
-  //             key={card.id}
-  //             card={card}
-  //             selected_cards={choices}
-  //             setSelectedCards={setChoices}
-  //           />
-  //         ))}
-  //       </div>
-  //
-  //       <SheetFooter className="text-center sm:justify-center justify-center">
-  //         <SheetClose>
-  //           <Button
-  //             onClick={() => {
-  //               const res: PickCardsResponse = {
-  //                 kind: MessageKinds.PICK_CARDS_RESPONSE,
-  //                 choices: choices,
-  //               };
-  //               set_message(undefined);
-  //               setChoices([]);
-  //               game_socket?.send(JSON.stringify(res));
-  //             }}
-  //             disabled={
-  //               choices.length > message.max || choices.length < message.min
-  //             }
-  //           >
-  //             Confirm Choices
-  //           </Button>
-  //         </SheetClose>
-  //       </SheetFooter>
-  //     </SheetContent>
-  //   </Sheet>
-  // );
 }
 
 function ChooseYesNo() {
@@ -639,42 +592,6 @@ function ChooseYesNo() {
       }
     />
   );
-
-  // return (
-  //   <Sheet defaultOpen={true}>
-  //     <SheetContent showCloseButton={false} className="text-center">
-  //       <SheetHeader>
-  //         <h2>{message.description}</h2>
-  //       </SheetHeader>
-  //
-  //       <div className="text-center">
-  //         <CardDisplay key={message.card.id} card={message.card} />
-  //       </div>
-  //
-  //       <SheetFooter className="text-center sm:justify-center justify-center">
-  //         <SheetClose>
-  //           <p>
-  //             <Button
-  //               onClick={() => {
-  //                 send_choice(true);
-  //               }}
-  //             >
-  //               Yes
-  //             </Button>
-  //
-  //             <Button
-  //               onClick={() => {
-  //                 send_choice(false);
-  //               }}
-  //             >
-  //               No
-  //             </Button>
-  //           </p>
-  //         </SheetClose>
-  //       </SheetFooter>
-  //     </SheetContent>
-  //   </Sheet>
-  // );
 }
 
 function CardSelectionPopup({

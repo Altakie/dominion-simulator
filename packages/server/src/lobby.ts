@@ -149,6 +149,8 @@ export class Lobby {
       return;
     }
 
+    this.player_lobby_infos.delete(clientid);
+
     if (clientid === this.host?.clientid) {
       const next_player = this.player_lobby_infos.values().next().value;
       if (next_player?.name !== "Gemini") {
@@ -162,11 +164,11 @@ export class Lobby {
       kind: MessageKinds.DISCONNECT,
       player_name: name,
     };
+
     const msg_str = serializeMessage(msg);
     for (const player of this.player_lobby_infos.values()) {
       player.socket.send(msg_str);
     }
-    this.player_lobby_infos.delete(clientid);
 
     console.log(`Player ${clientid} left the game`);
   }

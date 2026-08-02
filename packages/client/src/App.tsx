@@ -11,10 +11,10 @@ import { Lobby } from "./Lobby.tsx";
 
 // let ws: WebSocket = null;
 
-export const RouterStates = {
+export const RouterStates = Object.freeze({
   HOME: "Home",
   LOBBY: "Lobby",
-};
+});
 
 type RouterState = (typeof RouterStates)[keyof typeof RouterStates];
 
@@ -44,21 +44,43 @@ function App() {
 
 const stateTable: Record<RouterState, React.ReactNode> = {
   Home: <Home />,
-  Game: <Lobby />,
+  Lobby: <Lobby />,
 };
 
 function Home() {
   const [name, setName] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [reconnect_name, setReconnectName] = useState<string | undefined>(
+    undefined,
+  );
 
   const setState = useRouterStore((state) => state.set_router_state);
+
+  useEffect(() => {
+    fetch("/session")
+      .then((res) => res.json())
+      .then((session: { in_game: boolean; name?: string }) => {
+        if (session.in_game) {
+          setReconnectName(session.name);
+        }
+      })
+      .catch((e) => console.log(e));
+  }, []);
 
   // ws.send("Skeeby Deeby")
 
   return (
     <>
       <section id="center">
+        {reconnect_name && (
+          <p>
+            You have a game in progress as {reconnect_name}.
+            <Button onClick={() => setState(RouterStates.LOBBY)}>
+              Reconnect
+            </Button>
+          </p>
+        )}
         <p>
           Your Name:
           <input
@@ -78,7 +100,7 @@ function Home() {
                 },
               });
               if (res.ok) {
-                setState("Game");
+                setState(RouterStates.LOBBY);
               } else if (res.status === 406) {
                 setError(await res.text());
               } else {

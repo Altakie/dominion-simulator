@@ -11,7 +11,7 @@ import {
 import { shuffle } from "shared/shuffle";
 import type { supplyStack } from "shared/supply";
 import { type AttackCC, next_attack } from "./attacks";
-import type { Game, NonBlockingCc } from "./game";
+import type { Continuation, Game } from "./game";
 
 export const effect_table: Record<CardName, (game: Game) => void> = {
   Copper: (game: Game) => {
@@ -59,7 +59,7 @@ export const effect_table: Record<CardName, (game: Game) => void> = {
         for (const card of choices) {
           game.discard_card(
             player,
-            player.hand.findIndex((c) => c.id === card.id),
+            game.find_by_id(player.hand, card.id),
             player.hand,
           );
         }
@@ -83,7 +83,7 @@ export const effect_table: Record<CardName, (game: Game) => void> = {
         for (const card of choices) {
           game.trash_card(
             player,
-            player.hand.findIndex((c) => c.id === card.id),
+            game.find_by_id(player.hand, card.id),
             player.hand,
           );
         }
@@ -114,7 +114,7 @@ export const effect_table: Record<CardName, (game: Game) => void> = {
           const card = choices[0]!;
           player.deck.push(
             game.remove_card(
-              player.discard_pile.findIndex((c) => c.id === card.id),
+              game.find_by_id(player.discard_pile, card.id),
               player.discard_pile,
             ),
           );
@@ -148,7 +148,7 @@ export const effect_table: Record<CardName, (game: Game) => void> = {
       return (choice: boolean) => {
         if (choice) {
           game.play_card(
-            player.discard_pile.findIndex((c) => c.id === discarded!.id),
+            game.find_by_id(player.discard_pile, discarded!.id),
             player.discard_pile,
           );
         }
@@ -161,12 +161,16 @@ export const effect_table: Record<CardName, (game: Game) => void> = {
   },
   Workshop: (game: Game) => {
     const player = game.get_current_player();
+    const eligible = game.game_state.supply
+      .getStacks()
+      .filter((stack) => stack.count > 0 && stack.card.cost <= 4);
+    if (eligible.length === 0) {
+      return;
+    }
     game.prompt_gain_card(
       game.get_current_player_info(),
       GainDescriptions.GAIN,
-      game.game_state.supply
-        .getStacks()
-        .filter((stack) => stack.count > 0 && stack.card.cost <= 4),
+      eligible,
       1,
       1,
       get_next(),
@@ -210,10 +214,7 @@ export const effect_table: Record<CardName, (game: Game) => void> = {
 
     function top_deck_victory(player: Player, choices: Card[]) {
       for (const card of choices) {
-        game.remove_card(
-          player.hand.findIndex((c) => c.id === card.id),
-          player.hand,
-        );
+        game.remove_card(game.find_by_id(player.hand, card.id), player.hand);
         player.deck.push(card);
       }
     }
@@ -246,7 +247,7 @@ export const effect_table: Record<CardName, (game: Game) => void> = {
       for (const card of choices) {
         game.discard_card(
           player,
-          player.hand.findIndex((c) => c.id === card.id),
+          game.find_by_id(player.hand, card.id),
           player.hand,
         );
       }
@@ -271,7 +272,7 @@ export const effect_table: Record<CardName, (game: Game) => void> = {
         for (const card of choices) {
           game.trash_card(
             player,
-            player.hand.findIndex((c) => c.id === card.id),
+            game.find_by_id(player.hand, card.id),
             player.hand,
           );
           game.game_state.money += 3;
@@ -303,7 +304,7 @@ export const effect_table: Record<CardName, (game: Game) => void> = {
         for (const card of choices) {
           game.discard_card(
             player,
-            player.hand.findIndex((c) => c.id === card.id),
+            game.find_by_id(player.hand, card.id),
             player.hand,
           );
         }
@@ -330,21 +331,24 @@ export const effect_table: Record<CardName, (game: Game) => void> = {
           value = card!.info.cost + 2;
           game.trash_card(
             player,
-            player.hand.findIndex((c) => c.id === card.id),
+            game.find_by_id(player.hand, card.id),
             player.hand,
           );
         }
         if (value !== -1) {
-          game.prompt_gain_card(
-            game.get_current_player_info(),
-            GainDescriptions.GAIN,
-            game.game_state.supply
-              .getStacks()
-              .filter((stack) => stack.count > 0 && stack.card.cost <= value),
-            1,
-            1,
-            get_gain_next(),
-          );
+          const eligible = game.game_state.supply
+            .getStacks()
+            .filter((stack) => stack.count > 0 && stack.card.cost <= value);
+          if (eligible.length > 0) {
+            game.prompt_gain_card(
+              game.get_current_player_info(),
+              GainDescriptions.GAIN,
+              eligible,
+              1,
+              1,
+              get_gain_next(),
+            );
+          }
         }
       };
     }
@@ -375,7 +379,13 @@ export const effect_table: Record<CardName, (game: Game) => void> = {
       return (choices: Card[]) => {
         if (choices.length > 0) {
           const card = choices[0]!;
-          const second_play_cc: NonBlockingCc = {
+          // Queue the second play to run once anything the first play prompts for
+          // (e.g. the card's own effect asking for a choice) has resolved. If
+          // play_card doesn't push anything in front of it, the queue's front is
+          // still this entry after play_card returns, meaning no prompt was
+          // triggered — in that case run the second play synchronously here
+          // instead of leaving it queued with nothing left to resolve it.
+          const second_play_cc: Continuation = {
             wait: false,
             cc: () => {
               game.send_update();
@@ -383,10 +393,7 @@ export const effect_table: Record<CardName, (game: Game) => void> = {
             },
           };
           game.wait_queue.push_front(second_play_cc);
-          game.play_card(
-            player.hand.findIndex((c) => c.id === card.id),
-            player.hand,
-          );
+          game.play_card(game.find_by_id(player.hand, card.id), player.hand);
           if (game.wait_queue.peek_front() === second_play_cc) {
             game.wait_queue.pop_front();
             effect_table[card.info.name](game);
@@ -401,45 +408,54 @@ export const effect_table: Record<CardName, (game: Game) => void> = {
 
     const attack: AttackCC = (game, next) => {
       const player = game.get_player(game.game_state.attack_index!);
-      game.discard_card(player, player.deck.length - 1, player.deck);
-      game.discard_card(player, player.deck.length - 1, player.deck);
-      const discarded = player.discard_pile.slice(-2);
-      if (
-        discarded.some(
-          (card) =>
-            card.info.types.includes(CardTypes.TREASURE) &&
-            card.info.name !== Copper.name,
-        )
-      ) {
+      const revealed: Card[] = [];
+
+      for (let i = 0; i < 2; i++) {
+        if (player.deck.length === 0 && player.discard_pile.length > 0) {
+          player.deck = shuffle(player.discard_pile);
+          player.discard_pile = [];
+        }
+        if (player.deck.length > 0) {
+          revealed.push(player.deck.pop()!);
+        }
+      }
+
+      const trashable = revealed.filter(
+        (card) =>
+          card.info.types.includes(CardTypes.TREASURE) &&
+          card.info.name !== Copper.name,
+      );
+
+      if (trashable.length > 0) {
         game.prompt_pick_card(
           game.get_player_info(game.get_players().indexOf(player)),
           PickCardsDescriptions.TRASH_ANY,
-          discarded.filter(
-            (card) =>
-              card.info.types.includes(CardTypes.TREASURE) &&
-              card.info.name !== Copper.name,
-          ),
+          trashable,
           1,
           1,
           (choices) => {
-            bandit_trash(player, choices);
+            bandit_trash(player, revealed, choices);
             next();
           },
         );
       } else {
+        discard_revealed(player, revealed);
         next();
       }
     };
 
     next_attack(game, attack);
 
-    function bandit_trash(player: Player, choices: Card[]) {
+    function bandit_trash(player: Player, revealed: Card[], choices: Card[]) {
       for (const card of choices) {
-        game.trash_card(
-          player,
-          player.discard_pile.findIndex((c) => c.id === card.id),
-          player.discard_pile,
-        );
+        game.trash_card(player, game.find_by_id(revealed, card.id), revealed);
+      }
+      discard_revealed(player, revealed);
+    }
+
+    function discard_revealed(player: Player, revealed: Card[]) {
+      for (const card of revealed) {
+        player.discard_pile.push(card);
       }
     }
   },
@@ -463,8 +479,13 @@ export const effect_table: Record<CardName, (game: Game) => void> = {
   },
   Library: (game: Game) => {
     const player = game.get_current_player();
-    game.draw_cards(player, 1);
-    const drawn_card = player.hand[player.hand.length - 1]!;
+    game.reshuffle_if_empty(player);
+    if (player.deck.length === 0) {
+      return;
+    }
+
+    const drawn_card = player.deck.pop()!;
+
     if (drawn_card.info.types.includes(CardTypes.ACTION)) {
       game.prompt_binary_choice(
         game.get_current_player_info(),
@@ -472,27 +493,26 @@ export const effect_table: Record<CardName, (game: Game) => void> = {
         drawn_card,
         get_next(),
       );
-    } else if (
+      return;
+    }
+
+    player.hand.push(drawn_card);
+
+    if (
       player.hand.length < 7 &&
       player.deck.length + player.discard_pile.length > 0
     ) {
       effect_table[Library.name](game);
     } else {
-      for (const card of game.game_state.set_aside_cards) {
-        game.discard_card(
-          player,
-          game.game_state.set_aside_cards.findIndex((c) => c.id === card.id),
-          game.game_state.set_aside_cards,
-        );
-      }
+      discard_set_aside_cards();
     }
 
     function get_next(): (choice: boolean) => void {
       return (choice: boolean) => {
         if (!choice) {
-          game.game_state.set_aside_cards.push(
-            game.remove_card(player.hand.length - 1, player.hand),
-          );
+          game.game_state.set_aside_cards.push(drawn_card);
+        } else {
+          player.hand.push(drawn_card);
         }
         if (
           player.hand.length < 7 &&
@@ -500,17 +520,19 @@ export const effect_table: Record<CardName, (game: Game) => void> = {
         ) {
           effect_table[Library.name](game);
         } else {
-          for (const card of game.game_state.set_aside_cards) {
-            game.discard_card(
-              player,
-              game.game_state.set_aside_cards.findIndex(
-                (c) => c.id === card.id,
-              ),
-              game.game_state.set_aside_cards,
-            );
-          }
+          discard_set_aside_cards();
         }
       };
+    }
+
+    function discard_set_aside_cards() {
+      while (game.game_state.set_aside_cards.length > 0) {
+        game.discard_card(
+          player,
+          game.game_state.set_aside_cards.length - 1,
+          game.game_state.set_aside_cards,
+        );
+      }
     }
   },
   Market: (game: Game) => {
@@ -542,24 +564,27 @@ export const effect_table: Record<CardName, (game: Game) => void> = {
           const trashed_cost = choices[0]!.info.cost;
           game.trash_card(
             player,
-            player.hand.findIndex((c) => c.id === choices[0]!.id),
+            game.find_by_id(player.hand, choices[0]!.id),
             player.hand,
           );
-          game.prompt_gain_card(
-            game.get_current_player_info(),
-            GainDescriptions.GAIN,
-            game.game_state.supply
-              .getStacks()
-              .filter(
-                (stack) =>
-                  stack.count > 0 &&
-                  stack.card.types.includes(CardTypes.TREASURE) &&
-                  stack.card.cost <= trashed_cost + 3,
-              ),
-            1,
-            1,
-            get_gain_next(),
-          );
+          const eligible = game.game_state.supply
+            .getStacks()
+            .filter(
+              (stack) =>
+                stack.count > 0 &&
+                stack.card.types.includes(CardTypes.TREASURE) &&
+                stack.card.cost <= trashed_cost + 3,
+            );
+          if (eligible.length > 0) {
+            game.prompt_gain_card(
+              game.get_current_player_info(),
+              GainDescriptions.GAIN,
+              eligible,
+              1,
+              1,
+              get_gain_next(),
+            );
+          }
         }
       };
     }
@@ -603,7 +628,7 @@ export const effect_table: Record<CardName, (game: Game) => void> = {
         for (const card of choices) {
           game.trash_card(
             player,
-            top_cards.findIndex((c) => c.id === card.id),
+            game.find_by_id(top_cards, card.id),
             top_cards,
           );
           remaining_cards = remaining_cards.filter((c) => c.id !== card.id);
@@ -629,7 +654,7 @@ export const effect_table: Record<CardName, (game: Game) => void> = {
         for (const card of choices) {
           game.discard_card(
             player,
-            remaining_cards.findIndex((c) => c.id === card.id),
+            game.find_by_id(remaining_cards, card.id),
             remaining_cards,
           );
           final_cards = final_cards.filter((c) => c.id !== card.id);
@@ -675,16 +700,23 @@ export const effect_table: Record<CardName, (game: Game) => void> = {
   },
   Artisan: (game: Game) => {
     const player = game.get_current_player();
-    game.prompt_gain_card(
-      game.get_current_player_info(),
-      GainDescriptions.GAIN,
-      game.game_state.supply
-        .getStacks()
-        .filter((stack) => stack.count > 0 && stack.card.cost <= 5),
-      1,
-      1,
-      get_gain_next(),
-    );
+    const eligible = game.game_state.supply
+      .getStacks()
+      .filter((stack) => stack.count > 0 && stack.card.cost <= 5);
+    if (eligible.length > 0) {
+      game.prompt_gain_card(
+        game.get_current_player_info(),
+        GainDescriptions.GAIN,
+        eligible,
+        1,
+        1,
+        get_gain_next(),
+      );
+    } else {
+      // Nothing can be gained, but the mandatory "put a card from your
+      // hand onto your deck" step still happens.
+      get_gain_next()([]);
+    }
 
     function get_gain_next(): (choices: supplyStack[]) => void {
       return (choices: supplyStack[]) => {
@@ -706,7 +738,7 @@ export const effect_table: Record<CardName, (game: Game) => void> = {
       return (choices: Card[]) => {
         if (choices.length > 0) {
           game.remove_card(
-            player.hand.findIndex((c) => c.id === choices[0]!.id),
+            game.find_by_id(player.hand, choices[0]!.id),
             player.hand,
           );
           player.deck.push(choices[0]!);
