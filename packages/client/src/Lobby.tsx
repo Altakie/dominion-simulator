@@ -34,7 +34,7 @@ import { GameEnd } from "./GameEnd.tsx";
 // }>(null)
 //
 
-export let game_socket: WebSocket = null;
+export let game_socket: WebSocket | null = null;
 
 export const LobbyStates = Object.freeze({
   LOBBY: "Lobby",
@@ -245,7 +245,7 @@ export function Lobby() {
           <Button
             onClick={() => {
               console.log("Attempting to start game");
-              game_socket.send(
+              game_socket?.send(
                 serializeMessage({
                   kind: MessageKinds.START,
                 }),
@@ -263,7 +263,7 @@ export function Lobby() {
               const ai_player_msg: AddAIPlayerMessage = {
                 kind: MessageKinds.ADD_AI_PLAYER,
               };
-              game_socket.send(serializeMessage(ai_player_msg));
+              game_socket?.send(serializeMessage(ai_player_msg));
             }}
             disabled={
               !lobby_store.connected ||
@@ -275,7 +275,7 @@ export function Lobby() {
 
           <Button
             onClick={() => {
-              game_socket.close(1000);
+              game_socket?.close(1000);
               // WARN: Set in two places, probably fine but check again later
               set_router_state(RouterStates.HOME);
             }}
@@ -333,7 +333,7 @@ function useGameSocket() {
 
     return () => {
       console.log("Cleanup");
-      game_socket.close(1000);
+      game_socket?.close(1000);
     };
   }, [set_connected, set_router_state, set_lobby_state]);
 }
