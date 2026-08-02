@@ -488,7 +488,7 @@ export class Game {
     }
 
     this.game_state.phase = GamePhases.BUY;
-    this.send_update();
+    // this.send_update();
     this.buy_phase();
   }
 
@@ -859,7 +859,6 @@ export class Game {
     for (const player_info of this.player_infos) {
       player_info.socket.send(ser_msg);
     }
-    this.send_update();
   }
 }
 

@@ -26,6 +26,7 @@ import type {
   SharablePlayer,
 } from "shared";
 import type { Card } from "shared/cards.ts";
+import type { supplyStack } from "shared/supply.ts";
 import { create } from "zustand";
 import { useShallow } from "zustand/shallow";
 import { Separator } from "./components/ui/separator.tsx";
@@ -74,12 +75,20 @@ type LobbyStore = {
   log_messages: string[];
   add_log_messages: (...messages: string[]) => void;
   clear_log: () => void;
+
+  selected_stacks: supplyStack[];
+  toggle_stack: (stack: supplyStack) => void;
+  reset_stacks: () => void;
+
+  selected_cards: Card[];
+  toggle_card: (card: Card) => void;
+  reset_cards: () => void;
 };
 
 export const useLobbyStore = create<LobbyStore>((set) => ({
   connected: false,
   set_connected: (connected: boolean) => {
-    set(() => ({ connected: connected }));
+    set({ connected: connected });
   },
   player_names: [],
   add_player_name: (name) => {
@@ -91,15 +100,15 @@ export const useLobbyStore = create<LobbyStore>((set) => ({
     }));
   },
   set_player_names: (names) => {
-    set(() => ({ player_names: names }));
+    set({ player_names: names });
   },
   player_game_infos: [],
   set_player_game_infos: (infos) => {
-    set(() => ({ player_game_infos: infos }));
+    set({ player_game_infos: infos });
   },
   lobby_state: LobbyStates.LOBBY,
   set_lobby_state: (game_started) => {
-    set(() => ({ lobby_state: game_started }));
+    set({ lobby_state: game_started });
   },
   // set_choice_list: (choice_list) => {
   //   set(() => ({ choice_list: choice_list }));
@@ -119,7 +128,31 @@ export const useLobbyStore = create<LobbyStore>((set) => ({
     set((state) => ({ log_messages: [...state.log_messages, ...messages] }));
   },
   clear_log: () => {
-    set(() => ({ log_messages: [] }));
+    set({ log_messages: [] });
+  },
+
+  selected_stacks: [],
+  toggle_stack: (stack: supplyStack) => {
+    set((state) => ({
+      selected_stacks: state.selected_stacks.includes(stack)
+        ? state.selected_stacks.filter((s) => s !== stack)
+        : [...state.selected_stacks, stack],
+    }));
+  },
+  reset_stacks: () => {
+    set({ selected_stacks: [] });
+  },
+
+  selected_cards: [],
+  toggle_card: (card: Card) => {
+    set((state) => ({
+      selected_cards: state.selected_cards.includes(card)
+        ? state.selected_cards.filter((c) => c !== card)
+        : [...state.selected_cards, card],
+    }));
+  },
+  reset_cards: () => {
+    set({ selected_cards: [] });
   },
 }));
 

@@ -13,6 +13,7 @@ import {
   request_message_kinds,
 } from "shared/messages";
 import { type Supply, same_stack, type supplyStack } from "shared/supply";
+import { useShallow } from "zustand/shallow";
 import {
   Sheet,
   SheetClose,
@@ -32,17 +33,7 @@ import { card_descriptions } from "./CardDescriptions.tsx";
 import { Button } from "./components/ui/button.tsx";
 import { Separator } from "./components/ui/separator.tsx";
 import { game_socket, PlayerDisplay, useLobbyStore } from "./Lobby";
-
-function useSelection<T>(): [T[], (item: T) => void, () => void] {
-  const [selected, setSelected] = useState<T[]>([]);
-  const toggle = (item: T) => {
-    setSelected((prev) =>
-      prev.includes(item) ? prev.filter((i) => i !== item) : [...prev, item],
-    );
-  };
-  const reset = () => setSelected([]);
-  return [selected, toggle, reset];
-}
+import { cn } from "./lib/utils.ts";
 
 export function Game() {
   // let choices = useLobbyStore((state) => state.choice_list);
@@ -69,33 +60,45 @@ export function Game() {
 
   return (
     <div className="flex flex-row flex-nowrap justify-center items-start place-content-between">
-      <div className="flex-col w-1/5 border h-screen">
-        <PlayerList />
-        <div className="flex-col">
-          <div>
-            Deck size: <span>{player.deck_size}</span>
-          </div>
-          <div>
-            Discard size: <span>{player.discard_pile_size}</span>
-          </div>
-          <div>
-            Top of discard:{" "}
-            <span>{player.top_of_discard_pile?.info.name ?? "None"}</span>
+      <div className="flex-col w-4/5 border h-screen">
+        <VisualSupply supply={game_state.supply} />
+        <GameStateBar />
+        <PlayedCards played_cards={game_state.played_cards} />
+        <div>
+          <GameAreaTitle title="YOUR HAND" />
+          <div className="flex flex-row flex-nowrap items-start justify-center px-2">
+            <div className="w-1/5">
+              <DeckAndDiscard />
+            </div>
+            <Separator orientation="vertical" />
+            <div className="flex-1">
+              <Hand hand={player.hand} />
+            </div>
+            <div className="w-1/5" />
           </div>
         </div>
-        <VisualGameState />
-      </div>
-      <div className="flex-col w-3/5 border h-screen">
-        <VisualSupply supply={game_state.supply} />
-        <PlayedCards played_cards={game_state.played_cards} />
-        <Hand hand={player.hand} />
-        <Description />
         {/* {choices} */}
         {pop_up}
       </div>
       <div className="flex-col w-1/5 border h-screen">
-        <TurnInfo />
+        <PlayerList />
         <Log />
+      </div>
+    </div>
+  );
+}
+
+function GameAreaTitle({ title }: { title: string }) {
+  return (
+    <div className="flex gap-2 flex-row flex-nowrap items-center my-2">
+      <div className="flex-1">
+        <Separator />
+      </div>
+      <div>
+        <p className="text-foreground text-sm">{title}</p>
+      </div>
+      <div className="flex-1">
+        <Separator />
       </div>
     </div>
   );
@@ -106,8 +109,9 @@ function Description() {
   if (message && request_message_kinds.has(message.kind)) {
     const req = message as RequestMessage;
 
-    return <h2>{req.description}</h2>;
+    return <p className="text-foreground line-clamp-2">{req.description}</p>;
   }
+  return <p className="text-muted-foreground line-clamp-2">Nothing to do</p>;
 }
 
 function PlayerList() {
@@ -133,21 +137,61 @@ function PlayerList() {
   );
 }
 
-function VisualGameState() {
-  const players = useLobbyStore((state) => state.player_names);
+function GameStateBar() {
   const game_state = useLobbyStore((state) => state.game_state)!;
-
   return (
     <div>
-      <h2>GameState Info</h2>
-      <p>Current Player: {players[game_state.current_player_index]}</p>
-      <p>Phase : {game_state.phase}</p>
-      <div className="text-wrap w-full">
-        <p>
-          Trash Pile:{" "}
-          {game_state.trash_pile.map((card) => card.info.name).join(", ")}
-        </p>
+      <Separator />
+      <div className="text-sm bg-card">
+        <div
+          className="
+        flex flex-row flex-nowrap items-center justify-center p-2 gap-2"
+        >
+          <div className="text-black">
+            <b>Turn {game_state.turn_number}</b>
+          </div>
+          <div className="rounded-full bg-primary px-1 text-white">
+            {game_state.phase} Phase
+          </div>
+
+          <Separator orientation="vertical" />
+          <div
+            className="rounded-full w-4 h-4 bg-gray-400
+          flex items-center justify-center text-center
+          "
+          >
+            <b>{game_state.actions}</b>
+          </div>
+          <div>Actions</div>
+
+          <Separator orientation="vertical" />
+          <div className="flex flex-row gap-1 items-center">
+            <div
+              className="rounded-full w-4 h-4 bg-gray-400
+          flex items-center justify-center text-center
+          "
+            >
+              <b>{game_state.buys}</b>
+            </div>
+            <div>Buys</div>
+          </div>
+
+          <Separator orientation="vertical" />
+          <div className="flex flex-row gap-1 items-center">
+            <div>
+              <GoldCoin cost={game_state.money} />
+            </div>
+            <div>Money</div>
+          </div>
+          <Separator orientation="vertical" />
+        </div>
+
+        <div className="flex flex-row flex-nowrap items-center justify-center gap-2 min-h-12 p-2">
+          <Description />
+          <ConfirmChoicesButton />
+        </div>
       </div>
+      <Separator />
     </div>
   );
 }
@@ -162,7 +206,7 @@ function PlayedCards({ played_cards }: { played_cards: Card[] }) {
 
   return (
     <>
-      <h2>Played Cards</h2>
+      <GameAreaTitle title="PLAYED THIS TURN" />
       <div
         className="flex flex-row flex-wrap overflow-auto gap-4 justify-center items-center h-22"
         ref={scroll_ref}
@@ -175,35 +219,49 @@ function PlayedCards({ played_cards }: { played_cards: Card[] }) {
   );
 }
 
-function TurnInfo() {
-  const game_state = useLobbyStore((state) => state.game_state)!;
-  return (
-    <div>
-      <h2>Turn Info</h2>
-      <p>Turn Number: {game_state.turn_number}</p>
-      <p>Actions: {game_state.actions}</p>
-      <p>Money: {game_state.money}</p>
-      <p>Buys: {game_state.buys}</p>
-    </div>
-  );
-}
-
-function VisualSupply({ supply }: { supply: Supply }) {
+function ConfirmChoicesButton() {
   const message = useLobbyStore((state) => state.message);
   const setMessage = useLobbyStore((state) => state.set_message);
+  const selected_stacks = useLobbyStore((state) => state.selected_stacks);
+  const reset_stacks = useLobbyStore((state) => state.reset_stacks);
+  const selected_cards = useLobbyStore((state) => state.selected_cards);
+  const reset_cards = useLobbyStore((state) => state.reset_cards);
 
-  const [selected_stacks, toggle_stack, reset_stacks] =
-    useSelection<supplyStack>();
   let pick_stacks_req: PickSupplyPileRequest | undefined;
   if (message && message.kind === MessageKinds.PICK_SUPPLY_PILE_REQUEST) {
     pick_stacks_req = message as PickSupplyPileRequest;
-    console.log("Proper message");
+  }
+  let pick_cards_req: PickCardsRequest | undefined;
+  if (message && message.kind === MessageKinds.PICK_CARDS_REQUEST) {
+    pick_cards_req = message as PickCardsRequest;
   }
 
-  const confirm_choices_button = () => {
-    if (!pick_stacks_req) {
-      return;
-    }
+  if (pick_cards_req) {
+    return (
+      <div>
+        <Button
+          onClick={() => {
+            const res: PickCardsResponse = {
+              kind: MessageKinds.PICK_CARDS_RESPONSE,
+              choices: selected_cards,
+            };
+            reset_cards();
+            setMessage(undefined);
+            // Need to set message to null
+            game_socket?.send(JSON.stringify(res));
+          }}
+          disabled={
+            selected_cards.length > pick_cards_req.max ||
+            selected_cards.length < pick_cards_req.min
+          }
+        >
+          {selected_cards.length > 0 ? "Confirm Choices" : "Skip"}
+        </Button>
+      </div>
+    );
+  }
+
+  if (pick_stacks_req) {
     return (
       <div>
         <Button
@@ -227,11 +285,26 @@ function VisualSupply({ supply }: { supply: Supply }) {
         </Button>
       </div>
     );
-  };
+  }
+}
+
+function VisualSupply({ supply }: { supply: Supply }) {
+  const [message, selected_stacks, toggle_stack] = useLobbyStore(
+    useShallow((state) => [
+      state.message,
+      state.selected_stacks,
+      state.toggle_stack,
+    ]),
+  );
+
+  let pick_stacks_req: PickSupplyPileRequest | undefined;
+  if (message && message.kind === MessageKinds.PICK_SUPPLY_PILE_REQUEST) {
+    pick_stacks_req = message as PickSupplyPileRequest;
+  }
 
   return (
     <>
-      <h2>Supply</h2>
+      <GameAreaTitle title="SUPPLY" />
       <SupplyArea
         stacks={supply.fixed_stacks}
         selected_stacks={selected_stacks}
@@ -244,7 +317,6 @@ function VisualSupply({ supply }: { supply: Supply }) {
         toggle_stack={toggle_stack}
         pick_stacks_req={pick_stacks_req}
       />
-      {confirm_choices_button()}
     </>
   );
 }
@@ -326,72 +398,93 @@ function SupplyStackButton({
   );
 }
 
+function DeckAndDiscard() {
+  const player_info = useLobbyStore((state) => state.player);
+  return (
+    player_info && (
+      <div className="flex flex-row flex-nowrap justify-start">
+        <div className="flex flex-col justify-start items-center">
+          <CardShape
+            height={20}
+            className="bg-black text-white border-background items-center justify-center text-lg"
+          >
+            <b>{player_info.deck_size}</b>
+          </CardShape>
+          <p className="text-foreground text-xs">DECK</p>
+        </div>
+        <div className="flex flex-col justify-start items-center">
+          {player_info.top_of_discard_pile ? (
+            <CardDisplay card={player_info.top_of_discard_pile} />
+          ) : (
+            <CardShape
+              height={20}
+              className="bg-gray-400 items-center justify-center text-sm text-black border-none"
+            >
+              EMPTY
+            </CardShape>
+          )}
+          <p className="text-foreground text-xs">
+            DISCARD - {player_info.discard_pile_size}
+          </p>
+        </div>
+      </div>
+    )
+  );
+}
+
 function Hand({ hand }: { hand: Card[] }) {
   const message = useLobbyStore((state) => state.message);
   const setMessage = useLobbyStore((state) => state.set_message);
 
-  // TODO: If only one selection needed, maybe just send right away without confirming?
-  // TODO: Stop the user from selecting too many cards
-  const [selected_cards, toggle_card, reset_cards] = useSelection<Card>();
+  const [selected_cards, toggle_card] = useLobbyStore(
+    useShallow((state) => [state.selected_cards, state.toggle_card]),
+  );
+
   let pick_cards_req: PickCardsRequest;
   if (message && message.kind === MessageKinds.PICK_CARDS_REQUEST) {
     pick_cards_req = message as PickCardsRequest;
-    console.log("Proper message");
   }
-  if (message) {
-    console.log("Message exists");
-  }
-
-  const confirm_choices_button = () => {
-    if (!pick_cards_req) {
-      return;
-    }
-    return (
-      <div>
-        <Button
-          onClick={() => {
-            const res: PickCardsResponse = {
-              kind: MessageKinds.PICK_CARDS_RESPONSE,
-              choices: selected_cards,
-            };
-            reset_cards();
-            setMessage(undefined);
-            // Need to set message to null
-            game_socket?.send(JSON.stringify(res));
-          }}
-          disabled={
-            selected_cards.length > pick_cards_req.max ||
-            selected_cards.length < pick_cards_req.min
-          }
-        >
-          {selected_cards.length > 0 ? "Confirm Choices" : "Skip"}
-        </Button>
-      </div>
-    );
-  };
 
   return (
-    <>
-      <h2>Current Hand</h2>
-      <div className="flex flex-row flex-wrap gap-4 items-center justify-center">
-        {hand.map((card) => {
-          if (pick_cards_req?.choices.some((c) => same_card(c, card))) {
-            console.log("Rendering button");
-            return (
-              <CardButton
-                key={card.id}
-                card={card}
-                selected={selected_cards.includes(card)}
-                onToggle={() => toggle_card(card)}
-              />
-            );
-          }
-          console.log("Other");
-          return <CardDisplay key={card.id} card={card} />;
-        })}
-      </div>
-      {confirm_choices_button()}
-    </>
+    <div className="flex flex-row flex-wrap gap-4 items-start justify-center">
+      {hand.map((card) => {
+        if (pick_cards_req?.choices.some((c) => same_card(c, card))) {
+          console.log("Rendering button");
+          return (
+            <CardButton
+              key={card.id}
+              card={card}
+              selected={selected_cards.includes(card)}
+              onToggle={() => toggle_card(card)}
+            />
+          );
+        }
+        console.log("Other");
+        return <CardDisplay key={card.id} card={card} />;
+      })}
+    </div>
+  );
+}
+
+const CARD_SIZES = {
+  20: "w-18 h-20",
+} as const;
+
+function CardShape({
+  className = "",
+  height,
+  ...props
+}: {
+  height: keyof typeof CARD_SIZES;
+} & React.HtmlHTMLAttributes<HTMLDivElement>) {
+  return (
+    <div
+      className={cn(
+        `text-xs border-2 border-gray-400 rounded-lg ${CARD_SIZES[height]} p-px flex flex-col justify-between text-center`,
+        className,
+      )}
+      {...props}
+    />
   );
 }
 
@@ -408,13 +501,21 @@ function CardShell({
   return (
     <Tooltip disableHoverableContent={true}>
       <TooltipTrigger>
-        <div
-          className={`text-xs border-4 border-gray-400 rounded-lg w-22 h-20 p-px flex flex-col shrink-0 grow-0 justify-between text-center ${card_bg(card_info)} ${className}`}
+        <CardShape
+          className={cn(className, card_bg(card_info))}
+          height={20}
           {...props}
         >
           <p className="text-black">{card_info.name}</p>
           {children}
-        </div>
+        </CardShape>
+        {/* <div */}
+        {/*   className={`text-xs border-4 border-gray-400 rounded-lg w-22 h-20 p-px flex flex-col shrink-0 grow-0 justify-between text-center ${card_bg(card_info)} ${className}`} */}
+        {/*   {...props} */}
+        {/* > */}
+        {/*   <p className="text-black">{card_info.name}</p> */}
+        {/*   {children} */}
+        {/* </div> */}
       </TooltipTrigger>
       <TooltipContent side="top">
         <div className="flex flex-col flex-wrap text-center z-51">
@@ -514,7 +615,14 @@ export function GoldCoin({ cost }: { cost: number }) {
 }
 
 function ChooseCardsList({ extra_cards }: { extra_cards: Card[] }) {
-  const [choices, toggle_choice, reset_choices] = useSelection<Card>();
+  const [selected_cards, toggle_card, reset_cards] = useLobbyStore(
+    useShallow((state) => [
+      state.selected_cards,
+      state.toggle_card,
+      state.reset_cards,
+    ]),
+  );
+
   const message = useLobbyStore((state) => state.message as PickCardsRequest);
   const set_message = useLobbyStore((state) => state.set_message);
 
@@ -527,8 +635,8 @@ function ChooseCardsList({ extra_cards }: { extra_cards: Card[] }) {
             <CardButton
               key={card.id}
               card={card}
-              selected={choices.includes(card)}
-              onToggle={() => toggle_choice(card)}
+              selected={selected_cards.includes(card)}
+              onToggle={() => toggle_card(card)}
             />
           ))}
         </div>
@@ -538,14 +646,15 @@ function ChooseCardsList({ extra_cards }: { extra_cards: Card[] }) {
           onClick={() => {
             const res: PickCardsResponse = {
               kind: MessageKinds.PICK_CARDS_RESPONSE,
-              choices: choices,
+              choices: selected_cards,
             };
             set_message(undefined);
-            reset_choices();
+            reset_cards();
             game_socket?.send(JSON.stringify(res));
           }}
           disabled={
-            choices.length > message.max || choices.length < message.min
+            selected_cards.length > message.max ||
+            selected_cards.length < message.min
           }
         >
           Confirm Choices
