@@ -39,7 +39,6 @@ export type SharablePlayer = {
 
 export type PlayerDisplayInfo = {
   name: string;
-  current: boolean;
   total_cards: number;
   victory_points: number;
 };

@@ -22,6 +22,7 @@ export function next_attack(game: Game, attack: AttackCC) {
   const reactions = attacked_player_info.player.hand.filter((c) =>
     c.info.types.some((t) => t === CardTypes.REACTION),
   );
+  game.send_update();
 
   if (reactions?.length > 0) {
     game.prompt_pick_card(

@@ -480,12 +480,12 @@ export function PlayerDisplay({
   name,
   under,
   right,
-  highlighted = false,
+  highlight = "none",
 }: {
   name: string;
   under?: string;
   right?: string;
-  highlighted?: boolean;
+  highlight?: "current" | "attacked" | "none";
 }) {
   return (
     <div
@@ -496,8 +496,9 @@ export function PlayerDisplay({
       <div className="flex flex-row flex-nowrap justify-left p-px items-center h-full">
         <div
           className={cn(
-            "w-2 mr-2 h-10",
-            highlighted ? "bg-primary rounded-md" : "",
+            "w-1 mr-1 h-6",
+            highlight === "current" ? "bg-primary rounded-md" : "",
+            highlight === "attacked" ? "bg-red-800 rounded-md" : "",
           )}
         />
 

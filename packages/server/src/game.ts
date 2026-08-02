@@ -276,9 +276,8 @@ export class Game {
   }
 
   get_player_display_infos(): PlayerDisplayInfo[] {
-    return this.player_infos.map((pi, i) => ({
+    return this.player_infos.map((pi) => ({
       name: pi.player.name,
-      current: i === this.game_state.current_player_index,
       victory_points: pi.player.victory_points,
       total_cards:
         pi.player.deck.length +
