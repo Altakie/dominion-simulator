@@ -14,11 +14,11 @@ export class Log {
   }
 
   log_events(...events: LogEntry[]) {
-    this.log_messages[-1]?.events.push(...events);
+    this.log_messages[this.log_messages.length - 1]?.events.push(...events);
   }
 
   get_curr_turn(): Turn {
-    return this.log_messages[-1]!;
+    return this.log_messages[this.log_messages.length - 1]!;
   }
 }
 
