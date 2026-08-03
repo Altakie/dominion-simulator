@@ -15,37 +15,13 @@
 
 ## Minor Features
 
-- 5 5 for supply layout
-- Show who waiting for during attacks
-  - Send the attack index over to the client and display it somewhere
-  - Already sent in game state
-- Move turn information (actions, money, and buys) visually closer to where the player's eyes are spending the most time
-  - Probably between the hand and the supply
-- Show top card of discard pile and how many cards are in discard pile and deck
-  - Rework the update message to not send all player information
-  - Update message should send
-    - VP of all players
-    - Top card of discard pile
-    - Number of cards in discard pile
-    - Number of cards in deck (draw pile)
-- Show who actually wins
-  - Tie breakers when vp is the same, later player should be the winner
-  - Can just send who won in the message
-  - Players should know their own names client side, even though they shouldn't know their ids
-  - Names should be unique
 - Server should sign client ids in case someone tries to modify them client side
   - If the client id is not server signed, reassign the client's clientid to a server assigned clientid
-- Display vp of all players, not just yours
-  - Enforce unique names in game
-    - Just check name in hashmap or something and reject a connection if it has a duplicate name
 - Color code end screen
   - Display vp sources separately
 - Indicate empty supply piles
   - Gray them out or put an x over them
   - Just do a check on whether the count is 0 and replace the supply pile visual when it is 0
-- Manual testing to ensure that all card effects work as intended
-  - Unit testing here is better
-    - Either use dependency injection or have a special debug method for creating testing games
 - Better indication of current turn
   - Think on this
   - Highlighting of current player in player list?
@@ -55,7 +31,6 @@
     - Easily dismissable
 - Trash pile dialog pop-up button?
   - Maybe show top of trash pile
-- Unit tests for cards to make sure they are working as intended
 - Card Art
 - AI Player
   - Lobby hosts, only the lobby host should be able to start the game, add AI players, etc..
