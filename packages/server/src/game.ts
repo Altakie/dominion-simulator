@@ -172,6 +172,41 @@ export type PlayerInfo = {
   socket: MessageSink;
 };
 
+export type PlayerEndRank = {
+  index: number;
+  player_info: PlayerInfo;
+  // 0 = took one fewer turn than the ending player (hasn't gone yet this round), 1 = took as many turns as the ending player.
+  // Fewer turns taken wins a victory-point tie, per Dominion's tiebreak rule.
+  turns_tier: 0 | 1;
+};
+
+/**
+ * Ranks players at game end: highest victory points first, ties broken by
+ * fewest turns taken. `player_infos` must be in fixed turn-rotation order.
+ */
+export function rank_players_at_game_end(
+  player_infos: PlayerInfo[],
+  ending_player_index: number,
+): PlayerEndRank[] {
+  return player_infos
+    .map(
+      (player_info, index): PlayerEndRank => ({
+        index,
+        player_info,
+        turns_tier: index > ending_player_index ? 0 : 1,
+      }),
+    )
+    .sort((a, b) => {
+      const vp_diff =
+        b.player_info.player.victory_points -
+        a.player_info.player.victory_points;
+      if (vp_diff !== 0) {
+        return vp_diff;
+      }
+      return a.turns_tier - b.turns_tier;
+    });
+}
+
 // TODO: Should game be under a read write lock to avoid wait conditions?
 export class Game {
   lobby: Lobby;
@@ -823,8 +858,23 @@ export class Game {
       this.discard_card(player, 0, this.game_state.played_cards);
     }
 
-    const player_end_infos: PlayerEndInfo[] = this.player_infos.map(
-      (player_info): PlayerEndInfo => {
+    const ranked = rank_players_at_game_end(
+      this.player_infos,
+      this.game_state.current_player_index,
+    );
+
+    const top = ranked[0]!;
+    const winner_indices = ranked
+      .filter(
+        (r) =>
+          r.player_info.player.victory_points ===
+            top.player_info.player.victory_points &&
+          r.turns_tier === top.turns_tier,
+      )
+      .map((r) => r.index);
+
+    const player_end_infos: PlayerEndInfo[] = ranked.map(
+      ({ player_info }): PlayerEndInfo => {
         this.discard_hand(player_info.player);
         const final_deck = player_info.player.deck
           .concat(player_info.player.discard_pile)
@@ -838,10 +888,10 @@ export class Game {
       },
     );
 
-    player_end_infos.sort((a, b) => b.victory_points - a.victory_points);
     const game_end_message: GameEndMessage = {
       kind: MessageKinds.GAME_END,
 
+      winner_indices,
       players_end_infos_in_victory_order: player_end_infos,
     };
     const serialized_game_end_message = serializeMessage(game_end_message);
@@ -877,6 +927,8 @@ export class Game {
     for (const player_info of this.player_infos) {
       player_info.socket.send(ser_msg);
     }
+
+    this.send_update();
   }
 }
 

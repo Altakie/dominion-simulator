@@ -454,7 +454,7 @@ function Connecting() {
 
   return (
     <div className="flex flex-col justify-center items-center">
-      <h1>Connecting to Lobby ...</h1>
+      <p className="text-foreground text-xs">Connecting to Lobby ...</p>
       {/* <Button onClick={() => set_router_state(RouterStates.HOME)}> */}
       {/*   Cancel */}
       {/* </Button> */}
@@ -465,7 +465,7 @@ function Connecting() {
 function PlayerList() {
   const players = useLobbyStore((state) => state.player_names);
   return (
-    <div className="text-left">
+    <div className="flex flex-col flex-nowrap gap-1 text-left">
       <p className="text-md text-black">
         <b>Players</b>
       </p>
@@ -493,7 +493,7 @@ export function PlayerDisplay({
       p-1 w-[15vw]
       "
     >
-      <div className="flex flex-row flex-nowrap justify-left p-px items-center h-full">
+      <div className="flex flex-row flex-nowrap justify-start p-px items-center h-full">
         <div
           className={cn(
             "w-1 mr-1 h-6",
@@ -505,7 +505,7 @@ export function PlayerDisplay({
         <div className="mr-4 rounded-full bg-gray-400 border-black text-md min-w-8 min-h-8 max-h-8 max-w-8 flex items-center justify-center text-center">
           <b>{name[0]}</b>
         </div>
-        <div className="flex flex-col">
+        <div className="flex flex-col justify-start items-start">
           <div>
             <b>{name}</b>
           </div>

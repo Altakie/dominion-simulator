@@ -722,6 +722,7 @@ export const effect_table: Record<CardName, (game: Game) => void> = {
       return (choices: supplyStack[]) => {
         if (choices.length > 0) {
           game.gain_card(player, choices[0]!.card.name, player.hand);
+          game.send_update();
         }
         game.prompt_pick_card(
           game.get_current_player_info(),
