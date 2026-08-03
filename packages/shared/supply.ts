@@ -78,9 +78,10 @@ export class Supply {
 
   toggleDebugMode() {
     this.stacks = [
-      { card: Merchant, count: 10 },
+      { card: Chapel, count: 1 },
+      { card: Moat, count: 1 },
+      { card: Merchant, count: 1 },
       { card: Witch, count: 10 },
-      { card: Moat, count: 10 },
       { card: Bandit, count: 10 },
       { card: Bureaucrat, count: 10 },
       { card: Militia, count: 10 },

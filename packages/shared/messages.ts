@@ -148,6 +148,7 @@ export interface GameStateUpdateMessage extends Message {
 export interface GameEndMessage extends Message {
   kind: typeof MessageKinds.GAME_END;
 
+  winner_indices: number[];
   players_end_infos_in_victory_order: PlayerEndInfo[];
 }
 

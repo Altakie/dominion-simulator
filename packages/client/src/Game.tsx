@@ -90,7 +90,7 @@ export function Game() {
   );
 }
 
-function GameAreaTitle({ title }: { title: string }) {
+export function GameAreaTitle({ title }: { title: string }) {
   return (
     <div className="flex gap-2 flex-row flex-nowrap items-center my-2">
       <div className="flex-1">
@@ -120,7 +120,7 @@ function PlayerList() {
   const players = useLobbyStore((state) => state.player_game_infos);
   const game_state = useLobbyStore((state) => state.game_state)!;
   return (
-    <div className="h-fit">
+    <div className="flex flex-col flex-nowrap gap-1 h-fit">
       <GameAreaTitle title="PLAYERS" />
       {/* <ol> */}
       {/*   {players.map((name) => ( */}
@@ -161,7 +161,7 @@ function GameStateBar() {
           <div className="text-black">
             <b>Turn {game_state.turn_number}</b>
           </div>
-          <div className="rounded-full bg-primary px-1 text-white">
+          <div className="rounded-full bg-primary px-2 text-white">
             {game_state.phase} Phase
           </div>
 
@@ -396,7 +396,11 @@ function SupplyStackButton({
   return (
     <CardShell
       card_info={supply_stack.card}
-      className={`${selected ? "border-green-400 hover:border-green-600" : "border-red-600 hover:border-red-800"}`}
+      className={`${
+        selected
+          ? "border-green-400 hover:border-green-600 -translate-y-2"
+          : "border-red-600 hover:border-red-800"
+      }`}
       onClick={onToggle}
     >
       <div className="flex flex-row justify-between">
@@ -413,7 +417,7 @@ function DeckAndDiscard() {
   const player_info = useLobbyStore((state) => state.player);
   return (
     player_info && (
-      <div className="flex flex-row flex-nowrap justify-start">
+      <div className="flex flex-row flex-nowrap justify-start gap-Game2">
         <div className="flex flex-col justify-start items-center">
           <CardShape
             height={20}
@@ -513,7 +517,11 @@ function CardShell({
     <Tooltip disableHoverableContent={true}>
       <TooltipTrigger>
         <CardShape
-          className={cn(className, card_bg(card_info))}
+          className={cn(
+            className,
+            "transition-transform duration-300",
+            card_bg(card_info),
+          )}
           height={20}
           {...props}
         >
@@ -582,7 +590,7 @@ function CardButton({
       card_info={card.info}
       className={
         selected
-          ? "border-green-400 hover:border-green-600"
+          ? "border-green-400 hover:border-green-600 -translate-y-2"
           : "border-red-600 hover:border-red-800"
       }
       onClick={onToggle}
