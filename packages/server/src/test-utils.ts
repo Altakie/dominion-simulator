@@ -80,6 +80,7 @@ export function createTestGame(setup: TestGameSetup): TestGame {
       socket: sinks[i]!,
     })),
     lobby,
+    [],
   );
 
   if (setup.kingdomCards) {
