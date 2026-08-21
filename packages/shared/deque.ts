@@ -1,27 +1,23 @@
-import { none, type Option, some } from "./option";
-
 export class Deque<T> {
-  head: Option<Node<T>>;
-  tail: Option<Node<T>>;
+  head?: Node<T>;
+  tail?: Node<T>;
   len: number;
 
   constructor() {
     this.len = 0;
-    this.head = none();
-    this.tail = none();
   }
 
   push_front(item: T) {
     this.len += 1;
-    if (this.head.is_none()) {
-      this.head = some(new Node(item));
+    if (this.head === undefined) {
+      this.head = new Node(item);
       this.tail = this.head;
       return;
     }
 
-    this.head.edit((head) => (head.prev = new Node(item)));
-    this.head.edit((head) => (head.prev.next = this.head));
-    this.head.edit((head) => (head = this.head.prev));
+    this.head.prev = new Node(item);
+    this.head.prev.next = this.head;
+    this.head = this.head.prev;
   }
 
   pop_front(): T | undefined {
@@ -90,12 +86,10 @@ export class Deque<T> {
 
 class Node<T> {
   value: T;
-  prev: Option<Node<T>>;
-  next: Option<Node<T>>;
+  prev?: Node<T>;
+  next?: Node<T>;
 
   constructor(value: T) {
     this.value = value;
-    this.next = none();
-    this.prev = none();
   }
 }
