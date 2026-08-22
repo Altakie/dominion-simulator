@@ -576,7 +576,7 @@ function card_bg(card_info: CardInfo): string {
   if (card_info.types.includes(CardTypes.ATTACK)) {
     return "bg-red-300";
   }
-  return "bg-orange-200";
+  return "bg-cyan-200";
 }
 
 function CardButton({
@@ -752,7 +752,7 @@ function LogEntryDisplay({ entry }: { entry: LogEntry }) {
 
 export function GoldCoin({ cost }: { cost: number }) {
   return (
-    <span className="bg-yellow-300 text-black rounded-full w-6 h-6 inline-flex items-center justify-center">
+    <span className="bg-yellow-300 border border-gray-400 text-black rounded-full w-6 h-6 inline-flex items-center justify-center">
       {cost}
     </span>
   );
