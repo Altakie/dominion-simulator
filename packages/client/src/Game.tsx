@@ -576,7 +576,7 @@ function card_bg(card_info: CardInfo): string {
   if (card_info.types.includes(CardTypes.ATTACK)) {
     return "bg-red-300";
   }
-  return "bg-white";
+  return "bg-orange-200";
 }
 
 function CardButton({
