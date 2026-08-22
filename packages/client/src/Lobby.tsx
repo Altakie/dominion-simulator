@@ -206,7 +206,7 @@ export function Lobby() {
   // const gameSocket = useGameSocket(setConnected);
   useGameSocket();
   //
-  const set_router_state = useRouterStore((state) => state.set_router_state);
+  const _set_router_state = useRouterStore((state) => state.set_router_state);
   //
   // const [player_names, setPlayerNames] = useState<string[]>([])
   // const [gameStarted, setGameStarted] = useState<typeof LobbyState[keyof typeof LobbyState]>(LobbyState.LOBBY)
@@ -450,68 +450,6 @@ function LobbyView() {
                 kind: MessageKinds.ADD_AI_PLAYER,
               };
               useLobbyStore.getState().send_message(ai_player_msg);
-            }}
-            disabled={
-              !connected || player_names.some((name) => name === "Gemini")
-            }
-          >
-            Add AI Player
-          </Button>
-        </div>
-      </div>
-    </>
-  );
-}
-
-function LobbyView() {
-  const connected = useLobbyStore((state) => state.connected);
-  const player_names = useLobbyStore((state) => state.player_names);
-  const set_router_state = useRouterStore((state) => state.set_router_state);
-  const set_lobby_state = useLobbyStore((state) => state.set_lobby_state);
-  return (
-    <>
-      <div className="inline-flex justify-between p-2">
-        <span className="text-black text-lg">
-          <b>Welcome to the game</b>
-        </span>
-        <div>
-          <Button
-            onClick={() => {
-              console.log("Attempting to start game");
-              game_socket?.send(
-                serializeMessage({
-                  kind: MessageKinds.START,
-                }),
-              );
-            }}
-            disabled={!connected}
-          >
-            Start Game
-          </Button>
-
-          <Button
-            onClick={() => {
-              game_socket?.close(1000);
-              // WARN: Set in two places, probably fine but check again later
-              set_router_state(RouterStates.HOME);
-            }}
-          >
-            Leave Game
-          </Button>
-        </div>
-      </div>
-      <Separator />
-      <div className="flex flex-row h-full">
-        <div className="w-3/4 p-2">Placeholder</div>
-        <Separator orientation="vertical" />
-        <div className="w-1/4 p-2">
-          <PlayerList />
-          <Button
-            onClick={() => {
-              const ai_player_msg: AddAIPlayerMessage = {
-                kind: MessageKinds.ADD_AI_PLAYER,
-              };
-              game_socket?.send(serializeMessage(ai_player_msg));
             }}
             disabled={
               !connected || player_names.some((name) => name === "Gemini")

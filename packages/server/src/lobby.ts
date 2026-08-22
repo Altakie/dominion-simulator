@@ -1,5 +1,3 @@
-import { randomUUIDv7 } from "bun";
-import type { WSContext } from "hono/ws";
 import {
   type ConnectMessage,
   type DisconnectMessage,

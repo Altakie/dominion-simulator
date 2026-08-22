@@ -1,6 +1,5 @@
 import type {
   GameState,
-  Player,
   PlayerDisplayInfo,
   PlayerEndInfo,
   SharablePlayer,

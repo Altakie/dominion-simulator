@@ -1,4 +1,3 @@
-import type { WSContext } from "hono/ws";
 import {
   GamePhases,
   type GameState,
@@ -46,7 +45,7 @@ import { shuffle } from "shared/shuffle";
 import { Supply, same_stack, type supplyStack } from "shared/supply";
 import { effect_table } from "./effects";
 import type { Lobby, PlayerLobbyInfo } from "./lobby";
-import { AISocket, type MessageSink } from "./socket";
+import type { MessageSink } from "./socket";
 
 type WaitResponses =
   | typeof MessageKinds.PICK_CARDS_RESPONSE

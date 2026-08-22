@@ -1,4 +1,4 @@
-import { GoogleGenAI, ServiceTier } from "@google/genai";
+import { GoogleGenAI } from "@google/genai";
 import { randomUUIDv7, sleep } from "bun";
 import type { GameState, SharablePlayer } from "shared";
 import {

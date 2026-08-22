@@ -1,10 +1,4 @@
-import {
-  type ReactNode,
-  type Ref,
-  useCallback,
-  useEffect,
-  useRef,
-} from "react";
+import { type ReactNode, type Ref, useEffect, useRef } from "react";
 import "./App.css";
 import { type Card, type CardInfo, CardTypes, same_card } from "shared/cards";
 import {
@@ -460,7 +454,7 @@ function DeckAndDiscard() {
 
 function Hand({ hand }: { hand: Card[] }) {
   const message = useLobbyStore((state) => state.message);
-  const setMessage = useLobbyStore((state) => state.set_message);
+  const _setMessage = useLobbyStore((state) => state.set_message);
 
   const [selected_cards, toggle_card] = useLobbyStore(
     useShallow((state) => [state.selected_cards, state.toggle_card]),

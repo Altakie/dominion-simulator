@@ -1,17 +1,8 @@
 import { useEffect, useState } from "react";
 import "./App.css";
 import { AlertCircleIcon } from "lucide-react";
-import { Popover } from "radix-ui";
 import { create } from "zustand";
-import {
-  Card,
-  CardAction,
-  CardContent,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Alert, AlertDescription, AlertTitle } from "./components/ui/alert.tsx";
 import { Button } from "./components/ui/button.tsx";
 import { Lobby } from "./Lobby.tsx";

@@ -4,13 +4,9 @@ import {
   BaseCards,
   Bureaucrat,
   Chapel,
-  Harbinger,
-  Market,
   Merchant,
   Militia,
   Moat,
-  Sentry,
-  Vassal,
   Witch,
 } from "./cards/base";
 import { Curse } from "./cards/curses";
