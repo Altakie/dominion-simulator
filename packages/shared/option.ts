@@ -7,7 +7,7 @@ export function none<T>(): Option<T> {
 }
 
 export class Option<T> {
-  val: T | undefined;
+  private val: T | undefined;
 
   constructor(val: T | undefined) {
     this.val = val;
@@ -21,7 +21,7 @@ export class Option<T> {
     return new Option(f(this.val));
   }
 
-  edit(f: (val: T) => T): Option<T> {
+  edit(f: (val: T) => void): Option<T> {
     if (this.val !== undefined) {
       f(this.val);
     }
@@ -40,8 +40,24 @@ export class Option<T> {
     return !(this.val === undefined);
   }
 
+  is_some_and(f: (val: T) => boolean): boolean {
+    if (this.val === undefined) {
+      return false;
+    }
+
+    return f(this.val);
+  }
+
   is_none() {
     return this.val === undefined;
+  }
+
+  match<R>(cases: { Some: (val: T) => R; None: () => R }): R {
+    if (this.val === undefined) {
+      return cases.None();
+    }
+
+    return cases.Some(this.val);
   }
 
   unwrap(): T {
@@ -55,6 +71,14 @@ export class Option<T> {
   unwrap_or(fallback: T): T {
     if (this.val === undefined) {
       return fallback;
+    }
+
+    return this.val;
+  }
+
+  unwrap_or_else(fallback: () => T) {
+    if (this.val === undefined) {
+      return fallback();
     }
 
     return this.val;

@@ -394,7 +394,12 @@ export const effect_table: Record<CardName, (game: Game) => void> = {
           };
           game.wait_queue.push_front(second_play_cc);
           game.play_card(game.find_by_id(player.hand, card.id), player.hand);
-          if (game.wait_queue.peek_front() === second_play_cc) {
+          if (
+            game.wait_queue.peek_front().match({
+              Some: (front) => front === second_play_cc,
+              None: () => false,
+            })
+          ) {
             game.wait_queue.pop_front();
             effect_table[card.info.name](game);
           }

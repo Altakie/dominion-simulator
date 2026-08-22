@@ -123,7 +123,10 @@ export function getPlayer(game: Game, clientid: string): Player {
  * fixed order when resolving prompts across multiple opponents.
  */
 export function getPendingClientId(game: Game): string | undefined {
-  return game.wait_queue.peek_front_waiting()?.player_info.clientid;
+  return game.wait_queue.peek_front_waiting().match({
+    Some: (f) => f.player_info.clientid,
+    None: () => undefined,
+  });
 }
 
 export function resolvePrompt(game: Game, clientid: string, choices: Card[]) {
