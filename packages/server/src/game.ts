@@ -41,6 +41,7 @@ import {
   type SyncLogMessage,
   serializeMessage,
 } from "shared/messages";
+import { none, type Option, some } from "shared/option";
 import { shuffle } from "shared/shuffle";
 import { Supply, same_stack, type supplyStack } from "shared/supply";
 import { effect_table } from "./effects";
@@ -78,58 +79,66 @@ class WaitQueue {
 
   resolve(response: Message, clientid: string) {
     console.log("Resolving response");
-    const front = this.wait_queue.peek_front();
-    if (front === undefined) {
-      return;
-    }
-    if (!front.wait) {
-      console.log("Front is not a waiter?");
-      return;
-    }
+    const front = this.peek_front_waiting();
+    front.match({
+      None: () => {
+        return;
+      },
+      Some: (wait_info) => {
+        if (clientid !== wait_info.player_info.clientid) {
+          console.log("Wrong Player sent response");
+          return;
+        }
+        if (response.kind !== wait_info.response_type) {
+          console.log("Wrong response type");
+          return;
+        }
+        console.log(`Player responded with ${response.kind}`);
 
-    const wait_info = front as BlockingPrompt;
+        // NOTE: Popping is handled within the prompt methods
+        wait_info.cc(response);
 
-    if (clientid !== wait_info.player_info.clientid) {
-      console.log("Wrong Player sent response");
-      return;
-    }
-    if (response.kind !== wait_info.response_type) {
-      console.log("Wrong response type");
-      return;
-    }
-    console.log(`Player responded with ${response.kind}`);
-
-    // NOTE: Popping is handled within the prompt methods
-    wait_info.cc(response);
-
-    while (
-      this.wait_queue.peek_front() !== undefined &&
-      !this.wait_queue.peek_front()?.wait
-    ) {
-      const non_blocking = this.wait_queue.pop_front() as Continuation;
-      non_blocking.cc();
-    }
+        while (this.wait_queue.len > 0 && this.peek_front_waiting().is_none()) {
+          const non_blocking = this.wait_queue
+            .pop_front()
+            .unwrap() as Continuation;
+          non_blocking.cc();
+        }
+      },
+    });
+    // if (front === undefined) {
+    //   return;
+    // }
+    // if (!front.wait) {
+    //   console.log("Front is not a waiter?");
+    //   return;
+    // }
   }
 
   push_front(cc: QueueEntry) {
     this.wait_queue.push_front(cc);
   }
 
-  pop_front(): QueueEntry | undefined {
+  pop_front(): Option<QueueEntry> {
     return this.wait_queue.pop_front();
   }
 
-  peek_front(): QueueEntry | undefined {
+  peek_front(): Option<QueueEntry> {
     return this.wait_queue.peek_front();
   }
 
-  peek_front_waiting(): BlockingPrompt | undefined {
-    const front = this.peek_front();
-    if (!this.peek_front()?.wait) {
-      return undefined;
-    }
+  peek_front_waiting(): Option<BlockingPrompt> {
+    return this.peek_front().match({
+      Some: (front) => {
+        if (front.wait) {
+          return some(front as BlockingPrompt);
+        }
 
-    return front as BlockingPrompt;
+        return none();
+      },
+
+      None: () => none(),
+    });
   }
 
   push_back(cc: QueueEntry) {
@@ -419,13 +428,15 @@ export class Game {
       if (player_info.clientid === clientid) {
         player_info.socket = socket;
 
+        const front = this.wait_queue.peek_front_waiting();
         if (
-          this.wait_queue.peek_front_waiting()?.player_info.clientid ===
-          clientid
+          front.is_some_and((front) => front.player_info.clientid === clientid)
         ) {
           // Resend message if the player the game is waiting on reconnected
           socket.send(
-            serializeMessage(this.wait_queue.peek_front_waiting()!.request),
+            serializeMessage(
+              this.wait_queue.peek_front_waiting().unwrap().request,
+            ),
           );
         }
 

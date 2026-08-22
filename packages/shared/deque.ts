@@ -1,78 +1,105 @@
+import { none, type Option, some } from "./option";
+
 export class Deque<T> {
-  head?: Node<T>;
-  tail?: Node<T>;
+  head: Option<Node<T>>;
+  tail: Option<Node<T>>;
   len: number;
 
   constructor() {
     this.len = 0;
+    this.head = none();
+    this.tail = none();
   }
 
   push_front(item: T) {
     this.len += 1;
-    if (this.head === undefined) {
-      this.head = new Node(item);
-      this.tail = this.head;
-      return;
-    }
+    const new_node_inner = new Node(item);
+    const new_node = some(new_node_inner);
 
-    this.head.prev = new Node(item);
-    this.head.prev.next = this.head;
-    this.head = this.head.prev;
+    this.head.match({
+      Some: (head) => {
+        head.prev = new_node;
+        new_node_inner.next = this.head;
+        this.head = new_node;
+      },
+      None: () => {
+        this.head = new_node;
+        this.tail = new_node;
+      },
+    });
   }
 
-  pop_front(): T | undefined {
-    const res = this.head?.value;
-    if (this.head === undefined) {
-      return res;
-    }
+  pop_front(): Option<T> {
+    return this.head.match({
+      Some: (head) => {
+        head.next.match({
+          Some: (next) => {
+            next.prev = none();
+          },
+          None: () => {
+            this.tail = head.next;
+          },
+        });
 
-    this.head = this.head.next;
-    this.len -= 1;
-    if (this.head !== undefined) {
-      this.head.prev = undefined;
-    } else {
-      this.tail = undefined;
-    }
+        this.head = head.next;
+        this.len -= 1;
 
-    return res;
+        return some(head.value);
+      },
+      None: () => {
+        return none();
+      },
+    });
   }
 
-  peek_front(): T | undefined {
-    return this.head?.value;
+  peek_front(): Option<T> {
+    return this.head.map((head) => head.value);
   }
 
-  peek_back(): T | undefined {
-    return this.tail?.value;
+  peek_back(): Option<T> {
+    return this.tail.map((tail) => tail.value);
   }
 
   push_back(item: T) {
     this.len += 1;
-    if (this.head === undefined) {
-      this.head = new Node(item);
-      this.tail = this.head;
-      return;
-    }
+    const new_node_inner = new Node(item);
+    const new_node = some(new_node_inner);
 
-    this.tail!.next = new Node(item);
-    this.tail!.next.prev = this.tail;
-    this.tail = this.tail!.next;
+    this.tail.match({
+      Some: (tail) => {
+        tail.next = new_node;
+        new_node_inner.prev = this.tail;
+        this.tail = new_node;
+      },
+      None: () => {
+        this.head = new_node;
+        this.tail = new_node;
+      },
+    });
   }
 
-  pop_back(): T | undefined {
-    const res = this.tail?.value;
-    if (this.tail === undefined) {
-      return res;
-    }
+  pop_back(): Option<T> {
+    return this.tail.match({
+      Some: (tail) => {
+        tail.prev.match({
+          Some: (prev) => {
+            prev.next = none();
+          },
+          None: () => {
+            this.head = tail.prev;
+          },
+        });
 
-    this.tail = this.tail.prev;
-    this.len -= 1;
-    if (this.tail !== undefined) {
-      this.tail.next = undefined;
-    } else {
-      this.head = undefined;
-    }
+        this.tail = tail.prev;
+        this.len -= 1;
 
-    return res;
+        return some(tail.value);
+      },
+
+      None: () => {
+        return none();
+      },
+    });
   }
 
   length(): number {
@@ -86,10 +113,12 @@ export class Deque<T> {
 
 class Node<T> {
   value: T;
-  prev?: Node<T>;
-  next?: Node<T>;
+  prev: Option<Node<T>>;
+  next: Option<Node<T>>;
 
   constructor(value: T) {
     this.value = value;
+    this.prev = none();
+    this.next = none();
   }
 }

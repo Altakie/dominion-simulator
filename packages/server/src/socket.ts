@@ -122,7 +122,8 @@ export class AISocket implements MessageSink {
     // Build interactions object based on request type
     // If its a boolean request, then we ask for a boolean response with some reasoning
     // If its a different kind of request, we ask it to pick a choice
-    let interaction: Awaited<ReturnType<typeof this.ai.interactions.create>>;
+    // let interaction: Awaited<ReturnType<typeof this.ai.interactions.create>>;
+    let interaction: any;
 
     let req_number = 0;
 
