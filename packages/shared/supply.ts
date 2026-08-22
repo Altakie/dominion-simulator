@@ -4,13 +4,9 @@ import {
   BaseCards,
   Bureaucrat,
   Chapel,
-  Harbinger,
-  Market,
   Merchant,
   Militia,
   Moat,
-  Sentry,
-  Vassal,
   Witch,
 } from "./cards/base";
 import { Curse } from "./cards/curses";
@@ -31,7 +27,7 @@ export class Supply {
   fixed_stacks: supplyStack[];
   stacks: supplyStack[];
 
-  constructor(playerCount: number) {
+  constructor(playerCount: number, chosen_cards: CardInfo[]) {
     const victoryCount: number = playerCount === 2 ? 8 : 12;
     this.fixed_stacks = [
       { card: Copper, count: 60 - 7 * playerCount },
@@ -45,14 +41,25 @@ export class Supply {
 
     this.stacks = [];
 
-    const kingdomCards: CardInfo[] = shuffle(Object.values(BaseCards))
-      .slice(0, 10)
-      .sort((a: CardInfo, b: CardInfo) => {
-        if (a.cost === b.cost) {
-          return a.name.localeCompare(b.name);
-        }
-        return a.cost - b.cost;
-      });
+    const kingdomCards = chosen_cards;
+
+    const allCards: CardInfo[] = shuffle(Object.values(BaseCards));
+
+    let i = 0;
+    while (kingdomCards.length < 10) {
+      const cardInfo = allCards[i]!;
+      if (!kingdomCards.some((card) => card.name === cardInfo.name)) {
+        kingdomCards.push(cardInfo);
+      }
+      i++;
+    }
+
+    kingdomCards.sort((a: CardInfo, b: CardInfo) => {
+      if (a.cost === b.cost) {
+        return a.name.localeCompare(b.name);
+      }
+      return a.cost - b.cost;
+    });
 
     for (const card of kingdomCards) {
       if (card.types.includes(CardTypes.VICTORY)) {

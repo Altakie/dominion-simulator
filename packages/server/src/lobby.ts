@@ -1,11 +1,10 @@
-import { randomUUIDv7 } from "bun";
-import type { WSContext } from "hono/ws";
 import {
   type ConnectMessage,
   type DisconnectMessage,
   type Message,
   MessageKinds,
   type PlayerNamesMessage,
+  type StartMessage,
   serializeMessage,
 } from "shared/messages";
 import { Game } from "./game";
@@ -99,13 +98,19 @@ export class Lobby {
   resolve_message(clientid: string, message: Message) {
     console.log(`Message received: ${JSON.stringify(message)}`);
     switch (message.kind) {
-      case MessageKinds.START:
-        console.log("Start Message Received");
+      case MessageKinds.START: {
+        const start_message = message as StartMessage;
         // if (players.size > 1) {
+        console.log("Start Message Received");
         if (this.game) {
           break;
         }
-        this.game = new Game(this.get_player_lobby_infos(), this);
+        console.log("Starting Game");
+        this.game = new Game(
+          this.get_player_lobby_infos(),
+          this,
+          start_message.chosen_cards,
+        );
 
         this.game.start_game();
 
@@ -114,6 +119,7 @@ export class Lobby {
         );
         // }
         break;
+      }
       case MessageKinds.ADD_AI_PLAYER:
         this.add_ai_player();
         break;

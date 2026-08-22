@@ -1,4 +1,4 @@
-import { type ReactNode, type Ref, useEffect, useRef, useState } from "react";
+import { type ReactNode, type Ref, useEffect, useRef } from "react";
 import "./App.css";
 import { type Card, type CardInfo, CardTypes, same_card } from "shared/cards";
 import {
@@ -32,7 +32,7 @@ import {
 import { card_descriptions } from "./CardDescriptions.tsx";
 import { Button } from "./components/ui/button.tsx";
 import { Separator } from "./components/ui/separator.tsx";
-import { game_socket, PlayerDisplay, useLobbyStore } from "./Lobby";
+import { PlayerDisplay, useLobbyStore } from "./Lobby";
 import { cn } from "./lib/utils.ts";
 
 export function Game() {
@@ -119,14 +119,10 @@ function Description() {
 function PlayerList() {
   const players = useLobbyStore((state) => state.player_game_infos);
   const game_state = useLobbyStore((state) => state.game_state)!;
+
   return (
     <div className="flex flex-col flex-nowrap gap-1 h-fit">
       <GameAreaTitle title="PLAYERS" />
-      {/* <ol> */}
-      {/*   {players.map((name) => ( */}
-      {/*     <li>{name}</li> */}
-      {/*   ))} */}
-      {/* </ol> */}
       {players.map((player, index) => {
         let highlight: "current" | "attacked" | "none" = "none";
         if (index === game_state.current_player_index) {
@@ -134,6 +130,7 @@ function PlayerList() {
         } else if (index === game_state.attack_index) {
           highlight = "attacked";
         }
+
         return (
           <PlayerDisplay
             key={player.name}
@@ -259,7 +256,7 @@ function ConfirmChoicesButton() {
             reset_cards();
             setMessage(undefined);
             // Need to set message to null
-            game_socket?.send(JSON.stringify(res));
+            useLobbyStore.getState().send_message(res);
           }}
           disabled={
             selected_cards.length > pick_cards_req.max ||
@@ -283,7 +280,7 @@ function ConfirmChoicesButton() {
             };
             reset_stacks();
             setMessage(undefined);
-            game_socket?.send(JSON.stringify(res));
+            useLobbyStore.getState().send_message(res);
           }}
           disabled={
             selected_stacks.length > pick_stacks_req.max ||
@@ -373,10 +370,18 @@ function SupplyArea({
 
 function VisualSupplyStack({ supply_stack }: { supply_stack: supplyStack }) {
   return (
-    <CardShell card_info={supply_stack.card}>
+    <CardShell
+      card_info={supply_stack.card}
+      className={supply_stack.count > 0 ? "" : "bg-gray-400"}
+    >
       <div className="flex flex-row justify-between">
         <GoldCoin cost={supply_stack.card.cost} />
-        <div className="bg-red-800 text-white rounded-sm w-6 h-6 flex justify-center items-center">
+        <div
+          className={cn(
+            supply_stack.count > 0 ? "bg-red-800" : "bg-gray-700",
+            "text-white rounded-sm w-6 h-6 flex justify-center items-center",
+          )}
+        >
           {supply_stack.count}
         </div>
       </div>
@@ -417,7 +422,7 @@ function DeckAndDiscard() {
   const player_info = useLobbyStore((state) => state.player);
   return (
     player_info && (
-      <div className="flex flex-row flex-nowrap justify-start gap-Game2">
+      <div className="flex flex-row flex-nowrap justify-start gap-2">
         <div className="flex flex-col justify-start items-center">
           <CardShape
             height={20}
@@ -449,7 +454,7 @@ function DeckAndDiscard() {
 
 function Hand({ hand }: { hand: Card[] }) {
   const message = useLobbyStore((state) => state.message);
-  const setMessage = useLobbyStore((state) => state.set_message);
+  const _setMessage = useLobbyStore((state) => state.set_message);
 
   const [selected_cards, toggle_card] = useLobbyStore(
     useShallow((state) => [state.selected_cards, state.toggle_card]),
@@ -485,7 +490,7 @@ const CARD_SIZES = {
   20: "w-18 h-20",
 } as const;
 
-function CardShape({
+export function CardShape({
   className = "",
   height,
   ...props
@@ -503,7 +508,7 @@ function CardShape({
   );
 }
 
-function CardShell({
+export function CardShell({
   card_info,
   children,
   className = "",
@@ -518,9 +523,9 @@ function CardShell({
       <TooltipTrigger>
         <CardShape
           className={cn(
-            className,
             "transition-transform duration-300",
             card_bg(card_info),
+            className,
           )}
           height={20}
           {...props}
@@ -528,13 +533,6 @@ function CardShell({
           <p className="text-black">{card_info.name}</p>
           {children}
         </CardShape>
-        {/* <div */}
-        {/*   className={`text-xs border-4 border-gray-400 rounded-lg w-22 h-20 p-px flex flex-col shrink-0 grow-0 justify-between text-center ${card_bg(card_info)} ${className}`} */}
-        {/*   {...props} */}
-        {/* > */}
-        {/*   <p className="text-black">{card_info.name}</p> */}
-        {/*   {children} */}
-        {/* </div> */}
       </TooltipTrigger>
       <TooltipContent side="top">
         <div className="flex flex-col flex-wrap text-center z-51">
@@ -680,7 +678,7 @@ function ChooseCardsList({ extra_cards }: { extra_cards: Card[] }) {
             };
             set_message(undefined);
             reset_cards();
-            game_socket?.send(JSON.stringify(res));
+            useLobbyStore.getState().send_message(res);
           }}
           disabled={
             selected_cards.length > message.max ||
@@ -705,7 +703,7 @@ function ChooseYesNo() {
       choice: choice,
     };
     set_message(undefined);
-    game_socket?.send(JSON.stringify(res));
+    useLobbyStore.getState().send_message(res);
   }
 
   return (

@@ -10,7 +10,6 @@
   - Password locked lobbies
   - Combine lobby stores and router stores
   - Make game_socket be created when the connect button is clicked
-- Screen to setup game in beginning
 - Actually allow player to make decisions during money phase
 
 ## Minor Features
@@ -22,13 +21,6 @@
 - Indicate empty supply piles
   - Gray them out or put an x over them
   - Just do a check on whether the count is 0 and replace the supply pile visual when it is 0
-- Better indication of current turn
-  - Think on this
-  - Highlighting of current player in player list?
-  - Different border to screen???
-  - Background slightly changes or flashes
-  - Quick popup?
-    - Easily dismissable
 - Trash pile dialog pop-up button?
   - Maybe show top of trash pile
 - Card Art

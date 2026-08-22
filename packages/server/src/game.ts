@@ -1,4 +1,3 @@
-import type { WSContext } from "hono/ws";
 import {
   GamePhases,
   type GameState,
@@ -46,7 +45,7 @@ import { shuffle } from "shared/shuffle";
 import { Supply, same_stack, type supplyStack } from "shared/supply";
 import { effect_table } from "./effects";
 import type { Lobby, PlayerLobbyInfo } from "./lobby";
-import { AISocket, type MessageSink } from "./socket";
+import type { MessageSink } from "./socket";
 
 type WaitResponses =
   | typeof MessageKinds.PICK_CARDS_RESPONSE
@@ -217,7 +216,11 @@ export class Game {
   event_log: Log;
   card_count: number;
 
-  constructor(players: PlayerLobbyInfo[], lobby: Lobby) {
+  constructor(
+    players: PlayerLobbyInfo[],
+    lobby: Lobby,
+    chosen_cards: CardInfo[],
+  ) {
     this.lobby = lobby;
 
     this.card_count = 0;
@@ -233,7 +236,10 @@ export class Game {
     });
     this.player_infos = shuffle(player_infos);
 
-    this.game_state = new_game_state(0, new Supply(players.length));
+    this.game_state = new_game_state(
+      0,
+      new Supply(players.length, chosen_cards),
+    );
 
     // DEBUG MODE TOGGLE
     if (
@@ -333,9 +339,6 @@ export class Game {
     this.game_state.money = 0;
     this.game_state.buys = 1;
 
-    // this.send_log_message(
-    //   `Turn ${this.game_state.turn_number} - ${this.get_current_player().name}`,
-    // );
     this.event_log.new_turn(
       this.game_state.turn_number,
       this.get_current_player().name,
@@ -462,7 +465,6 @@ export class Game {
     const end_phase = () => {
       this.game_state.phase = GamePhases.MONEY;
       console.log(`End of action phase ${this.game_state.turn_number}`);
-      // this.send_update();
       this.money_phase();
     };
 
@@ -492,8 +494,6 @@ export class Game {
         // Resolve the action effect
         this.play_card(card_index, hand);
         const cleanup = () => {
-          // Send the new gamestate to all players
-          // this.send_update();
           // Run the action phase again
           this.action_phase();
         };
@@ -539,7 +539,6 @@ export class Game {
     }
 
     this.game_state.phase = GamePhases.BUY;
-    // this.send_update();
     this.buy_phase();
   }
 
@@ -549,7 +548,6 @@ export class Game {
     this.send_update();
     const end_phase = () => {
       console.log(`End of buy phase ${this.game_state.turn_number}`);
-      // this.send_update();
       if (this.game_over()) {
         this.send_game_over();
         return;
@@ -577,8 +575,6 @@ export class Game {
         this.game_state.money -= choice.card.cost;
         this.game_state.buys--;
 
-        // Send the new gamestate to all players
-        // this.send_update();
         // Run the action phase again
         this.buy_phase();
       };

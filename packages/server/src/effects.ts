@@ -1,6 +1,6 @@
 import type { Player } from "shared";
 import { type Card, type CardName, CardTypes } from "shared/cards";
-import { Bandit, Bureaucrat, Library, Militia, Witch } from "shared/cards/base";
+import { Library } from "shared/cards/base";
 import { Curse } from "shared/cards/curses";
 import { Copper, Gold, Silver } from "shared/cards/treasures";
 import {

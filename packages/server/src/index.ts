@@ -4,7 +4,6 @@ import { type Context, Hono } from "hono";
 import { serveStatic, upgradeWebSocket, websocket } from "hono/bun";
 import { getCookie, setCookie } from "hono/cookie";
 import { cors } from "hono/cors";
-import type { WSContext } from "hono/ws";
 import { parseMessage } from "shared/messages";
 import { Lobby } from "./lobby";
 
@@ -83,7 +82,7 @@ app.use(
         console.log(`Player ${clientid} joined the game`);
         console.log(`Players: ${JSON.stringify(lobby.get_player_names())}`);
       },
-      onMessage: (ev, ws) => {
+      onMessage: (ev, _ws) => {
         const clientid = getClientId(c);
         if (!clientid) {
           return;

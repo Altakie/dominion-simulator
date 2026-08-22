@@ -1,11 +1,10 @@
 import type {
   GameState,
-  Player,
   PlayerDisplayInfo,
   PlayerEndInfo,
   SharablePlayer,
 } from ".";
-import type { Card } from "./cards";
+import type { Card, CardInfo } from "./cards";
 import type {
   BinaryDescription,
   GainDescription,
@@ -70,6 +69,11 @@ export interface DisconnectMessage extends Message {
 export interface PlayerNamesMessage extends Message {
   kind: typeof MessageKinds.PLAYER_NAMES;
   player_names: string[];
+}
+
+export interface StartMessage extends Message {
+  kind: typeof MessageKinds.START;
+  chosen_cards: CardInfo[];
 }
 
 export interface StartedMessage extends Message {
