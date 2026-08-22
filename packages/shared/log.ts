@@ -1,3 +1,5 @@
+import type { CardInfo } from "./cards";
+
 export class Log {
   log_messages: Turn[];
 
@@ -28,6 +30,49 @@ export type Turn = {
   events: LogEntry[];
 };
 
-export type LogEntry = {
-  message: string;
-};
+export const LogEventKinds = Object.freeze({
+  PLAYED: "Played",
+  DISCARDED: "Discarded",
+  GAINED: "Gained",
+  TRASHED: "Trashed",
+  DREW: "Drew",
+  NO_CARDS_TO_DISCARD: "NoCardsToDiscard",
+  REVEALED_REACTION: "RevealedReaction",
+});
+
+export type LogEventKind = (typeof LogEventKinds)[keyof typeof LogEventKinds];
+
+interface BaseLogEntry {
+  player_name: string;
+}
+
+interface CardsLogEntry extends BaseLogEntry {
+  kind:
+    | typeof LogEventKinds.PLAYED
+    | typeof LogEventKinds.DISCARDED
+    | typeof LogEventKinds.GAINED
+    | typeof LogEventKinds.TRASHED;
+  cards: CardInfo[];
+}
+
+interface DrewLogEntry extends BaseLogEntry {
+  kind: typeof LogEventKinds.DREW;
+  count: number;
+}
+
+interface NoCardsToDiscardLogEntry extends BaseLogEntry {
+  kind: typeof LogEventKinds.NO_CARDS_TO_DISCARD;
+}
+
+interface RevealedReactionLogEntry extends BaseLogEntry {
+  kind: typeof LogEventKinds.REVEALED_REACTION;
+  card: CardInfo;
+}
+
+export type LogEntry =
+  | CardsLogEntry
+  | DrewLogEntry
+  | NoCardsToDiscardLogEntry
+  | RevealedReactionLogEntry;
+
+export type CardsLogEventKind = CardsLogEntry["kind"];

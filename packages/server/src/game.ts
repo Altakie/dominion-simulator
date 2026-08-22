@@ -22,7 +22,7 @@ import {
   type PickCardsDescription,
   PickCardsDescriptions,
 } from "shared/effect_descriptions";
-import { Log, type LogEntry } from "shared/log";
+import { Log, type LogEntry, LogEventKinds } from "shared/log";
 import {
   type GameEndMessage,
   type GameStateUpdateMessage,
@@ -371,9 +371,9 @@ export class Game {
 
     const player = this.get_current_player();
     this.discard_hand(player);
-    while (this.game_state.played_cards.length > 0) {
-      this.discard_card(player, 0, this.game_state.played_cards);
-    }
+
+    this.discard_pile(player, this.game_state.played_cards);
+
     this.draw_cards(player, 5);
 
     this.new_turn(
@@ -748,7 +748,11 @@ export class Game {
 
     const log_message = `${player.name} drew ${num_cards} cards`;
     console.log(log_message);
-    this.send_log_message(log_message);
+    this.send_log_message({
+      kind: LogEventKinds.DREW,
+      player_name: player.name,
+      count: num_cards,
+    });
   }
 
   play_card(card_index: number, pile: Card[]) {
@@ -757,7 +761,11 @@ export class Game {
 
     const log_message = `${this.get_current_player().name} played ${card.info.name}`;
     console.log(log_message);
-    this.send_log_message(log_message);
+    this.send_log_message({
+      kind: LogEventKinds.PLAYED,
+      player_name: this.get_current_player().name,
+      cards: [card.info],
+    });
 
     effect_table[card.info.name](this);
   }
@@ -770,7 +778,10 @@ export class Game {
     }
     if (initial_pile.length === 0) {
       console.log("No cards to discard");
-      this.send_log_message(`${player.name} has no cards to discard`);
+      this.send_log_message({
+        kind: LogEventKinds.NO_CARDS_TO_DISCARD,
+        player_name: player.name,
+      });
       return;
     }
     const card = this.remove_card(card_index, initial_pile);
@@ -778,13 +789,31 @@ export class Game {
 
     const log_message = `${player.name} discarded ${card?.info.name}`;
     console.log(log_message);
-    this.send_log_message(log_message);
+    this.send_log_message({
+      kind: LogEventKinds.DISCARDED,
+      player_name: player.name,
+      cards: [card.info],
+    });
+  }
+
+  discard_cards(player: Player, cards: Card[], initial_pile: Card[]) {
+    for (const card of cards) {
+      this.discard_card(
+        player,
+        this.find_by_id(initial_pile, card.id),
+        initial_pile,
+      );
+    }
+  }
+
+  discard_pile(player: Player, pile: Card[]) {
+    while (pile.length > 0) {
+      this.discard_card(player, pile.length - 1, pile);
+    }
   }
 
   discard_hand(player: Player) {
-    while (player.hand.length > 0) {
-      this.discard_card(player, 0, player.hand);
-    }
+    this.discard_pile(player, player.hand);
   }
 
   gain_card(player: Player, card_name: CardName, pile: Card[]) {
@@ -795,7 +824,11 @@ export class Game {
 
       const log_message = `${player.name} gained ${card?.info.name}`;
       console.log(log_message);
-      this.send_log_message(log_message);
+      this.send_log_message({
+        kind: LogEventKinds.GAINED,
+        player_name: player.name,
+        cards: [card.info],
+      });
     }
   }
 
@@ -806,7 +839,11 @@ export class Game {
 
     const log_message = `${player.name} trashed ${card?.info.name}`;
     console.log(log_message);
-    this.send_log_message(log_message);
+    this.send_log_message({
+      kind: LogEventKinds.TRASHED,
+      player_name: player.name,
+      cards: [card.info],
+    });
   }
 
   remove_card(card_index: number, pile: Card[]): Card {
@@ -919,16 +956,14 @@ export class Game {
     this.lobby.game = undefined;
   }
 
-  send_log_message(...log_messages: string[]) {
+  send_log_message(...log_messages: LogEntry[]) {
     const msg: LogEventMessage = {
       kind: MessageKinds.LOG_EVENT,
 
-      log_messages: log_messages.map((msg): LogEntry => ({ message: msg })),
+      log_messages: log_messages,
     };
 
-    this.event_log.log_events(
-      ...log_messages.map((msg): LogEntry => ({ message: msg })),
-    );
+    this.event_log.log_events(...log_messages);
 
     const ser_msg = serializeMessage(msg);
     for (const player_info of this.player_infos) {

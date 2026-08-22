@@ -56,13 +56,7 @@ export const effect_table: Record<CardName, (game: Game) => void> = {
 
     function get_next(): (choices: Card[]) => void {
       return (choices: Card[]) => {
-        for (const card of choices) {
-          game.discard_card(
-            player,
-            game.find_by_id(player.hand, card.id),
-            player.hand,
-          );
-        }
+        game.discard_cards(player, choices, player.hand);
         game.draw_cards(player, choices.length);
       };
     }
@@ -244,13 +238,7 @@ export const effect_table: Record<CardName, (game: Game) => void> = {
     next_attack(game, attack);
 
     function militia_discard(player: Player, choices: Card[]) {
-      for (const card of choices) {
-        game.discard_card(
-          player,
-          game.find_by_id(player.hand, card.id),
-          player.hand,
-        );
-      }
+      game.discard_cards(player, choices, player.hand);
     }
   },
   Moneylender: (game: Game) => {
@@ -301,13 +289,7 @@ export const effect_table: Record<CardName, (game: Game) => void> = {
 
     function get_next(): (choices: Card[]) => void {
       return (choices: Card[]) => {
-        for (const card of choices) {
-          game.discard_card(
-            player,
-            game.find_by_id(player.hand, card.id),
-            player.hand,
-          );
-        }
+        game.discard_cards(player, choices, player.hand);
       };
     }
   },
@@ -444,7 +426,7 @@ export const effect_table: Record<CardName, (game: Game) => void> = {
           },
         );
       } else {
-        discard_revealed(player, revealed);
+        game.discard_pile(player, revealed);
         next();
       }
     };
@@ -455,13 +437,7 @@ export const effect_table: Record<CardName, (game: Game) => void> = {
       for (const card of choices) {
         game.trash_card(player, game.find_by_id(revealed, card.id), revealed);
       }
-      discard_revealed(player, revealed);
-    }
-
-    function discard_revealed(player: Player, revealed: Card[]) {
-      for (const card of revealed) {
-        player.discard_pile.push(card);
-      }
+      game.discard_pile(player, revealed);
     }
   },
   "Council Room": (game: Game) => {
@@ -509,7 +485,7 @@ export const effect_table: Record<CardName, (game: Game) => void> = {
     ) {
       effect_table[Library.name](game);
     } else {
-      discard_set_aside_cards();
+      game.discard_pile(player, game.game_state.set_aside_cards);
     }
 
     function get_next(): (choice: boolean) => void {
@@ -525,19 +501,9 @@ export const effect_table: Record<CardName, (game: Game) => void> = {
         ) {
           effect_table[Library.name](game);
         } else {
-          discard_set_aside_cards();
+          game.discard_pile(player, game.game_state.set_aside_cards);
         }
       };
-    }
-
-    function discard_set_aside_cards() {
-      while (game.game_state.set_aside_cards.length > 0) {
-        game.discard_card(
-          player,
-          game.game_state.set_aside_cards.length - 1,
-          game.game_state.set_aside_cards,
-        );
-      }
     }
   },
   Market: (game: Game) => {
@@ -656,14 +622,10 @@ export const effect_table: Record<CardName, (game: Game) => void> = {
     ): (choices: Card[]) => void {
       return (choices: Card[]) => {
         let final_cards = remaining_cards;
-        for (const card of choices) {
-          game.discard_card(
-            player,
-            game.find_by_id(remaining_cards, card.id),
-            remaining_cards,
-          );
-          final_cards = final_cards.filter((c) => c.id !== card.id);
-        }
+        game.discard_cards(player, choices, remaining_cards);
+        final_cards = final_cards.filter(
+          (c) => !choices.some((card) => card.id === c.id),
+        );
         if (final_cards.length === 2) {
           game.prompt_pick_card(
             game.get_current_player_info(),

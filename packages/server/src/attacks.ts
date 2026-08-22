@@ -1,5 +1,6 @@
 import { CardTypes } from "shared/cards";
 import { PickCardsDescriptions } from "shared/effect_descriptions";
+import { LogEventKinds } from "shared/log";
 import type { Game } from "./game";
 
 export type AttackCC = (game: Game, next: () => void) => void;
@@ -35,9 +36,11 @@ export function next_attack(game: Game, attack: AttackCC) {
         if (choices.length === 0) {
           attack(game, () => next_attack(game, attack));
         } else {
-          game.send_log_message(
-            `${attacked_player_info.player.name} revealed ${choices[0]?.info.name} in response to attack`,
-          );
+          game.send_log_message({
+            kind: LogEventKinds.REVEALED_REACTION,
+            player_name: attacked_player_info.player.name,
+            card: choices[0]!.info,
+          });
           next_attack(game, attack);
         }
       },
