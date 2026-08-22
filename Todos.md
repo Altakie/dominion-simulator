@@ -31,12 +31,5 @@
   - Support for kicking players from the lobby
   - Support for multiple AI players
     - Make them get created with some sort of random name
-- Make the log better?
-  - Make more recent turns at the top?
-  - Organize the incoming messages by turn
-  - Obscure some information about what is happening to players that are not the origin player
-  - Multiple consecutive messages of the same time should be squashed together / combined into one big message
-  - Color code incoming messages by what information they contain
-    - Cards should be color coded by type and highlighted within the message
 
 ## Bugs

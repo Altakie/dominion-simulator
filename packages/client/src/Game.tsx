@@ -2,6 +2,11 @@ import { type ReactNode, type Ref, useEffect, useRef } from "react";
 import "./App.css";
 import { type Card, type CardInfo, CardTypes, same_card } from "shared/cards";
 import {
+  type CardsLogEventKind,
+  type LogEntry,
+  LogEventKinds,
+} from "shared/log";
+import {
   MessageKinds,
   type PickCardsRequest,
   type PickCardsResponse,
@@ -600,6 +605,28 @@ function CardButton({
   );
 }
 
+function group_consecutive_log_entries(events: LogEntry[]): LogEntry[] {
+  const grouped: LogEntry[] = [];
+  for (const event of events) {
+    const last = grouped[grouped.length - 1];
+    if (
+      last &&
+      "cards" in last &&
+      "cards" in event &&
+      last.kind === event.kind &&
+      last.player_name === event.player_name
+    ) {
+      grouped[grouped.length - 1] = {
+        ...last,
+        cards: [...last.cards, ...event.cards],
+      };
+      continue;
+    }
+    grouped.push(event);
+  }
+  return grouped;
+}
+
 function Log() {
   const log_messages = useLobbyStore((state) => state.log_messages);
 
@@ -608,6 +635,7 @@ function Log() {
       <GameAreaTitle title="LOG" />
       <div className="flex-1 min-h-0 overflow-auto">
         {log_messages.map((turn) => {
+          const grouped_events = group_consecutive_log_entries(turn.events);
           return (
             <div
               key={turn.turn_number.toString() + turn.active_player_name}
@@ -620,9 +648,13 @@ function Log() {
                 <div className="text-fg">{turn.events.length} events</div>
               </div>
               <div className="flex flex-col flex-nowrap gap-1 text-sm w-7/10">
-                {turn.events.map((event) => (
-                  <p key={event.message} className="border-l border-gray-400">
-                    {event.message}
+                {grouped_events.map((entry, entry_index) => (
+                  <p
+                    // biome-ignore lint/suspicious/noArrayIndexKey: grouped entries have no stable id
+                    key={entry_index}
+                    className="border-l px-2 py-1 border-gray-400 flex flex-row flex-wrap items-center gap-1"
+                  >
+                    <LogEntryDisplay entry={entry} />
                   </p>
                 ))}
               </div>
@@ -632,6 +664,90 @@ function Log() {
       </div>
     </div>
   );
+}
+
+function PlayerNameLabel({ name }: { name: string }) {
+  return <span className="font-semibold">{name}</span>;
+}
+
+function CardPill({ card_info }: { card_info: CardInfo }) {
+  return (
+    <span className={cn("rounded px-1 text-black", card_bg(card_info))}>
+      {card_info.name}
+    </span>
+  );
+}
+
+function CardListEntry({
+  player_name,
+  verb,
+  cards,
+}: {
+  player_name: string;
+  verb: string;
+  cards: CardInfo[];
+}) {
+  return (
+    <>
+      <PlayerNameLabel name={player_name} />
+      <span>{verb}</span>
+      {cards.map((card_info, card_index) => (
+        <span
+          // biome-ignore lint/suspicious/noArrayIndexKey: merged cards have no stable id
+          key={card_index}
+        >
+          <CardPill card_info={card_info} />
+          {card_index < cards.length - 1 ? "," : null}
+        </span>
+      ))}
+    </>
+  );
+}
+
+const CARD_LIST_VERBS: Record<CardsLogEventKind, string> = {
+  [LogEventKinds.PLAYED]: "played",
+  [LogEventKinds.DISCARDED]: "discarded",
+  [LogEventKinds.GAINED]: "gained",
+  [LogEventKinds.TRASHED]: "trashed",
+};
+
+function LogEntryDisplay({ entry }: { entry: LogEntry }) {
+  switch (entry.kind) {
+    case LogEventKinds.PLAYED:
+    case LogEventKinds.DISCARDED:
+    case LogEventKinds.GAINED:
+    case LogEventKinds.TRASHED:
+      return (
+        <CardListEntry
+          player_name={entry.player_name}
+          verb={CARD_LIST_VERBS[entry.kind]}
+          cards={entry.cards}
+        />
+      );
+    case LogEventKinds.DREW:
+      return (
+        <>
+          <PlayerNameLabel name={entry.player_name} />
+          <span>drew {entry.count} cards</span>
+        </>
+      );
+    case LogEventKinds.NO_CARDS_TO_DISCARD:
+      return (
+        <>
+          <PlayerNameLabel name={entry.player_name} />
+          <span>has no cards to discard</span>
+        </>
+      );
+    case LogEventKinds.REVEALED_REACTION:
+      return (
+        <>
+          <PlayerNameLabel name={entry.player_name} />
+          <span>revealed</span>
+          <CardPill card_info={entry.card} />
+          <span>in response to attack</span>
+        </>
+      );
+  }
 }
 
 export function GoldCoin({ cost }: { cost: number }) {
