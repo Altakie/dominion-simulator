@@ -23,20 +23,30 @@ export function same_stack(a: supplyStack, b: supplyStack): boolean {
   return a.card.name === b.card.name && a.count === b.count;
 }
 
+export function getVictoryCount(playerCount: number): number {
+  return playerCount <= 2 ? 8 : 12;
+}
+
+export function getProvinceCount(playerCount: number): number {
+  if (playerCount <= 4) return getVictoryCount(playerCount);
+  if (playerCount === 5) return 15;
+  return 18;
+}
+
 export class Supply {
   fixed_stacks: supplyStack[];
   stacks: supplyStack[];
 
   constructor(playerCount: number, chosen_cards: CardInfo[]) {
-    const victoryCount: number = playerCount === 2 ? 8 : 12;
+    const victoryCount: number = getVictoryCount(playerCount);
     this.fixed_stacks = [
       { card: Copper, count: 60 - 7 * playerCount },
       { card: Silver, count: 40 },
       { card: Gold, count: 30 },
       { card: Estate, count: victoryCount },
       { card: Duchy, count: victoryCount },
-      { card: Province, count: victoryCount },
-      { card: Curse, count: 10 * playerCount },
+      { card: Province, count: getProvinceCount(playerCount) },
+      { card: Curse, count: Math.max(10 * playerCount - 10, 10) },
     ];
 
     this.stacks = [];

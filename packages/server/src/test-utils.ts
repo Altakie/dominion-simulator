@@ -9,7 +9,7 @@ import {
   type PickYesNoResponse,
   parseMessage,
 } from "shared/messages";
-import type { supplyStack } from "shared/supply";
+import { getVictoryCount, type supplyStack } from "shared/supply";
 import type { PlayerInfo } from "./game";
 import { Game } from "./game";
 import { Lobby } from "./lobby";
@@ -84,7 +84,7 @@ export function createTestGame(setup: TestGameSetup): TestGame {
   );
 
   if (setup.kingdomCards) {
-    const victoryCount = setup.players.length === 2 ? 8 : 12;
+    const victoryCount = getVictoryCount(setup.players.length);
     game.game_state.supply.stacks = setup.kingdomCards.map((card) => ({
       card,
       count: card.types.includes(CardTypes.VICTORY) ? victoryCount : 10,

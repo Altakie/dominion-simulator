@@ -326,13 +326,18 @@ export class Game {
   }
 
   get_player_display_infos(): PlayerDisplayInfo[] {
+    const in_play =
+      this.game_state.played_cards.length +
+      this.game_state.set_aside_cards.length;
+
     return this.player_infos.map((pi) => ({
       name: pi.player.name,
       victory_points: pi.player.victory_points,
       total_cards:
         pi.player.deck.length +
         pi.player.discard_pile.length +
-        pi.player.hand.length,
+        pi.player.hand.length +
+        (pi === this.get_current_player_info() ? in_play : 0),
     }));
   }
 
@@ -856,12 +861,18 @@ export class Game {
 
   calculate_victory_points(player: Player): number {
     let points = 0;
+    const in_play =
+      this.get_current_player() === player
+        ? [...this.game_state.played_cards, ...this.game_state.set_aside_cards]
+        : [];
+
     const all_cards = [
       ...player.discard_pile,
       ...player.hand,
-      ...this.game_state.played_cards,
       ...player.deck,
+      ...in_play,
     ];
+
     for (const card of all_cards) {
       switch (card.info.name) {
         case "Estate":
@@ -898,9 +909,7 @@ export class Game {
   send_game_over() {
     const player = this.get_current_player();
     this.discard_hand(player);
-    while (this.game_state.played_cards.length > 0) {
-      this.discard_card(player, 0, this.game_state.played_cards);
-    }
+    this.discard_pile(player, this.game_state.played_cards);
 
     const ranked = rank_players_at_game_end(
       this.player_infos,
