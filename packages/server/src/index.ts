@@ -24,6 +24,8 @@ const names: Map<string, string> = new Map();
 
 const lobby = new Lobby();
 
+const MAX_PLAYERS = 6;
+
 app.get("/session", (c) => {
   const clientid = getCookie(c, "clientid");
   const player_info = clientid
@@ -42,6 +44,11 @@ app.put("/names", async (c) => {
   if (lobby.player_lobby_infos.values().some((pli) => pli.name === name)) {
     c.status(406);
     return c.body("Name is already taken");
+  }
+
+  if (lobby.player_lobby_infos.size >= MAX_PLAYERS) {
+    c.status(406);
+    return c.body("Lobby is full");
   }
 
   let clientid = getCookie(c, "clientid");
